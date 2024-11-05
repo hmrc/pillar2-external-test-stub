@@ -1,0 +1,12 @@
+{
+  "failures": [
+    {
+      "code": "INVALID_ID",
+      "reason": "The backend has indicated that the supplied ID (PLR Reference) is invalid."
+    },
+    {
+      "code": "INVALID_PLR_REFERENCE",
+      "reason": "Submission has not passed validation. Invalid path parameter: plrReference."
+    }
+  ]
+}

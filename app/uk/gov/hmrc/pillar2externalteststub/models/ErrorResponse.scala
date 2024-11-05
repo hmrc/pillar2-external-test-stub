@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.config
+package uk.gov.hmrc.pillar2externalteststub.models
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+case class ErrorResponse(
+                          failures: Seq[Failure]
+                        )
 
-@Singleton
-class AppConfig @Inject()(config: Configuration) {
-
-  val appName: String = config.get[String]("appName")
-}
+case class Failure(
+                    code: String,
+                    reason: String
+                  )

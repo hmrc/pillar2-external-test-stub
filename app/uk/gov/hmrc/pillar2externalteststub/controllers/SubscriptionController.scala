@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.config
+package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import play.api.mvc.{Action, AnyContent}
 
-@Singleton
-class AppConfig @Inject()(config: Configuration) {
+class SubscriptionController {
 
-  val appName: String = config.get[String]("appName")
+  def retrieveSubscription(plrReference: String): Action[AnyContent]  = ???
+
 }
