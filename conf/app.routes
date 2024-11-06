@@ -1,3 +1,4 @@
 # microservice specific routes
 
-GET           /pillar2/subscription/:plrReference                                          uk.gov.hmrc.pillar2externalteststub.controllers.SubscriptionController.retrieveSubscription(plrReference: String)
+
+GET     /pillar2/subscription/:plrReference    uk.gov.hmrc.pillar2externalteststub.controllers.SubscriptionController.retrieveSubscription(plrReference: String)

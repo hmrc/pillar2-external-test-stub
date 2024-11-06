@@ -18,7 +18,6 @@ package uk.gov.hmrc.pillar2externalteststub.models
 
 import play.api.libs.json.{Json, OWrites}
 
-// Case class to represent a successful subscription retrieval response
 case class SuccessResponse(plrReference: String, domesticOnly: Boolean)
 
 object SuccessResponse {
