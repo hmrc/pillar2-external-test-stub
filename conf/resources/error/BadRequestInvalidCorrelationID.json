@@ -1,8 +1,0 @@
-{
-  "failures": [
-    {
-      "code": "INVALID_CORRELATIONID",
-      "reason": "Submission has not passed validation. Invalid Header CorrelationId."
-    }
-  ]
-}

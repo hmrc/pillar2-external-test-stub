@@ -16,18 +16,44 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, OWrites}
 
-object UKTRViewSubscriptionRequest {
-  implicit val accountStatusFormat: OFormat[AccountStatus] = Json.format[AccountStatus]
-  implicit val accountingPeriodFormat: OFormat[AccountingPeriod] = Json.format[AccountingPeriod]
-  implicit val filingMemberDetailsFormat: OFormat[FilingMemberDetails] = Json.format[FilingMemberDetails]
-  implicit val contactDetailsFormat: OFormat[ContactDetails] = Json.format[ContactDetails]
-  implicit val addressDetailsFormat: OFormat[AddressDetails] = Json.format[AddressDetails]
-  implicit val upeDetailsFormat: OFormat[UpeDetails] = Json.format[UpeDetails]
-  implicit val successDetailsFormat: OFormat[SuccessDetails] = Json.format[SuccessDetails]
-  implicit val successResponseFormat: OFormat[SuccessResponse] = Json.format[SuccessResponse]
+case class UKTRSubscriptionRequest(
+  accountingPeriodFrom: String,
+  accountingPeriodTo:   String,
+  qualifyingGroup:      Boolean,
+  obligationDTT:        Boolean,
+  obligationMTT:        Boolean,
+  liabilities:          Liabilities
+)
 
-  implicit val failureFormat: OFormat[Failure] = Json.format[Failure]
-  implicit val errorResponseFormat: OFormat[ErrorResponse] = Json.format[ErrorResponse]
+object UKTRSubscriptionRequest {
+  implicit val writes: OWrites[UKTRSubscriptionRequest] = Json.writes[UKTRSubscriptionRequest]
+}
+
+case class Liabilities(
+  totalLiability:     BigDecimal,
+  totalLiabilityDTT:  BigDecimal,
+  totalLiabilityIIR:  BigDecimal,
+  totalLiabilityUTPR: BigDecimal,
+  liableEntities:     Seq[LiableEntity]
+)
+
+object Liabilities {
+  implicit val writes: OWrites[Liabilities] = Json.writes[Liabilities]
+}
+
+case class LiableEntity(
+  ukChargeableEntityName: String,
+  idType:                 String,
+  idValue:                String,
+  amountOwedDTT:          BigDecimal,
+  electedDTT:             Boolean,
+  amountOwedIIR:          BigDecimal,
+  amountOwedUTPR:         BigDecimal,
+  electedUTPR:            Boolean
+)
+
+object LiableEntity {
+  implicit val writes: OWrites[LiableEntity] = Json.writes[LiableEntity]
 }

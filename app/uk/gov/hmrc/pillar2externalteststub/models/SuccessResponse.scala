@@ -16,60 +16,11 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models
 
-import java.time.LocalDate
+import play.api.libs.json.{Json, OWrites}
 
-case class SuccessResponse(
-                            success: SuccessDetails
-                          )
+// Case class to represent a successful subscription retrieval response
+case class SuccessResponse(plrReference: String, domesticOnly: Boolean)
 
-case class SuccessDetails(
-                           formBundleNumber: String,
-                           upeDetails: UpeDetails,
-                           upeCorrespAddressDetails: AddressDetails,
-                           primaryContactDetails: ContactDetails,
-                           secondaryContactDetails: Option[ContactDetails],
-                           filingMemberDetails: Option[FilingMemberDetails],
-                           accountingPeriod: AccountingPeriod,
-                           accountStatus: AccountStatus
-                         )
-
-case class UpeDetails(
-                       customerIdentification1: Option[String],
-                       customerIdentification2: Option[String],
-                       organisationName: String,
-                       registrationDate: LocalDate,
-                       domesticOnly: Boolean,
-                       filingMember: Boolean
-                     )
-
-case class AddressDetails(
-                           addressLine1: String,
-                           addressLine2: Option[String],
-                           addressLine3: Option[String],
-                           addressLine4: Option[String],
-                           postCode: Option[String],
-                           countryCode: String // Should be validated against the ISO 3166-1 alpha-2 codes
-                         )
-
-case class ContactDetails(
-                           name: String,
-                           telephone: Option[String],
-                           emailAddress: String
-                         )
-
-case class FilingMemberDetails(
-                                safeId: String,
-                                organisationName: String,
-                                customerIdentification1: Option[String],
-                                customerIdentification2: Option[String]
-                              )
-
-case class AccountingPeriod(
-                             startDate: LocalDate,
-                             endDate: LocalDate,
-                             dueDate: Option[LocalDate]
-                           )
-
-case class AccountStatus(
-                          inactive: Boolean
-                        )
+object SuccessResponse {
+  implicit val writes: OWrites[SuccessResponse] = Json.writes[SuccessResponse]
+}

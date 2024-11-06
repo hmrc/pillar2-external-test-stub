@@ -16,10 +16,41 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import play.api.mvc.{Action, AnyContent}
+import play.api.Logging
+import play.api.libs.json.Json
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
+import uk.gov.hmrc.pillar2externalteststub.models._
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-class SubscriptionController {
+import javax.inject.Inject
+import scala.concurrent.Future
 
-  def retrieveSubscription(plrReference: String): Action[AnyContent]  = ???
+class SubscriptionController @Inject() (
+  cc:         ControllerComponents,
+  authFilter: AuthActionFilter
+) extends BackendController(cc)
+    with Logging {
 
+  def retrieveSubscription(plrReference: String): Action[AnyContent] =
+    (Action andThen authFilter).async { implicit request =>
+      logger.info(s"Retrieving subscription for PLR reference: $plrReference")
+
+      plrReference match {
+        case "XEPLR0123456400" =>
+          Future.successful(BadRequest(Json.toJson(BadRequestInvalidCorrelationID.response)))
+        case "XEPLR0123456404" =>
+          Future.successful(NotFound(Json.toJson(NotFoundSubscription.response)))
+        case "XEPLR0123456422" =>
+          Future.successful(UnprocessableEntity(Json.toJson(DuplicateRecord422.response)))
+        case "XEPLR0123456500" =>
+          Future.successful(InternalServerError(Json.toJson(ServerError500.response)))
+        case "XEPLR0123456503" =>
+          Future.successful(ServiceUnavailable(Json.toJson(ServiceUnavailable503.response)))
+        case "XEPLR5555555555" =>
+          Future.successful(Ok(Json.toJson(SuccessResponse(plrReference, domesticOnly = true))))
+        case _ =>
+          Future.successful(Ok(Json.toJson(SuccessResponse(plrReference, domesticOnly = false))))
+      }
+    }
 }
