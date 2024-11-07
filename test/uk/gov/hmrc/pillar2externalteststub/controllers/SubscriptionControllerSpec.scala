@@ -83,10 +83,16 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
         contentAsJson(result) shouldBe Json.toJson(SubscriptionSuccessResponse.successfulDomesticOnlyResponse("XEPLR5555555555"))
       }
 
-      "must return OK with detailed success response for domesticOnly=false for any other plrReference" in {
+      "must return OK with detailed success response for domesticOnly=false for plrReference 'XEPLR1234567890'" in {
         val result = route(app, authorizedRequest("XEPLR1234567890")).value
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.toJson(SubscriptionSuccessResponse.successfulNonDomesticResponse("XEPLR1234567890"))
+      }
+
+      "must return NOT_FOUND for any other plrReference not explicitly handled" in {
+        val result = route(app, authorizedRequest("XEPLR9876543210")).value
+        status(result)        shouldBe NOT_FOUND
+        contentAsJson(result) shouldBe Json.toJson(NotFoundSubscription.response)
       }
     }
   }

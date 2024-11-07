@@ -47,33 +47,76 @@ service before running sbt commands.
 
 This is an authenticated service, so users first need to be authenticated via GG in order to use the service.
 
-Navigate to http://localhost:9949/auth-login-stub/gg-sign-in which redirects to auth-login-stub page.
-
-Make sure to fill in the fields as below:
-
-***Redirect URL: http://localhost:10050/report-pillar2-top-up-taxes***
-
-***Affinity Group: Organisation***
 
 ## Retrieve Subscription
 
-The retrieveSubscription endpoint returns subscription details based on the provided plrReference (PLR Reference Number). Different plrReference values yield different responses to simulate various scenarios.
+The retrieveSubscription endpoint returns subscription details based on the provided plrReference (PLR Reference Number). Different plrReference values yield different responses to simulate various scenarios, including successful responses with domestic or non-domestic status and specific error responses.
 
 Response Codes and Conditions
 
-| Status                                       |Description                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| XEPLR4000000000                                                          | Invalid request due to a correlation ID error.                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| XEPLR4040000000                                                          | NOT_FOUND Error Response                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| XEPLR5000000000                                                          | SERVER_ERROR Error Response                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| XEPLR5030000000                                                          | SERVICE_UNAVAILABLE Error Response                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| XMPLR0000000(Last three digits are the number of transactions displayed) | For example <br/> - XMPLR0000000022 will display 22 transactions 12 refund and 12 payments. <br/> - XMPLR0000000122 will display 122 transactions 61 refunds and 61 payments <br/> **Please note** <br/> - Use even numbers since 13 will default to 6 refund and 6 payment <br/> - All returned values are randomised so figures won't be consistent <br/> Please note a user must be able to see only last 7 years of transactions on their account, to test read note below  |
-| Any valid ID                                                             | Will return 10 transactions these values are consistent                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| XEPLR5555551111                                                          | Will return success response with registration date set to the current date                                                                                                                                                                                                                                                                                                                                                                                                     |                                               
+| plrReference                 | HTTP Status               | Description                                                                    |
+|:-----------------------------|---------------------------|--------------------------------------------------------------------------------|
+| XEPLR0123456400              | 400 Bad Request           | Invalid request due to a correlation ID error.                                 |
+| XEPLR0123456404              | 404 Not Found             | Subscription not found.                                                        |
+| XEPLR0123456422              | 422 Unprocessable Entity  | Duplicate record - request cannot be processed.                                |
+| XEPLR0123456500              | 500 Internal Server Error | Server error.                                                                  |
+| XEPLR0123456503              | 503 Service Unavailable   | Dependent systems are currently not responding.                                |
+| XEPLR5555555555              | 200 OK                    | Success response with domesticOnly = true.                                     |
+| XEPLR1234567890              | 200 OK                    | Success response with domesticOnly = false.                                    |                                               
+| Any other valid plrReference | 404 Not Found             | Subscription not found (default response for unspecified plrReference values). |                                               
 
+# Curl Call Examples
 
-This is a placeholder README.md for a new repository
+Use the following curl commands to test different responses for the retrieveSubscription endpoint. Replace valid_token with an appropriate authorization token if required.
 
+1. Bad Request (Invalid Correlation ID) - plrReference XEPLR0123456400
+     ```
+      curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456400" \
+      -H "Authorization: Bearer valid_token" \
+      -H "Content-Type: application/json"
+      ```
+2. Not Found (Subscription Not Found) - plrReference XEPLR0123456404
+    ```
+    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456404" \
+    -H "Authorization: Bearer valid_token" \
+    -H "Content-Type: application/json"
+    ```
+3. Unprocessable Entity (Duplicate Record) - plrReference XEPLR0123456422
+    ```
+    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456422" \
+      -H "Authorization: Bearer valid_token" \
+      -H "Content-Type: application/json"
+    ```
+4. Internal Server Error - plrReference XEPLR0123456500
+    ```
+    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456500" \
+      -H "Authorization: Bearer valid_token" \
+      -H "Content-Type: application/json"
+    ```
+5. Service Unavailable - plrReference XEPLR0123456503
+    ```
+   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456503" \
+   -H "Authorization: Bearer valid_token" \
+   -H "Content-Type: application/json"
+    ```
+6. OK with domesticOnly = true - plrReference XEPLR5555555555
+    ```
+   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR5555555555" \
+   -H "Authorization: Bearer valid_token" \
+   -H "Content-Type: application/json"
+    ```
+7. OK with domesticOnly = false - plrReference XEPLR1234567890
+    ```
+   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR1234567890" \
+   -H "Authorization: Bearer valid_token" \
+   -H "Content-Type: application/json"
+    ```
+8. OK with domesticOnly = false - plrReference XEPLR1234567890
+    ```
+   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR9876543210" \
+   -H "Authorization: Bearer valid_token" \
+   -H "Content-Type: application/json"
+    ```
 ### License
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
