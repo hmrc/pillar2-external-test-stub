@@ -48,9 +48,9 @@ class SubscriptionController @Inject() (
         case "XEPLR0123456503" =>
           Future.successful(ServiceUnavailable(Json.toJson(ServiceUnavailable503.response)))
         case "XEPLR5555555555" =>
-          Future.successful(Ok(Json.toJson(SuccessResponse(plrReference, domesticOnly = true))))
+          Future.successful(Ok(Json.toJson(SubscriptionSuccessResponse.successfulDomesticOnlyResponse(plrReference))))
         case _ =>
-          Future.successful(Ok(Json.toJson(SuccessResponse(plrReference, domesticOnly = false))))
+          Future.successful(Ok(Json.toJson(SubscriptionSuccessResponse.successfulNonDomesticResponse(plrReference))))
       }
     }
 }
