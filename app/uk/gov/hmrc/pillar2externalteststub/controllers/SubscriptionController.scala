@@ -52,7 +52,7 @@ class SubscriptionController @Inject() (
         case "XEPLR1234567890" =>
           Future.successful(Ok(Json.toJson(SubscriptionSuccessResponse.successfulNonDomesticResponse(plrReference))))
         case _ =>
-          Future.successful(NotFound(Json.toJson(NotFoundSubscription.response))) // Default case for unmatched references
+          Future.successful(NotFound(Json.toJson(NotFoundSubscription.response)))
       }
     }
 }
