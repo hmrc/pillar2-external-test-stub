@@ -1,7 +1,6 @@
 import org.typelevel.scalacoptions.ScalacOptions
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings
-//import org.scalafmt.sbt.ScalafmtPlugin.autoImport
 
 val appName = "pillar2-external-test-stub"
 
