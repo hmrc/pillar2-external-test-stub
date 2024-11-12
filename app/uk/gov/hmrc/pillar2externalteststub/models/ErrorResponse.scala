@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.config
+package uk.gov.hmrc.pillar2externalteststub.models
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import play.api.libs.json.{Json, OWrites}
 
-@Singleton
-class AppConfig @Inject() (config: Configuration) {
+case class Failure(code: String, reason: String)
 
-  val appName: String = config.get[String]("appName")
+object Failure {
+  implicit val writes: OWrites[Failure] = Json.writes[Failure]
+}
+
+case class ErrorResponse(failures: Seq[Failure])
+
+object ErrorResponse {
+  implicit val writes: OWrites[ErrorResponse] = Json.writes[ErrorResponse]
 }

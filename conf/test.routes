@@ -1,0 +1,3 @@
+# microservice specific routes
+
+POST       /pillar2/submitUKTR/:plrReference       uk.gov.hmrc.pillar2externalteststub.controllers.SubmitUKTRController.submitUKTR(plrReference: String)
