@@ -1,7 +1,7 @@
 
 # pillar2-external-test-stub
 
-The Pillar2 external test stubbs service provides stubbs to mock ETMP responses.
+The Pillar2 external test stub service provides stubs to mock an ETMP responses.
 
 ## Running the service locally
 
@@ -23,11 +23,9 @@ To run the unit tests within the project:
 
 `sbt run`
 
-By default, the service runs locally on port **10052**
-
 To use test-only route locally, run the below:
 
-`sbt 'run -Dplay.http.router=testOnlyDoNotUseInAppConf.Routes 10055'`
+`sbt 'run -Dplay.http.router=testOnlyDoNotUseInAppConf.Routes'`
 
 ### Using Service Manager
 
@@ -64,6 +62,7 @@ Response Codes and Conditions
 | XEPLR5555555555              | 200 OK                    | Success response with domesticOnly = true.                                     |
 | XEPLR1234567890              | 200 OK                    | Success response with domesticOnly = false.                                    |                                               
 | Any other valid plrReference | 404 Not Found             | Subscription not found (default response for unspecified plrReference values). |                                               
+| XEPLR0987654321              | 200 OK                    | Success response for a Nil Return.                                             |                                               
 
 # Curl Call Examples
 
@@ -117,6 +116,14 @@ Use the following curl commands to test different responses for the retrieveSubs
    -H "Authorization: Bearer valid_token" \
    -H "Content-Type: application/json"
     ```
+
+9. OK Nil Return - plrReference XEPLR0987654321
+    ```
+   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0987654321" \
+   -H "Authorization: Bearer valid_token" \
+   -H "Content-Type: application/json"
+    ```
+   
 ### License
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").

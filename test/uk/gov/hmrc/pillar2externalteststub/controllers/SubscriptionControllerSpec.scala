@@ -94,6 +94,13 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
         status(result)        shouldBe NOT_FOUND
         contentAsJson(result) shouldBe Json.toJson(NotFoundSubscription.response)
       }
+
+      "must return OK with NilReturnSuccess response for plrReference 'XEPLR0987654321'" in {
+        val result = route(app, authorizedRequest("XEPLR0987654321")).value
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(NilReturnSuccess.successfulResponse)
+      }
+
     }
   }
 }

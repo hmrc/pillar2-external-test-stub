@@ -51,6 +51,8 @@ class SubscriptionController @Inject() (
           Future.successful(Ok(Json.toJson(SubscriptionSuccessResponse.successfulDomesticOnlyResponse(plrReference))))
         case "XEPLR1234567890" =>
           Future.successful(Ok(Json.toJson(SubscriptionSuccessResponse.successfulNonDomesticResponse(plrReference))))
+        case "XEPLR0987654321" =>
+          Future.successful(Ok(Json.toJson(NilReturnSuccess.successfulResponse)))
         case _ =>
           Future.successful(NotFound(Json.toJson(NotFoundSubscription.response)))
       }
