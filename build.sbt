@@ -1,6 +1,7 @@
 import org.typelevel.scalacoptions.ScalacOptions
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings
+//import org.scalafmt.sbt.ScalafmtPlugin.autoImport
 
 val appName = "pillar2-external-test-stub"
 
@@ -37,7 +38,7 @@ lazy val microservice = Project(appName, file("."))
     )
   )
   .settings(resolvers += Resolver.jcenterRepo)
-  .settings(CodeCoverageSettings.settings: _*)
+  .settings(CodeCoverageSettings.settings *)
 
 addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
 addCommandAlias("lint", ";scalafmtAll;scalafmtSbt;scalafixAll")
