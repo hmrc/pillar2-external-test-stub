@@ -110,14 +110,8 @@ Use the following curl commands to test different responses for the retrieveSubs
    -H "Authorization: Bearer valid_token" \
    -H "Content-Type: application/json"
     ```
-8. OK with domesticOnly = false - plrReference XEPLR1234567890
-    ```
-   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR9876543210" \
-   -H "Authorization: Bearer valid_token" \
-   -H "Content-Type: application/json"
-    ```
 
-9. OK Nil Return - plrReference XEPLR0987654321
+8. OK Nil Return - plrReference XEPLR0987654321
     ```
    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0987654321" \
    -H "Authorization: Bearer valid_token" \
