@@ -55,6 +55,7 @@ Response Codes and Conditions
 | plrReference                 | HTTP Status               | Description                                                                    |
 |:-----------------------------|---------------------------|--------------------------------------------------------------------------------|
 | XEPLR0123456400              | 400 Bad Request           | Invalid request due to a correlation ID error.                                 |
+| XEPLR0123456401              | 400 Bad Request           | Invalid request due to an invalid ID or Pillar2 reference.                     |
 | XEPLR0123456404              | 404 Not Found             | Subscription not found.                                                        |
 | XEPLR0123456422              | 422 Unprocessable Entity  | Duplicate record - request cannot be processed.                                |
 | XEPLR0123456500              | 500 Internal Server Error | Server error.                                                                  |
@@ -62,7 +63,7 @@ Response Codes and Conditions
 | XEPLR5555555555              | 200 OK                    | Success response with domesticOnly = true.                                     |
 | XEPLR1234567890              | 200 OK                    | Success response with domesticOnly = false.                                    |                                               
 | Any other valid plrReference | 404 Not Found             | Subscription not found (default response for unspecified plrReference values). |                                               
-| XEPLR0987654321              | 200 OK                    | Success response for a Nil Return.                                             |                                               
+| XEPLR0987654321              | 200 OK                    | Success response for a Nil Return.                                             |
 
 # Curl Call Examples
 
@@ -74,50 +75,56 @@ Use the following curl commands to test different responses for the retrieveSubs
       -H "Authorization: Bearer valid_token" \
       -H "Content-Type: application/json"
       ```
-2. Not Found (Subscription Not Found) - plrReference XEPLR0123456404
+2. Bad Request (Invalid ID or Pillar2 Reference) - plrReference XEPLR0123456401
+    ```
+    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456401" \
+    -H "Authorization: Bearer valid_token" \
+    -H "Content-Type: application/json"
+    ```
+3. Not Found (Subscription Not Found) - plrReference XEPLR0123456404
     ```
     curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456404" \
     -H "Authorization: Bearer valid_token" \
     -H "Content-Type: application/json"
     ```
-3. Unprocessable Entity (Duplicate Record) - plrReference XEPLR0123456422
+4. Unprocessable Entity (Duplicate Record) - plrReference XEPLR0123456422
     ```
     curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456422" \
       -H "Authorization: Bearer valid_token" \
       -H "Content-Type: application/json"
     ```
-4. Internal Server Error - plrReference XEPLR0123456500
+5. Internal Server Error - plrReference XEPLR0123456500
     ```
     curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456500" \
       -H "Authorization: Bearer valid_token" \
       -H "Content-Type: application/json"
     ```
-5. Service Unavailable - plrReference XEPLR0123456503
+6. Service Unavailable - plrReference XEPLR0123456503
     ```
    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456503" \
    -H "Authorization: Bearer valid_token" \
    -H "Content-Type: application/json"
     ```
-6. OK with domesticOnly = true - plrReference XEPLR5555555555
+7. OK with domesticOnly = true - plrReference XEPLR5555555555
     ```
    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR5555555555" \
    -H "Authorization: Bearer valid_token" \
    -H "Content-Type: application/json"
     ```
-7. OK with domesticOnly = false - plrReference XEPLR1234567890
+8. OK with domesticOnly = false - plrReference XEPLR1234567890
     ```
    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR1234567890" \
    -H "Authorization: Bearer valid_token" \
    -H "Content-Type: application/json"
     ```
 
-8. OK Nil Return - plrReference XEPLR0987654321
+9. OK Nil Return - plrReference XEPLR0987654321
     ```
    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0987654321" \
    -H "Authorization: Bearer valid_token" \
    -H "Content-Type: application/json"
     ```
-   
+
 ### License
 
-This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
+This code is open source software licensed under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html).This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").

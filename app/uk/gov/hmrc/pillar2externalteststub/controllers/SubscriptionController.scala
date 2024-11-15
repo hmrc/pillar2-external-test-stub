@@ -39,6 +39,8 @@ class SubscriptionController @Inject() (
       plrReference match {
         case "XEPLR0123456400" =>
           Future.successful(BadRequest(Json.toJson(BadRequestInvalidCorrelationID.response)))
+        case "XEPLR0123456401" =>
+          Future.successful(BadRequest(Json.toJson(BadRequestInvalidOrPillar2Reference.response)))
         case "XEPLR0123456404" =>
           Future.successful(NotFound(Json.toJson(NotFoundSubscription.response)))
         case "XEPLR0123456422" =>

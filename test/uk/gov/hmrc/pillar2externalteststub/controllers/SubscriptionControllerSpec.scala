@@ -53,6 +53,12 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
         contentAsJson(result) shouldBe Json.toJson(BadRequestInvalidCorrelationID.response)
       }
 
+      "must return BAD_REQUEST for plrReference 'XEPLR0123456401' with INVALID_ID_OR_PILLAR2_REFERENCE" in {
+        val result = route(app, authorizedRequest("XEPLR0123456401")).value
+        status(result)        shouldBe BAD_REQUEST
+        contentAsJson(result) shouldBe Json.toJson(BadRequestInvalidOrPillar2Reference.response)
+      }
+
       "must return NOT_FOUND for plrReference 'XEPLR0123456404' with SUBSCRIPTION_NOT_FOUND" in {
         val result = route(app, authorizedRequest("XEPLR0123456404")).value
         status(result)        shouldBe NOT_FOUND

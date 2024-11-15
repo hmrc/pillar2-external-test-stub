@@ -36,10 +36,19 @@ object BadRequestInvalidCorrelationID {
   )
 }
 
+object BadRequestInvalidOrPillar2Reference {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("INVALID_ID", "The backend has indicated that the supplied ID (PLR Reference) is invalid."),
+      Failure("INVALID_PLR_REFERENCE", "Submission has not passed validation. Invalid path parameter: plrReference.")
+    )
+  )
+}
+
 object NotFoundSubscription {
   val response: ErrorResponse = ErrorResponse(
     Seq(
-      Failure("SUBSCRIPTION_NOT_FOUND", "The subscription could not be found.")
+      Failure("SUBSCRIPTION_NOT_FOUND", "The backend has indicated that no subscription data has been found.")
     )
   )
 }
@@ -56,7 +65,7 @@ object DuplicateRecord422 {
 object ServerError500 {
   val response: ErrorResponse = ErrorResponse(
     Seq(
-      Failure("SERVER_ERROR", "An internal server error occurred.")
+      Failure("SERVER_ERROR", "IF is currently experiencing problems that require live service intervention.")
     )
   )
 }
