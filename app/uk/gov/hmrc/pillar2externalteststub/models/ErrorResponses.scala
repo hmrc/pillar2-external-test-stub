@@ -28,36 +28,10 @@ object ErrorResponse {
   implicit val writes: OWrites[ErrorResponse] = Json.writes[ErrorResponse]
 }
 
-object BadRequestInvalidCorrelationID {
-  val response: ErrorResponse = ErrorResponse(
-    Seq(
-      Failure("INVALID_CORRELATIONID", "Submission has not passed validation. Invalid Header CorrelationId.")
-    )
-  )
-}
-
-object BadRequestInvalidOrPillar2Reference {
-  val response: ErrorResponse = ErrorResponse(
-    Seq(
-      Failure("INVALID_ID", "The backend has indicated that the supplied ID (PLR Reference) is invalid."),
-      Failure("INVALID_PLR_REFERENCE", "Submission has not passed validation. Invalid path parameter: plrReference.")
-    )
-  )
-}
-
 object NotFoundSubscription {
   val response: ErrorResponse = ErrorResponse(
     Seq(
       Failure("SUBSCRIPTION_NOT_FOUND", "The backend has indicated that no subscription data has been found.")
-    )
-  )
-}
-
-object DuplicateRecord422 {
-  val response: ErrorResponse = ErrorResponse(
-    Seq(
-      Failure("CANNOT_COMPLETE_REQUEST", "Request could not be completed because the subscription is being created or amended."),
-      Failure("REQUEST_NOT_PROCESSED", "The backend has indicated that the request could not be processed.")
     )
   )
 }

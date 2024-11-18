@@ -37,14 +37,8 @@ class SubscriptionController @Inject() (
       logger.info(s"Retrieving subscription for PLR reference: $plrReference")
 
       plrReference match {
-        case "XEPLR0123456400" =>
-          Future.successful(BadRequest(Json.toJson(BadRequestInvalidCorrelationID.response)))
-        case "XEPLR0123456401" =>
-          Future.successful(BadRequest(Json.toJson(BadRequestInvalidOrPillar2Reference.response)))
         case "XEPLR0123456404" =>
           Future.successful(NotFound(Json.toJson(NotFoundSubscription.response)))
-        case "XEPLR0123456422" =>
-          Future.successful(UnprocessableEntity(Json.toJson(DuplicateRecord422.response)))
         case "XEPLR0123456500" =>
           Future.successful(InternalServerError(Json.toJson(ServerError500.response)))
         case "XEPLR0123456503" =>

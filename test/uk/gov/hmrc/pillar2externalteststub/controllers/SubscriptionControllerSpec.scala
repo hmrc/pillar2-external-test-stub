@@ -47,28 +47,10 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
         status(result) shouldBe FORBIDDEN
       }
 
-      "must return BAD_REQUEST for plrReference 'XEPLR0123456400' with INVALID_CORRELATIONID" in {
-        val result = route(app, authorizedRequest("XEPLR0123456400")).value
-        status(result)        shouldBe BAD_REQUEST
-        contentAsJson(result) shouldBe Json.toJson(BadRequestInvalidCorrelationID.response)
-      }
-
-      "must return BAD_REQUEST for plrReference 'XEPLR0123456401' with INVALID_ID_OR_PILLAR2_REFERENCE" in {
-        val result = route(app, authorizedRequest("XEPLR0123456401")).value
-        status(result)        shouldBe BAD_REQUEST
-        contentAsJson(result) shouldBe Json.toJson(BadRequestInvalidOrPillar2Reference.response)
-      }
-
       "must return NOT_FOUND for plrReference 'XEPLR0123456404' with SUBSCRIPTION_NOT_FOUND" in {
         val result = route(app, authorizedRequest("XEPLR0123456404")).value
         status(result)        shouldBe NOT_FOUND
         contentAsJson(result) shouldBe Json.toJson(NotFoundSubscription.response)
-      }
-
-      "must return UNPROCESSABLE_ENTITY for plrReference 'XEPLR0123456422' with DUPLICATE_RECORD" in {
-        val result = route(app, authorizedRequest("XEPLR0123456422")).value
-        status(result)        shouldBe UNPROCESSABLE_ENTITY
-        contentAsJson(result) shouldBe Json.toJson(DuplicateRecord422.response)
       }
 
       "must return INTERNAL_SERVER_ERROR for plrReference 'XEPLR0123456500' with SERVER_ERROR" in {
