@@ -51,7 +51,7 @@ class ValidationRuleSpec extends AnyWordSpec with Matchers {
       val rule2 = ValidationRule[String](_ => invalid(MandatoryFieldMissing("field2")))
 
       val validator = ValidationRule.compose(rule1, rule2)(AccumulateErrors)
-      val result = validator.validate("test")
+      val result    = validator.validate("test")
 
       result.isInvalid mustBe true
       result.toEither match {
@@ -68,7 +68,7 @@ class ValidationRuleSpec extends AnyWordSpec with Matchers {
       val rule2 = ValidationRule[String](_ => invalid(MandatoryFieldMissing("field2")))
 
       val validator = ValidationRule.compose(rule1, rule2)(FailFast)
-      val result = validator.validate("test")
+      val result    = validator.validate("test")
 
       result.isInvalid mustBe true
       result.toEither match {
@@ -96,7 +96,7 @@ class ValidationRuleSpec extends AnyWordSpec with Matchers {
       val emptyResult = validator.validate("")
       emptyResult.isInvalid mustBe true
       emptyResult.toEither match {
-        case Left(errors) => 
+        case Left(errors) =>
           errors.length mustBe 1
           errors.head mustBe MandatoryFieldMissing("test")
         case Right(_) => fail("Expected validation to fail")
@@ -106,7 +106,7 @@ class ValidationRuleSpec extends AnyWordSpec with Matchers {
       val tooLongResult = validator.validate("toolong")
       tooLongResult.isInvalid mustBe true
       tooLongResult.toEither match {
-        case Left(errors) => 
+        case Left(errors) =>
           errors.length mustBe 1
           errors.head mustBe MaxLengthExceeded("test", 5)
         case Right(_) => fail("Expected validation to fail")

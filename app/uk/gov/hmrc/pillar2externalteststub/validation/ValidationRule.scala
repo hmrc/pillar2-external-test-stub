@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.pillar2externalteststub.validation
 
+import cats.data.Validated.Invalid
+import cats.data.Validated.Valid
 import cats.implicits._
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult._
-import cats.data.Validated.Valid
-import cats.data.Validated.Invalid
 
 sealed trait ValidationStrategy
 case object AccumulateErrors extends ValidationStrategy

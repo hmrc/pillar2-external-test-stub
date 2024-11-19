@@ -57,7 +57,7 @@ object TestSubmission {
     else invalidNec(NonEmptyChain.fromSeq(invalidAmounts).get)
   }
 
-  implicit val validator: ValidationRule[TestSubmission] = 
+  implicit val validator: ValidationRule[TestSubmission] =
     ValidationRule.compose(dateValidation, liabilityValidation, amountValidation)(AccumulateErrors)
 }
 
@@ -142,4 +142,3 @@ class ValidationSyntaxSpec extends AnyWordSpec with Matchers {
     }
   }
 }
-
