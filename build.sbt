@@ -23,9 +23,9 @@ lazy val microservice = Project(appName, file("."))
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
     // Suppress warnings in generated routes files
     scalacOptions ++= Seq(
-      "-Wconf:src=routes/.*:s",                 // Suppress warnings in route files
-      "-Wconf:msg=parameter.*is never used:s",  // Suppress unused parameter warnings
-      "-Werror"                                 // Treat all other warnings as errors
+      "-Wconf:src=routes/.*:s", // Suppress warnings in route files
+      "-Wconf:msg=parameter.*is never used:s", // Suppress unused parameter warnings
+      "-Werror" // Treat all other warnings as errors
     )
   )
   .settings(
