@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.config
+package uk.gov.hmrc.pillar2externalteststub.models
 
-import play.api.Configuration
+import play.api.libs.json.{Json, OFormat}
 
-import javax.inject.{Inject, Singleton}
+case class NilReturnSuccess(processingDate: String, message: String)
 
-@Singleton
-class AppConfig @Inject() (config: Configuration) {
+object NilReturnSuccess {
+  implicit val format: OFormat[NilReturnSuccess] = Json.format[NilReturnSuccess]
 
-  val appName: String = config.get[String]("appName")
+  val successfulResponse: NilReturnSuccess = NilReturnSuccess(
+    processingDate = "2022-01-31T09:26:17Z",
+    message = "Nil return received and processed successfully"
+  )
 }
