@@ -20,8 +20,6 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.models.SAPError500
-import uk.gov.hmrc.pillar2externalteststub.models.ValidationError422
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 

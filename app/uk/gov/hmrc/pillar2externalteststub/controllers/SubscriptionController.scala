@@ -21,6 +21,8 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models._
+import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
+import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject

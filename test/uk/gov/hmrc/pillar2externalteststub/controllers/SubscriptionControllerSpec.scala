@@ -26,6 +26,8 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.models._
+import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
+import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 
 import scala.concurrent.Future
 

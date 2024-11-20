@@ -27,11 +27,7 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.models.InvalidJsonError400
-import uk.gov.hmrc.pillar2externalteststub.models.SAPError500
-import uk.gov.hmrc.pillar2externalteststub.models.UKTRError
-import uk.gov.hmrc.pillar2externalteststub.models.UKTRErrorDetail
-import uk.gov.hmrc.pillar2externalteststub.models.ValidationError422
+import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
   val dateTimePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"

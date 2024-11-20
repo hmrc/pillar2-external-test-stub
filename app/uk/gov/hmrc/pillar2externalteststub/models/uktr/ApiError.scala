@@ -18,7 +18,6 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.Json
 import play.api.libs.json.Writes
-import uk.gov.hmrc.pillar2externalteststub.models.{UKTRError, UKTRErrorDetail}
 
 sealed trait ApiError
 case class DetailedError(errors: UKTRErrorDetail) extends ApiError
@@ -27,6 +26,6 @@ case class SimpleError(error: UKTRError) extends ApiError
 object ApiError {
   implicit val writes: Writes[ApiError] = Writes {
     case d: DetailedError => Json.obj("errors" -> d.errors)
-    case s: SimpleError => Json.obj("error" -> s.error)
+    case s: SimpleError   => Json.obj("error" -> s.error)
   }
-} 
+}

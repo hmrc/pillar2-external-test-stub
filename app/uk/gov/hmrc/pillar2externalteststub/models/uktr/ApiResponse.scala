@@ -35,6 +35,6 @@ object ErrorResponse {
 object ApiResponse {
   implicit val writes: Writes[ApiResponse] = Writes {
     case s: SuccessResponse => Json.toJson(s)
-    case e: ErrorResponse => Json.toJson(e)
+    case e: ErrorResponse   => Json.toJson(e)
   }
-} 
+}
