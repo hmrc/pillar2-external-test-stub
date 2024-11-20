@@ -30,8 +30,6 @@ import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
-  val dateTimePattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"
-
   val validRequestBody: JsObject = Json.obj(
     "accountingPeriodFrom" -> "2024-08-14",
     "accountingPeriodTo"   -> "2024-12-14",
