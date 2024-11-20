@@ -37,6 +37,8 @@ class SubmitUKTRController @Inject() (
   def submitUKTR(plrReference: String): Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
     logger.info(s"... Submitting UKTR subscription for PLR reference: $plrReference")
 
+    println(s"request.body: ${request.body}")
+
     request.body
       .validate[UktrSubmission]
       .fold(
