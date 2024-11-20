@@ -18,38 +18,39 @@ package uk.gov.hmrc.pillar2externalteststub.models
 
 import play.api.libs.json.{Json, OFormat, OWrites}
 
-import java.time.LocalDate
-
-case class SubmitUKTRRequest(
-  accountingPeriodFrom: LocalDate,
-  accountingPeriodTo:   LocalDate,
+case class UKTRSubscriptionRequest(
+  accountingPeriodFrom: String,
+  accountingPeriodTo:   String,
   qualifyingGroup:      Boolean,
   obligationDTT:        Boolean,
   obligationMTT:        Boolean,
-  /// electionUKGAAP:       Option[Boolean],
-  liabilities: Liabilities
+  electionUKGAAP:       Option[Boolean],
+  liabilities:          Liabilities
 )
-object SubmitUKTRRequest {
-  implicit val writes: OWrites[SubmitUKTRRequest] = Json.writes[SubmitUKTRRequest]
-  implicit val format: OFormat[SubmitUKTRRequest] = Json.format[SubmitUKTRRequest]
+
+object UKTRSubscriptionRequest {
+  implicit val writes: OWrites[UKTRSubscriptionRequest] = Json.writes[UKTRSubscriptionRequest]
+  implicit val format: OFormat[UKTRSubscriptionRequest] = Json.format[UKTRSubscriptionRequest]
 }
 
 case class Liabilities(
-  //electionDTTSingleMember: Boolean,
-  //electionUTPRSingleMember: Boolean,
-  //numberSubGroupDTT: Int,
-  //numberSubGroupUTPR: Int,
-  totalLiability:     BigDecimal,
-  totalLiabilityDTT:  BigDecimal,
-  totalLiabilityIIR:  BigDecimal,
-  totalLiabilityUTPR: BigDecimal,
-  liableEntities:     Seq[LiableEntity]
+  electionDTTSingleMember:  Option[Boolean],
+  electionUTPRSingleMember: Option[Boolean],
+  numberSubGroupDTT:        Option[Int],
+  numberSubGroupUTPR:       Option[Int],
+  totalLiability:           BigDecimal,
+  totalLiabilityDTT:        BigDecimal,
+  totalLiabilityIIR:        BigDecimal,
+  totalLiabilityUTPR:       BigDecimal,
+  liableEntities:           Seq[LiableEntity]
 )
 
 object Liabilities {
   implicit val writes: OWrites[Liabilities] = Json.writes[Liabilities]
   implicit val format: OFormat[Liabilities] = Json.format[Liabilities]
+
 }
+
 case class LiableEntity(
   ukChargeableEntityName: String,
   idType:                 String,
@@ -60,6 +61,7 @@ case class LiableEntity(
   amountOwedUTPR:         BigDecimal,
   electedUTPR:            Boolean
 )
+
 object LiableEntity {
   implicit val writes: OWrites[LiableEntity] = Json.writes[LiableEntity]
   implicit val format: OFormat[LiableEntity] = Json.format[LiableEntity]

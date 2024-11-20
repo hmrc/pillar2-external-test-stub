@@ -36,31 +36,41 @@ class SubmitUKTRController @Inject() (
     logger.info(s"... Submitting UKTR subscription for PLR reference: $plrReference")
 
     request.body
-      .validate[SubmitUKTRRequest]
+      .validate[UKTRSubscriptionRequest]
       .fold(
-        errors => Future.successful(handle400Error),
+        errors => Future.successful( BadRequest(Json.toJson(BadRequest400.response))),
         subscriptionRequest => processSubmissionRequest(plrReference, subscriptionRequest)
       )
   }
-  private def processSubmissionRequest(pillar2ID: String, subscriptionRequest: SubmitUKTRRequest): Future[Result] = {
+  private def processSubmissionRequest(pillar2ID: String, subscriptionRequest: UKTRSubscriptionRequest): Future[Result] = {
     println("processSubmissionRequest...")
     pillar2ID match {
-      case "P2ID0000000422" =>
-        // Scenario 2: Business validation failure - HTTP 422
-        Future.successful(UnprocessableEntity(Json.toJson(ValidationError422.response)))
-
-      case "P2ID0000000500" =>
-        // Scenario 3: Back-end SAP failure - HTTP 500
-        Future.successful(InternalServerError(Json.toJson(SAPError500.response)))
-
+      case "PILID0000000400" =>
+        // Scenario 1: Bad Request / Invalid JSON - HTTP 400
+        Future.successful(BadRequest(Json.toJson(BadRequest400.response)))
+      case "PILID0000000401" =>
+        // Scenario 2: Unauthorized Request - HTTP 401
+        Future.successful(Unauthorized(Json.toJson(UnauthorizedRequest401.response)))
+      case "PILID0000000403" =>
+        // Scenario 3: Forbidden Request  - HTTP 403
+        Future.successful(Forbidden(Json.toJson(ForbiddenRequest403.response)))
+      case "PILID0000000404" =>
+        // Scenario 4: URL Not Found - HTTP 404
+        Future.successful(NotFound(Json.toJson(URLNotFound404.response)))
+      case "PILID0000000415" =>
+        // Scenario 5: Unsupported Media Type - HTTP 415
+        Future.successful(UnsupportedMediaType(Json.toJson(UnsupportedMediaType415.response)))
+      case "PILID0000000422" =>
+        // Scenario 6: Business validation failure - HTTP 422. Unprocessable - ETMP validation errors.
+        // ETMP successfully received the data without technical issues, however it is unable to process the data further.
+        Future.successful(UnprocessableEntity(Json.toJson(UnprocessableETMPValidationErrors422.response)))
+      case "PILID0000000500" =>
+        // Scenario 7: Back-end server failure in ETMP - HTTP 500
+        Future.successful(InternalServerError(Json.toJson(ServerError500.response)))
       case _ =>
-        // Default success response or other cases
-        logger.info(s"...Submitting UKTR subscription SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse()...")
-        Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
+        // Scenario 8 :Default success response for all other pillar2 IDs
+        logger.info(s"...SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse()...")
+        Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulResponse())))
     }
   }
-
-  private def handle400Error: Result =
-    // Scenario 4: Malformed JSON request payload - HTTP 400
-    BadRequest(Json.toJson(InvalidJsonError400.response))
 }

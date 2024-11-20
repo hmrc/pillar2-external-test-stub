@@ -17,57 +17,115 @@
 package uk.gov.hmrc.pillar2externalteststub.models
 
 import play.api.libs.json.{Json, OWrites}
-case class UKTRError(
-  code:    String,
-  message: String,
-  logID:   Option[String]
-)
 
-object UKTRError {
-  implicit val writes: OWrites[UKTRError] = Json.writes[UKTRError]
+case class Failure(code: String, reason: String)
+object Failure {
+  implicit val writes: OWrites[Failure] = Json.writes[Failure]
 }
 
-case class UKTRErrorDetail(
-  processingDate: String,
-  code:           String,
-  text:           String
-)
-
-object UKTRErrorDetail {
-  implicit val writes: OWrites[UKTRErrorDetail] = Json.writes[UKTRErrorDetail]
+case class ErrorResponse(failures: Seq[Failure])
+object ErrorResponse {
+  implicit val writes: OWrites[ErrorResponse] = Json.writes[ErrorResponse]
 }
 
-// Specific error responses for scenarios
+object BadRequest400 {
+  val badRequest400ResposeBody = Json.obj(
+    "zxc" -> "2024-08-14",
 
-object ValidationError422 {
-  val response: UKTRErrorDetail = UKTRErrorDetail(
-    processingDate = "2022-01-31T09:26:17Z",
-    code = "001",
-    text = "REGIME missing or invalid"
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
+    )
   )
-}
-
-object SAPError500 {
-  val response: UKTRError = UKTRError(
-    code = "500",
-    message =
-      "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
-    logID = Some("C0000AB8190C8E1F000000C700006836")
-  )
-}
-
-object InvalidJsonError400 {
-  val response: UKTRError = UKTRError(
-    code = "400",
-    message = "Invalid JSON message content used; Message: \"Expected a ',' or '}' at character 93...",
-    logID = Some("C0000AB8190C86300000000200006836")
-  )
-}
-
-object BadRequestInvalidRequestBody {
   val response: ErrorResponse = ErrorResponse(
     Seq(
-      Failure("INVALID_REQUEST_BODY", "The request body could not be parsed.")
+      Failure("BAD_REQUEST", "Bad Request - Invalid Message.")
+    )
+  )
+}
+object UnauthorizedRequest401 {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("UNAUTHORIZED_REQUEST", "Unauthorized Request.")
+    )
+  )
+}
+object ForbiddenRequest403 {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("FORBIDDEN_REQUEST", "Forbidden Request.")
+    )
+  )
+}
+object URLNotFound404 {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("URL_NOT_FOUND", "URL not found.")
+    )
+  )
+}
+
+object UnsupportedMediaType415 {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("UNSUPPORTED_MEDIA_TYPE", "Unsupported media-type.")
+    )
+  )
+}
+
+object BadRequestInvalidCorrelationID {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("INVALID_CORRELATIONID", "Submission has not passed validation. Invalid Header CorrelationId.")
+    )
+  )
+}
+
+object BadRequestInvalidOrPillar2Reference {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("INVALID_ID", "The backend has indicated that the supplied ID (PLR Reference) is invalid."),
+      Failure("INVALID_PLR_REFERENCE", "Submission has not passed validation. Invalid path parameter: plrReference.")
+    )
+  )
+}
+
+object NotFoundSubscription {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("SUBSCRIPTION_NOT_FOUND", "The backend has indicated that no subscription data has been found.")
+    )
+  )
+}
+
+object UnprocessableETMPValidationErrors422 {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("UNPROCESSABLE_ETMP_VALIDATION_ERRORS", "Unprocessable - ETMP validation errors."),
+    )
+  )
+}
+
+object DuplicateRecord422 {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("CANNOT_COMPLETE_REQUEST", "Request could not be completed because the subscription is being created or amended."),
+      Failure("REQUEST_NOT_PROCESSED", "The backend has indicated that the request could not be processed.")
+    )
+  )
+}
+
+object ServerError500 {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("SERVER_ERROR", "IF is currently experiencing problems that require live service intervention.")
+    )
+  )
+}
+
+object ServiceUnavailable503 {
+  val response: ErrorResponse = ErrorResponse(
+    Seq(
+      Failure("SERVICE_UNAVAILABLE", "Dependent systems are currently not responding.")
     )
   )
 }

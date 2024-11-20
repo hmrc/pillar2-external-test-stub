@@ -18,11 +18,12 @@ package uk.gov.hmrc.pillar2externalteststub.models
 
 import play.api.libs.json.{Json, OWrites}
 
-import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime, LocalTime, ZoneId, ZoneOffset, ZonedDateTime}
 
 // Case class to represent a successful subscription retrieval response
 case class SubmitUKTRSuccessResponse(
-  processingDate:   LocalDateTime,
+  processingDate:   ZonedDateTime,
   formBundleNumber: String,
   chargeReference:  Option[String]
 )
@@ -30,10 +31,15 @@ case class SubmitUKTRSuccessResponse(
 object SubmitUKTRSuccessResponse {
   implicit val writes: OWrites[SubmitUKTRSuccessResponse] = Json.writes[SubmitUKTRSuccessResponse]
 
-  def successfulDomesticOnlyResponse(): SubmitUKTRSuccessResponse =
+  def successfulResponse(): SubmitUKTRSuccessResponse = {
+    val now               = ZonedDateTime.now(ZoneOffset.UTC)
+    val formatter         = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'")
+    val formattedDateTime = now.format(formatter)
+
     SubmitUKTRSuccessResponse(
-      processingDate = LocalDateTime.now(),
+      processingDate = now, // formattedDateTime ,
       formBundleNumber = "123456789123",
       chargeReference = Some("XTC01234123412")
     )
+  }
 }
