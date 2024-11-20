@@ -20,7 +20,12 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.SAPError500
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.ValidationError422
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.{DetailedError, SimpleError}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse.ErrorResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse.SubmitUKTRSuccessResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}

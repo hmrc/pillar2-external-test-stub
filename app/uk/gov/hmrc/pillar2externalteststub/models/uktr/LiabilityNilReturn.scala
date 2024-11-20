@@ -17,6 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.Liability
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.ReturnType
 
 case class LiabilityNilReturn(returnType: ReturnType) extends Liability
 

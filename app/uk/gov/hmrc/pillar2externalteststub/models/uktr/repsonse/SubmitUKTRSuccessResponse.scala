@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.models.uktr
+package uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse
 
 import play.api.libs.json.{Json, OWrites}
 

@@ -52,4 +52,4 @@ object ServiceUnavailable503 {
       Failure("SERVICE_UNAVAILABLE", "Dependent systems are currently not responding.")
     )
   )
-} 
+}

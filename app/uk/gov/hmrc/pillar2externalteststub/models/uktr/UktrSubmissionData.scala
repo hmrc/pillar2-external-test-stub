@@ -17,6 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityData
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
 
 import java.time.LocalDate
 
