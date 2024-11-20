@@ -16,25 +16,25 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
-import play.api.libs.json.{Json, OWrites}
+import play.api.libs.json.{Json, OWrites, Writes}
 
-import java.time.LocalDateTime
+sealed trait ApiResponse
+case class SuccessResponse(success: SubmitUKTRSuccessResponse) extends ApiResponse
+case class ErrorResponse(apiError: ApiError) extends ApiResponse
 
-case class SubmitUKTRSuccessResponse(
-  processingDate:   LocalDateTime,
-  formBundleNumber: String,
-  chargeReference:  String
-)
-
-object SubmitUKTRSuccessResponse {
-  implicit val writes: OWrites[SubmitUKTRSuccessResponse] = Json.writes[SubmitUKTRSuccessResponse]
-
-  def successfulDomesticOnlyResponse(): ApiResponse =
-    SuccessResponse(
-      SubmitUKTRSuccessResponse(
-        processingDate = LocalDateTime.now(),
-        formBundleNumber = "119000004320",
-        chargeReference = "XTC01234123412"
-      )
-    )
+object SuccessResponse {
+  implicit val writes: OWrites[SuccessResponse] = Json.writes[SuccessResponse]
 }
+
+object ErrorResponse {
+  implicit val writes: Writes[ErrorResponse] = Writes { response =>
+    Json.toJson(response.apiError)
+  }
+}
+
+object ApiResponse {
+  implicit val writes: Writes[ApiResponse] = Writes {
+    case s: SuccessResponse => Json.toJson(s)
+    case e: ErrorResponse => Json.toJson(e)
+  }
+} 

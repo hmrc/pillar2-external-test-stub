@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models
 
+import play.api.libs.json.OFormat
 import play.api.libs.json.{Json, OWrites}
 
 case class Failure(code: String, reason: String)
@@ -61,7 +62,7 @@ case class UKTRError(
 )
 
 object UKTRError {
-  implicit val writes: OWrites[UKTRError] = Json.writes[UKTRError]
+  implicit val format: OFormat[UKTRError] = Json.format[UKTRError]
 }
 
 case class UKTRErrorDetail(
@@ -71,7 +72,7 @@ case class UKTRErrorDetail(
 )
 
 object UKTRErrorDetail {
-  implicit val writes: OWrites[UKTRErrorDetail] = Json.writes[UKTRErrorDetail]
+  implicit val format: OFormat[UKTRErrorDetail] = Json.format[UKTRErrorDetail]
 }
 
 // Specific error responses for scenarios

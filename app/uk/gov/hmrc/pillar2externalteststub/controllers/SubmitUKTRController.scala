@@ -20,14 +20,15 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.models._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.SubmitUKTRSuccessResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.SAPError500
+import uk.gov.hmrc.pillar2externalteststub.models.ValidationError422
+import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future
 
+@Singleton
 class SubmitUKTRController @Inject() (
   cc:         ControllerComponents,
   authFilter: AuthActionFilter
@@ -37,34 +38,22 @@ class SubmitUKTRController @Inject() (
   def submitUKTR(plrReference: String): Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
     logger.info(s"... Submitting UKTR subscription for PLR reference: $plrReference")
 
-    println(s"request.body: ${request.body}")
-
     request.body
       .validate[UktrSubmission]
       .fold(
-        errors => Future.successful(handle400Error),
+        errors => Future.successful(BadRequest(Json.toJson(ErrorResponse(DetailedError(ValidationError422.response))))),
         subscriptionRequest => processSubmissionRequest(plrReference, subscriptionRequest)
       )
   }
-  private def processSubmissionRequest(pillar2ID: String, subscriptionRequest: UktrSubmission): Future[Result] = {
-    println("processSubmissionRequest...")
+
+  private def processSubmissionRequest(pillar2ID: String, subscriptionRequest: UktrSubmission): Future[Result] =
     pillar2ID match {
       case "P2ID0000000422" =>
-        // Scenario 2: Business validation failure - HTTP 422
-        Future.successful(UnprocessableEntity(Json.toJson(ValidationError422.response)))
-
+        Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse(DetailedError(ValidationError422.response)))))
       case "P2ID0000000500" =>
-        // Scenario 3: Back-end SAP failure - HTTP 500
-        Future.successful(InternalServerError(Json.toJson(SAPError500.response)))
-
+        Future.successful(InternalServerError(Json.toJson(ErrorResponse(SimpleError(SAPError500.response)))))
       case _ =>
-        // Default success response or other cases
         logger.info(s"...Submitting UKTR subscription SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse()...")
         Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
     }
-  }
-
-  private def handle400Error: Result =
-    // Scenario 4: Malformed JSON request payload - HTTP 400
-    BadRequest(Json.toJson(InvalidJsonError400.response))
 }
