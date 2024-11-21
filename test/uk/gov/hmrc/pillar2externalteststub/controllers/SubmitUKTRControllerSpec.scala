@@ -27,7 +27,6 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
   val validRequestBody: JsObject = Json.obj(
@@ -115,7 +114,13 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           val result = route(app, request).value
 
           status(result) mustBe UNPROCESSABLE_ENTITY
-          (contentAsJson(result) \ "errors").as[UKTRErrorDetail] mustBe ValidationError422.response
+          contentAsJson(result) mustBe Json.obj(
+            "errors" -> Json.obj(
+              "processingDate" -> "2022-01-31T09:26:17Z",
+              "code"           -> "001",
+              "text"           -> "REGIME missing or invalid"
+            )
+          )
         }
       }
 
@@ -129,7 +134,13 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           val result = route(app, request).value
 
           status(result) mustBe INTERNAL_SERVER_ERROR
-          (contentAsJson(result) \ "error").as[UKTRError] mustBe SAPError500.response
+          contentAsJson(result) mustBe Json.obj(
+            "error" -> Json.obj(
+              "code" -> "500",
+              "message" -> "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
+              "logID" -> "C0000AB8190C8E1F000000C700006836"
+            )
+          )
         }
       }
 
@@ -144,7 +155,13 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           val result = route(app, request).value
 
           status(result) mustBe BAD_REQUEST
-          (contentAsJson(result) \ "error").as[UKTRError] mustBe InvalidJsonError400.response
+          contentAsJson(result) mustBe Json.obj(
+            "error" -> Json.obj(
+              "code"    -> "400",
+              "message" -> "Invalid JSON message content used; Message: \"Expected a ',' or '}' at character 93...\"",
+              "logID"   -> "C0000AB8190C86300000000200006836"
+            )
+          )
         }
       }
     }
