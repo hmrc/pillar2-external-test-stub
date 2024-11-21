@@ -144,7 +144,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           val result = route(app, request).value
 
           status(result) mustBe BAD_REQUEST
-          (contentAsJson(result) \ "errors").as[UKTRError] mustBe InvalidJsonError400.response
+          (contentAsJson(result) \ "error").as[UKTRError] mustBe InvalidJsonError400.response
         }
       }
     }

@@ -47,7 +47,7 @@ class SubmitUKTRController @Inject() (
       case "XEPLR0000000500" =>
         Future.successful(InternalServerError(Json.toJson(ErrorResponse(SimpleError(SAPError500.response)))))
       case "XEPLR0000000400" =>
-        Future.successful(InternalServerError(Json.toJson(ErrorResponse(SimpleError(InvalidJsonError400.response)))))
+        Future.successful(BadRequest(Json.toJson(ErrorResponse(SimpleError(InvalidJsonError400.response)))))
       case _ =>
         Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
     }
