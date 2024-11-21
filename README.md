@@ -72,16 +72,12 @@ The /pillar2/submitUKTR/:plrReference endpoint submits a UKTR to ETMP.
 
 Response Codes and Conditions:
 
-| plrReference                  | HTTP Status                 | Description                                                 |
-|:------------------------------|-----------------------------|-------------------------------------------------------------|
-| PILID0000000400               | 400 Bad Request             | Invalid request due to a badly-formed message               |
-| PILID0000000401               | 401 Unauthorized Request    | Unauthorized Request                                        |
-| PILID0000000403               | 404 Forbidden Request       | Forbidden Request                                           |
-| PILID0000000404               | 404 Not Found               | URL not found                                               |
-| PILID0000000415               | 415 Unsupported Media Type  | Unsupported Media Type                                      |
-| PILID0000000422               | 422 Unprocessable Entity    | Business validation failure - ETMP validation errors        |
-| PILID0000000500               | 500 Internal Server Error   | Server error                                                |
-| Any other valid plrReference  | 201 Created                 | Successful response from ETMP: UKTR submission was created  |
+| plrReference      | HTTP Status               | Description                                                 |
+|:-----------------|---------------------------|-------------------------------------------------------------|
+| XEPLR0000000422  | 422 Unprocessable Entity | Business validation failure with error details               |
+| XEPLR0000000500  | 500 Internal Server Error| SAP system failure with error details                       |
+| XEPLR0000000400  | 400 Bad Request         | Invalid JSON payload error                                   |
+| Any other        | 201 Created             | Successful UKTR submission with form bundle details          |
 
 ## Example Requests
 
@@ -92,12 +88,41 @@ curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR5555555555" \
 -H "Content-Type: application/json"
 ```
 
-### Submit UKTR Example
+### Submit UKTR Request Example
 ```bash
-curl -X POST "http://localhost:10055/pillar2/submitUKTR/PILID0000000201" \
+curl -X POST "http://localhost:10055/pillar2/submitUKTR/XEPLR0000000422" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json" \
--d '{"your": "request payload here"}'
+-d '{
+  "accountingPeriodFrom": "2024-08-14",
+  "accountingPeriodTo": "2024-12-14",
+  "qualifyingGroup": true,
+  "obligationDTT": true,
+  "obligationMTT": true,
+  "electionUKGAAP": true,
+  "liabilities": {
+    "electionDTTSingleMember": false,
+    "electionUTPRSingleMember": false,
+    "numberSubGroupDTT": 4,
+    "numberSubGroupUTPR": 5,
+    "totalLiability": 10000.99,
+    "totalLiabilityDTT": 5000.99,
+    "totalLiabilityIIR": 4000,
+    "totalLiabilityUTPR": 10000.99,
+    "liableEntities": [
+      {
+        "ukChargeableEntityName": "UKTR Newco PLC",
+        "idType": "CRN",
+        "idValue": "12345678",
+        "amountOwedDTT": 5000,
+        "electedDTT": true,
+        "amountOwedIIR": 3400,
+        "amountOwedUTPR": 6000.5,
+        "electedUTPR": true
+      }
+    ]
+  }
+}'
 ```
 
 ### License

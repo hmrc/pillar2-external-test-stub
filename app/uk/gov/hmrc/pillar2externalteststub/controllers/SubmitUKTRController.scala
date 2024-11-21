@@ -18,9 +18,9 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import play.api.Logging
 import play.api.libs.json._
-import play.api.mvc.{Action, ControllerComponents, Result}
+import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.InvalidJsonError400
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.SAPError500
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.ValidationError422
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.{DetailedError, SimpleError}
@@ -41,22 +41,15 @@ class SubmitUKTRController @Inject() (
   def submitUKTR(plrReference: String): Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
     logger.info(s"... Submitting UKTR subscription for PLR reference: $plrReference")
 
-    request.body
-      .validate[UktrSubmission]
-      .fold(
-        errors => Future.successful(BadRequest(Json.toJson(ErrorResponse(DetailedError(ValidationError422.response))))),
-        subscriptionRequest => processSubmissionRequest(plrReference, subscriptionRequest)
-      )
-  }
-
-  private def processSubmissionRequest(pillar2ID: String, subscriptionRequest: UktrSubmission): Future[Result] =
-    pillar2ID match {
-      case "P2ID0000000422" =>
+    plrReference match {
+      case "XEPLR0000000422" =>
         Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse(DetailedError(ValidationError422.response)))))
-      case "P2ID0000000500" =>
+      case "XEPLR0000000500" =>
         Future.successful(InternalServerError(Json.toJson(ErrorResponse(SimpleError(SAPError500.response)))))
+      case "XEPLR0000000400" =>
+        Future.successful(InternalServerError(Json.toJson(ErrorResponse(SimpleError(InvalidJsonError400.response)))))
       case _ =>
-        logger.info(s"...Submitting UKTR subscription SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse()...")
         Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
     }
+  }
 }

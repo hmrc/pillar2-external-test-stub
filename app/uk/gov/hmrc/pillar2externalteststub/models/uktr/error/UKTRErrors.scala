@@ -19,9 +19,9 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr.error
 import play.api.libs.json.{Json, OFormat}
 
 case class UKTRError(
-  code: String,
+  code:    String,
   message: String,
-  logID: Option[String]
+  logID:   Option[String]
 )
 
 object UKTRError {
@@ -30,8 +30,8 @@ object UKTRError {
 
 case class UKTRErrorDetail(
   processingDate: String,
-  code: String,
-  text: String
+  code:           String,
+  text:           String
 )
 
 object UKTRErrorDetail {
@@ -50,7 +50,8 @@ object ValidationError422 {
 object SAPError500 {
   val response: UKTRError = UKTRError(
     code = "500",
-    message = "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
+    message =
+      "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
     logID = Some("C0000AB8190C8E1F000000C700006836")
   )
 }
@@ -61,4 +62,4 @@ object InvalidJsonError400 {
     message = "Invalid JSON message content used; Message: \"Expected a ',' or '}' at character 93...\"",
     logID = Some("C0000AB8190C86300000000200006836")
   )
-} 
+}
