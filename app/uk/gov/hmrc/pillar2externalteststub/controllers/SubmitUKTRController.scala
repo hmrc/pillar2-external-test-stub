@@ -23,7 +23,6 @@ import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.InvalidJsonError400
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.SAPError500
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.ValidationError422
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.{DetailedError, SimpleError}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse.ErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse.SubmitUKTRSuccessResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -43,11 +42,11 @@ class SubmitUKTRController @Inject() (
 
     plrReference match {
       case "XEPLR0000000422" =>
-        Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse(DetailedError(ValidationError422.response)))))
+        Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse.detailed(ValidationError422.response))))
       case "XEPLR0000000500" =>
-        Future.successful(InternalServerError(Json.toJson(ErrorResponse(SimpleError(SAPError500.response)))))
+        Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SAPError500.response))))
       case "XEPLR0000000400" =>
-        Future.successful(BadRequest(Json.toJson(ErrorResponse(SimpleError(InvalidJsonError400.response)))))
+        Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400.response))))
       case _ =>
         Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
     }

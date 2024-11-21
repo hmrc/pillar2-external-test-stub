@@ -18,6 +18,10 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse
 
 import play.api.libs.json.{Json, OWrites, Writes}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.ApiError
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.DetailedError
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.SimpleError
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UKTRError
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UKTRErrorDetail
 
 sealed trait ApiResponse
 case class SuccessResponse(success: SubmitUKTRSuccessResponse) extends ApiResponse
@@ -28,6 +32,9 @@ object SuccessResponse {
 }
 
 object ErrorResponse {
+  def simple(error: UKTRError):         ErrorResponse = ErrorResponse(SimpleError(error))
+  def detailed(error: UKTRErrorDetail): ErrorResponse = ErrorResponse(DetailedError(error))
+
   implicit val writes: Writes[ErrorResponse] = Writes { response =>
     Json.toJson(response.apiError)
   }
