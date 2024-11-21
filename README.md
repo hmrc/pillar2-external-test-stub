@@ -61,6 +61,25 @@ Response Codes and Conditions
 | XEPLR1234567890              | 200 OK                    | Success response with domesticOnly = false.                                    |
 | XEPLR0987654321              | 200 OK                    | Success response for a Nil Return.                                             |
 
+## Submit UKTR
+
+The /pillar2/submitUKTR/:plrReference endpoint submits a UKTR to ETMP, based on the provided plrReference (Pillar2 Reference Number). Different plrReference values yield different responses to simulate various scenarios, including successful responses with domestic or non-domestic status and specific error responses.
+
+Response Codes and Conditions
+
+| plrReference                  | HTTP Status                 | Description                                                 |
+|:------------------------------|-----------------------------|-------------------------------------------------------------|
+| PILID0000000400               | 400 Bad Request             | Invalid request due to a badly-formed message.              |
+| PILID0000000401               | 401 Unauthorized Request    | Unauthorized Request.                                       |
+| PILID0000000403               | 404 Forbidden Request       | Forbidden Request.                                          |
+| PILID0000000404               | 404 Not Found               | URL not found.                                              |
+| PILID0000000415               | 415 Unsupported Media Type  | Unsupported Media Type.                                     |
+| PILID0000000422               | 422 Unprocessable Entity    | Business validation failure - ETMP validation errors.       |
+| PILID0000000500               | 500 Internal Server Error   | Server error.                                               |
+| Any other valid plrReference  | 201 Created                 | Successful repsonse form ETMP: UKTR submission was created. |                                                
+| :-----------------------------| --------------------------- |-------------------------------------------------------------|
+
+
 # Curl Call Examples
 
 Use the following curl commands to test different responses for the retrieveSubscription endpoint. Replace valid_token with an appropriate authorization token if required.
