@@ -76,7 +76,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       "should return CREATED (201) with success response" - {
         "when plrReference is valid and JSON payload is correct" in {
           val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("P2ID0000000123").url)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000123").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
             .withBody(validRequestBody)
 
@@ -91,7 +91,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
         "when submitting a nil return" in {
           val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("P2ID0000000123").url)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000123").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
             .withBody(validNilReturnRequestBody)
 
@@ -108,7 +108,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       "should return UNPROCESSABLE_ENTITY (422)" - {
         "when plrReference indicates business validation failure" in {
           val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("P2ID0000000422").url)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000422").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
             .withBody(validRequestBody)
 
@@ -122,7 +122,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       "should return INTERNAL_SERVER_ERROR (500)" - {
         "when plrReference indicates SAP failure" in {
           val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("P2ID0000000500").url)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000500").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
             .withBody(validRequestBody)
 
@@ -134,10 +134,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return BAD_REQUEST (400)" - {
-        "when request body is invalid JSON" in {
+        "when plrReference indicates invalid JSON" in {
           val authHeader  = HeaderNames.authorisation -> "Bearer valid_token"
           val invalidJson = Json.obj("invalid" -> "json")
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("P2ID0000000123").url)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000400").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
             .withBody(invalidJson)
 
