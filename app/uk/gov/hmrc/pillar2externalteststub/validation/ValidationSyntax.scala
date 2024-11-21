@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.config
+package uk.gov.hmrc.pillar2externalteststub.validation
 
-import play.api.Configuration
-
-import javax.inject.{Inject, Singleton}
-
-@Singleton
-class AppConfig @Inject() (config: Configuration) {
-
-  val appName: String = config.get[String]("appName")
+import ValidationResult._
+trait ValidationSyntax {
+  implicit class ValidateOps[A](value: A) {
+    def validate(implicit rule: ValidationRule[A]): ValidationResult[A] =
+      rule.validate(value)
+  }
 }
+
+object syntax extends ValidationSyntax

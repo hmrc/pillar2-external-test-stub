@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.config
-
-import play.api.Configuration
-
-import javax.inject.{Inject, Singleton}
-
-@Singleton
-class AppConfig @Inject() (config: Configuration) {
-
-  val appName: String = config.get[String]("appName")
+package uk.gov.hmrc.pillar2externalteststub.validation
+trait ValidationError {
+  def errorCode:    String
+  def errorMessage: String
+  def field:        String
 }

@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.config
+package uk.gov.hmrc.pillar2externalteststub.validation
+import cats.data.{NonEmptyChain, ValidatedNec}
+import cats.implicits._
 
-import play.api.Configuration
+object ValidationResult {
+  type ValidationResult[A] = ValidatedNec[ValidationError, A]
 
-import javax.inject.{Inject, Singleton}
+  def valid[A](a: A): ValidationResult[A] = a.validNec
 
-@Singleton
-class AppConfig @Inject() (config: Configuration) {
+  def invalid[A](error: ValidationError): ValidationResult[A] = error.invalidNec
 
-  val appName: String = config.get[String]("appName")
+  def invalidNec[A](errors: NonEmptyChain[ValidationError]): ValidationResult[A] = errors.invalid
+
+  def sequence[A](results: Seq[ValidationResult[A]]): ValidationResult[Seq[A]] =
+    results.sequence
 }
