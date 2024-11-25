@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2submissionapi.validation
+package uk.gov.hmrc.pillar2externalteststub.validation
 
 import cats.implicits._
 import org.scalatest.matchers.must.Matchers

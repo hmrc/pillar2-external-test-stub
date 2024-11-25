@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.models
+package uk.gov.hmrc.pillar2externalteststub.models.subscription
 
-import play.api.libs.json.{Json, OWrites}
+import play.api.libs.json.{Json, OFormat}
 
 case class Failure(code: String, reason: String)
+
 object Failure {
-  implicit val writes: OWrites[Failure] = Json.writes[Failure]
+  implicit val format: OFormat[Failure] = Json.format[Failure]
 }
 
 case class ErrorResponse(failures: Seq[Failure])
+
 object ErrorResponse {
-  implicit val writes: OWrites[ErrorResponse] = Json.writes[ErrorResponse]
+  implicit val format: OFormat[ErrorResponse] = Json.format[ErrorResponse]
 }
 
 object NotFoundSubscription {

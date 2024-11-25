@@ -37,7 +37,7 @@ lazy val microservice = Project(appName, file("."))
     )
   )
   .settings(resolvers += Resolver.jcenterRepo)
-  .settings(CodeCoverageSettings.settings: _*)
+  .settings(CodeCoverageSettings.settings *)
 
 addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
 addCommandAlias("lint", ";scalafmtAll;scalafmtSbt;scalafixAll")

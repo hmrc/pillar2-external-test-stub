@@ -1,4 +1,3 @@
-
 # pillar2-external-test-stub
 
 The Pillar2 external test stub service provides stubs to mock an ETMP responses.
@@ -45,65 +44,87 @@ service before running sbt commands.
 
 This is an authenticated service, so users first need to be authenticated via GG in order to use the service.
 
+## Available Endpoints
 
-## Retrieve Subscription
+### 1. Retrieve Subscription
 
-The retrieveSubscription endpoint returns subscription details based on the provided plrReference (PLR Reference Number). Different plrReference values yield different responses to simulate various scenarios, including successful responses with domestic or non-domestic status and specific error responses.
+The retrieveSubscription endpoint returns subscription 
+details based on the provided plrReference (PLR 
+Reference Number). Different plrReference values yield 
+different responses to simulate various scenarios, 
+including successful responses with domestic or 
+non-domestic status and specific error responses.
 
-Response Codes and Conditions
+Response Codes and Conditions:
 
 | plrReference                 | HTTP Status               | Description                                                                    |
 |:-----------------------------|---------------------------|--------------------------------------------------------------------------------|
-| XEPLR0123456404              | 404 Not Found             | Subscription not found.                                                        |
-| XEPLR0123456500              | 500 Internal Server Error | Server error.                                                                  |
-| XEPLR0123456503              | 503 Service Unavailable   | Dependent systems are currently not responding.                                |
-| XEPLR5555555555              | 200 OK                    | Success response with domesticOnly = true.                                     |
-| XEPLR1234567890              | 200 OK                    | Success response with domesticOnly = false.                                    |
-| XEPLR0987654321              | 200 OK                    | Success response for a Nil Return.                                             |
+| XEPLR0123456404              | 404 Not Found             | Subscription not found                                                         |
+| XEPLR0123456500              | 500 Internal Server Error | Server error                                                                  |
+| XEPLR0123456503              | 503 Service Unavailable   | Dependent systems are currently not responding                                |
+| XEPLR5555555555              | 200 OK                    | Success response with domesticOnly = true                                     |
+| XEPLR1234567890              | 200 OK                    | Success response with domesticOnly = false                                    |
+| XEPLR0987654321              | 200 OK                    | Success response for a Nil Return                                             |
 
-# Curl Call Examples
+### 2. Submit UKTR
 
-Use the following curl commands to test different responses for the retrieveSubscription endpoint. Replace valid_token with an appropriate authorization token if required.
+The /pillar2/submitUKTR/:plrReference endpoint submits a UKTR to ETMP.
 
+Response Codes and Conditions:
 
-1. Not Found (Subscription Not Found) - plrReference XEPLR0123456404
-    ```
-    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456404" \
-    -H "Authorization: Bearer valid_token" \
-    -H "Content-Type: application/json"
-    ```
-2. Internal Server Error - plrReference XEPLR0123456500
-    ```
-    curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456500" \
-      -H "Authorization: Bearer valid_token" \
-      -H "Content-Type: application/json"
-    ```
-3. Service Unavailable - plrReference XEPLR0123456503
-    ```
-   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0123456503" \
-   -H "Authorization: Bearer valid_token" \
-   -H "Content-Type: application/json"
-    ```
-4. OK with domesticOnly = true - plrReference XEPLR5555555555
-    ```
-   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR5555555555" \
-   -H "Authorization: Bearer valid_token" \
-   -H "Content-Type: application/json"
-    ```
-5. OK with domesticOnly = false - plrReference XEPLR1234567890
-    ```
-   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR1234567890" \
-   -H "Authorization: Bearer valid_token" \
-   -H "Content-Type: application/json"
-    ```
+| plrReference      | HTTP Status               | Description                                                 |
+|:-----------------|---------------------------|-------------------------------------------------------------|
+| XEPLR0000000422  | 422 Unprocessable Entity | Business validation failure with error details               |
+| XEPLR0000000500  | 500 Internal Server Error| SAP system failure with error details                       |
+| XEPLR0000000400  | 400 Bad Request         | Invalid JSON payload error                                   |
+| Any other        | 201 Created             | Successful UKTR submission with form bundle details          |
 
-6. OK Nil Return - plrReference XEPLR0987654321
-    ```
-   curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR0987654321" \
-   -H "Authorization: Bearer valid_token" \
-   -H "Content-Type: application/json"
-    ```
+## Example Requests
+
+### Retrieve Subscription Example
+```bash
+curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR5555555555" \
+-H "Authorization: Bearer valid_token" \
+-H "Content-Type: application/json"
+```
+
+### Submit UKTR Request Example
+```bash
+curl -X POST "http://localhost:10055/pillar2/submitUKTR/XEPLR0000000422" \
+-H "Authorization: Bearer valid_token" \
+-H "Content-Type: application/json" \
+-d '{
+  "accountingPeriodFrom": "2024-08-14",
+  "accountingPeriodTo": "2024-12-14",
+  "qualifyingGroup": true,
+  "obligationDTT": true,
+  "obligationMTT": true,
+  "electionUKGAAP": true,
+  "liabilities": {
+    "electionDTTSingleMember": false,
+    "electionUTPRSingleMember": false,
+    "numberSubGroupDTT": 4,
+    "numberSubGroupUTPR": 5,
+    "totalLiability": 10000.99,
+    "totalLiabilityDTT": 5000.99,
+    "totalLiabilityIIR": 4000,
+    "totalLiabilityUTPR": 10000.99,
+    "liableEntities": [
+      {
+        "ukChargeableEntityName": "UKTR Newco PLC",
+        "idType": "CRN",
+        "idValue": "12345678",
+        "amountOwedDTT": 5000,
+        "electedDTT": true,
+        "amountOwedIIR": 3400,
+        "amountOwedUTPR": 6000.5,
+        "electedUTPR": true
+      }
+    ]
+  }
+}'
+```
 
 ### License
 
-This code is open source software licensed under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html).This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
+This code is open source software licensed under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html).
