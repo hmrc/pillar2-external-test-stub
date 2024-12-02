@@ -63,3 +63,11 @@ object InvalidJsonError400 {
     logID = Some("C0000AB8190C86300000000200006836")
   )
 }
+
+object UkChargeableEntityNameEmptyErrorCode003 {
+  val response: UKTRError = UKTRError(
+    code = "003",
+    message = "ukChargeableEntityName is Empty.",
+    logID = Some("C0000AB8190C86300000000200006003")
+  )
+}

@@ -17,10 +17,12 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityData
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
+import uk.gov.hmrc.pillar2externalteststub.validation.{ValidationError, ValidationRule}
 
 import java.time.LocalDate
+
+case class UkChargeableEntityNameError(errorCode: String, errorMessage: String, field: String) extends ValidationError
 
 case class UktrSubmissionData(
   accountingPeriodFrom: LocalDate,
@@ -32,4 +34,19 @@ case class UktrSubmissionData(
 
 object UktrSubmissionData {
   implicit val uktrSubmissionDataFormat: OFormat[UktrSubmissionData] = Json.format[UktrSubmissionData]
+
+  val ukChargeableEntityNameRule: ValidationRule[UktrSubmissionData] = ValidationRule { uktrSubmissionData: UktrSubmissionData =>
+    if (uktrSubmissionData.liabilities.liableEntities.forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$")))
+      valid[UktrSubmissionData](uktrSubmissionData)
+    else
+      invalid(
+        UkChargeableEntityNameError(
+          "INVALID_UK_CHARGEABLE_ENTITY_NAME",
+          "UK Chargeable Entity Name must be 1-160 characters and can only contain letters, numbers, spaces, &, ', and -",
+          "ukChargeableEntityName"
+        )
+      )
+  }
+
+  implicit val uktrSubmissionValidator: ValidationRule[UktrSubmissionData] = ukChargeableEntityNameRule
 }

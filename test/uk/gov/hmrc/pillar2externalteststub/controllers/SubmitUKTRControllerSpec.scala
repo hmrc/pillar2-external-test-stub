@@ -59,6 +59,22 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       )
     )
   )
+  val invalidRequestBodyEmptyUkChargeableEntityName: JsObject = validRequestBody ++ Json.obj(
+    "liabilities" -> Json.obj(
+      "liableEntities" -> Json.arr(
+        Json.obj(
+          "ukChargeableEntityName" -> "",
+          "idType"                 -> "CRN",
+          "idValue"                -> "12345678",
+          "amountOwedDTT"          -> 5000,
+          "electedDTT"             -> true,
+          "amountOwedIIR"          -> 3400,
+          "amountOwedUTPR"         -> 6000.5,
+          "electedUTPR"            -> true
+        )
+      )
+    )
+  )
   val validNilReturnRequestBody: JsObject = Json.obj(
     "accountingPeriodFrom" -> "2024-08-14",
     "accountingPeriodTo"   -> "2024-12-14",
@@ -164,6 +180,27 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           )
         }
       }
+
+      "should return error code 003" - {
+        "when ukChargeableEntityName is Empty" in {
+          val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000003400").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidRequestBodyEmptyUkChargeableEntityName)
+
+          val result = route(app, request).value
+
+          status(result) mustBe BAD_REQUEST
+          contentAsJson(result) mustBe Json.obj(
+            "error" -> Json.obj(
+              "code"    -> "003",
+              "message" -> "ukChargeableEntityName is Empty.",
+              "logID"   -> "C0000AB8190C86300000000200006003"
+            )
+          )
+        }
+      }
+
     }
   }
 }
