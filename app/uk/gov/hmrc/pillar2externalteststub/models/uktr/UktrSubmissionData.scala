@@ -18,11 +18,9 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
-import uk.gov.hmrc.pillar2externalteststub.validation.{ValidationError, ValidationRule}
+import uk.gov.hmrc.pillar2externalteststub.validation.{AccumulateErrors, ValidationRule}
 
 import java.time.LocalDate
-
-case class UkChargeableEntityNameError(errorCode: String, errorMessage: String, field: String) extends ValidationError
 
 case class UktrSubmissionData(
   accountingPeriodFrom: LocalDate,
@@ -34,19 +32,92 @@ case class UktrSubmissionData(
 
 object UktrSubmissionData {
   implicit val uktrSubmissionDataFormat: OFormat[UktrSubmissionData] = Json.format[UktrSubmissionData]
+  val amountErrorMessage = " must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+
+  // returns TRUE if the amount is a number which is:
+  // Positive only, Numeric, has 2 decimal places, and has 13 characters, including the decimal place.
+  def isValidUKTRAmount(number: String): Boolean = {
+    val pattern = """^\d{1,13}\.{0,1}\d{0,2}$""".r
+    number match {
+      case pattern() if number.length <= 13 && number.toDouble > 0 => true
+      case _                                                       => false
+    }
+  }
 
   val ukChargeableEntityNameRule: ValidationRule[UktrSubmissionData] = ValidationRule { uktrSubmissionData: UktrSubmissionData =>
-    if (uktrSubmissionData.liabilities.liableEntities.forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$")))
+    if (
+      uktrSubmissionData.liabilities.liableEntities
+        .forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$"))
+    )
       valid[UktrSubmissionData](uktrSubmissionData)
     else
       invalid(
-        UkChargeableEntityNameError(
-          "INVALID_UK_CHARGEABLE_ENTITY_NAME",
-          "UK Chargeable Entity Name must be 1-160 characters and can only contain letters, numbers, spaces, &, ', and -",
-          "ukChargeableEntityName"
+        UktrSubmissionError(
+          "003",
+          "ukChargeableEntityName",
+          "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
         )
       )
   }
 
-  implicit val uktrSubmissionValidator: ValidationRule[UktrSubmissionData] = ukChargeableEntityNameRule
+  val idTypeRule: ValidationRule[UktrSubmissionData] = ValidationRule { uktrSubmissionData: UktrSubmissionData =>
+    if (
+      uktrSubmissionData.liabilities.liableEntities
+        .forall(f => f.idType.equals("CT-UTR") || f.idType.equals("CRN"))
+    )
+      valid[UktrSubmissionData](uktrSubmissionData)
+    else
+      invalid(
+        UktrSubmissionError(
+          "003",
+          "idType",
+          "idType must be either CT-UTR or CRN."
+        )
+      )
+  }
+
+  val idValueRule: ValidationRule[UktrSubmissionData] = ValidationRule { uktrSubmissionData: UktrSubmissionData =>
+    if (
+      uktrSubmissionData.liabilities.liableEntities
+        .forall(f => f.idValue.matches("^[a-zA-Z0-9]{1,15}$"))
+    )
+      valid[UktrSubmissionData](uktrSubmissionData)
+    else
+      invalid(
+        UktrSubmissionError(
+          "003",
+          "idValue",
+          "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
+        )
+      )
+  }
+
+  val amountOwedDTTRule: ValidationRule[UktrSubmissionData] = ValidationRule { uktrSubmissionData: UktrSubmissionData =>
+    if (
+      uktrSubmissionData.liabilities.liableEntities
+        .forall(f => {
+          val amountResultBoolean = isValidUKTRAmount(f.amountOwedDTT.toString())
+          amountResultBoolean
+        }
+        )
+    )
+      valid[UktrSubmissionData](uktrSubmissionData)
+    else
+      invalid(
+        UktrSubmissionError(
+          "003",
+          "amountOwedDTT",
+          "amountOwedDTT" + amountErrorMessage
+        )
+      )
+  }
+
+  // n.b. uktrSubmissionValidator must be defined AFTER the individual Rules.
+  implicit val uktrSubmissionValidator: ValidationRule[UktrSubmissionData] =
+    ValidationRule.compose(
+      ukChargeableEntityNameRule,
+      idTypeRule,
+      idValueRule,
+      amountOwedDTTRule
+    )(AccumulateErrors)
 }

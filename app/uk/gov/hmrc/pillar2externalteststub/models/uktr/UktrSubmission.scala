@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
+import cats.data.NonEmptyChain
+import cats.implicits.toFoldableOps
 import play.api.libs.json._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.Liability
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate
 
@@ -36,4 +38,21 @@ object UktrSubmission {
     } else {
       json.validate[UktrSubmissionNilReturn]
     }
+}
+
+case class UktrSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
+
+object UktrSubmissionErrorJsonConverter {
+  def toJson(errors: NonEmptyChain[ValidationError]): JsObject = {
+    val errorJson = Json.obj(
+      "error" -> errors.toList.map(error =>
+        Json.obj(
+          "code"    -> error.errorCode,
+          "field"   -> error.field,
+          "message" -> error.errorMessage
+        )
+      )
+    )
+    errorJson
+  }
 }

@@ -16,52 +16,35 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import cats.data.NonEmptyChain
 import cats.implicits._
 import play.api.Logging
 import play.api.libs.json.Format.GenericFormat
 import play.api.libs.json._
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmissionData
+import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse.ErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse.SubmitUKTRSuccessResponse
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.ValidationResult
 import uk.gov.hmrc.pillar2externalteststub.validation.syntax._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future // imports helper method
+import scala.concurrent.{ExecutionContext, Future} // imports helper method
 
 @Singleton
 class SubmitUKTRController @Inject() (
-  cc:         ControllerComponents,
-  authFilter: AuthActionFilter
-) extends BackendController(cc)
+  cc:          ControllerComponents,
+  authFilter:  AuthActionFilter
+)(implicit ec: ExecutionContext)
+    extends BackendController(cc)
     with Logging {
 
   def submitUKTR(plrReference: String): Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
     logger.info(s"... Submitting UKTR subscription for PLR reference: $plrReference")
-
-    println("zxc start validateRequest ... request.body=" + request.body.toString() + ".")
-
-    request.body.validate[UktrSubmissionData] match {
-      case JsSuccess(req, _) =>
-        val validationResult: ValidationResult[UktrSubmissionData] = req.validate
-        validationResult.toEither match {
-          case Left(errors) =>
-            println("zxc case  Invalid(errors) errors = " + errors.toString + "/.end.")
-            BadRequest(Json.toJson(errors.toList.map(error => s"${error.field}: ${error.errorMessage}")))
-          case Right(_) =>
-            println("zxc case Valid(validData).")
-          // Ok(Json.toJson(validData))
-        }
-      case JsError(errors) =>
-        println("zxc case JsError(errors). did not validate. errors=" + errors)
-        BadRequest(Json.toJson(errors.map(_._1.toJsonString)))
-    }
-
-    logger.info(s"zxc after validateRequest.")
 
     plrReference match {
       case "XEPLR0000000422" =>
@@ -70,10 +53,44 @@ class SubmitUKTRController @Inject() (
         Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SAPError500.response))))
       case "XEPLR0000000400" =>
         Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400.response))))
-      case "XEPLR0000003400" =>
-        Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(UkChargeableEntityNameEmptyErrorCode003.response))))
       case _ =>
-        Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
+        validateRequest(request)
     }
+  }
+
+  def validateRequest(request: Request[JsValue]): Future[Result] =
+    request.body.validate[UktrSubmission] match {
+      case JsSuccess(uktrRequest: UktrSubmissionData, _) =>
+        validateUktrSubmissionData(uktrRequest: UktrSubmissionData).flatMap {
+          case Left(errors) =>
+            Future.successful(BadRequest(UktrSubmissionErrorJsonConverter.toJson(errors)))
+          case Right(_) =>
+            Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
+        }
+      case JsSuccess(nilReturnRequest: UktrSubmissionNilReturn, _) =>
+        validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn).flatMap {
+          case Left(errors) => Future.successful(BadRequest(Json.toJson(errors.toList.map(error => s"${error.field}: ${error.errorMessage}"))))
+          case Right(_) =>
+            Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
+        }
+      case JsError(errors) =>
+        Future.successful {
+          logger.info("JsErrors. Not NilReturn or UKTRSubmission. Did not validate. errors=" + errors)
+          BadRequest(Json.toJson(errors.map(_._1.toJsonString)))
+        }
+      case _ =>
+        Future.successful {
+          BadRequest("Unknown Request type: must be either UktrSubmissionData or NilReturn.")
+        }
+    }
+
+  def validateUktrSubmissionData(req: UktrSubmissionData): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionData]] = {
+    val validationResult: ValidationResult[UktrSubmissionData] = req.validate
+    Future.successful(validationResult.toEither)
+  }
+
+  def validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionNilReturn]] = {
+    // Placeholder for NilReturn validation
+    Future.successful(Right(nilReturnRequest))
   }
 }
