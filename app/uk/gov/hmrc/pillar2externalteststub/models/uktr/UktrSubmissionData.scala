@@ -17,8 +17,9 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
-import uk.gov.hmrc.pillar2externalteststub.validation.{AccumulateErrors, ValidationRule}
+import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
 
@@ -32,7 +33,8 @@ case class UktrSubmissionData(
 
 object UktrSubmissionData {
   implicit val uktrSubmissionDataFormat: OFormat[UktrSubmissionData] = Json.format[UktrSubmissionData]
-  val amountErrorMessage = " must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+  val amountErrorMessage =
+    " must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
 
   // returns TRUE if the amount is a number which is:
   // Positive only, Numeric, has 2 decimal places, and has 13 characters, including the decimal place.
@@ -53,7 +55,7 @@ object UktrSubmissionData {
     else
       invalid(
         UktrSubmissionError(
-          "003",
+          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "ukChargeableEntityName",
           "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
         )
@@ -63,15 +65,15 @@ object UktrSubmissionData {
   val idTypeRule: ValidationRule[UktrSubmissionData] = ValidationRule { uktrSubmissionData: UktrSubmissionData =>
     if (
       uktrSubmissionData.liabilities.liableEntities
-        .forall(f => f.idType.equals("CT-UTR") || f.idType.equals("CRN"))
+        .forall(f => f.idType.equals("UTR") || f.idType.equals("CRN"))
     )
       valid[UktrSubmissionData](uktrSubmissionData)
     else
       invalid(
         UktrSubmissionError(
-          "003",
+          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "idType",
-          "idType must be either CT-UTR or CRN."
+          "idType must be either UTR or CRN."
         )
       )
   }
@@ -85,7 +87,7 @@ object UktrSubmissionData {
     else
       invalid(
         UktrSubmissionError(
-          "003",
+          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "idValue",
           "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
         )
@@ -95,19 +97,47 @@ object UktrSubmissionData {
   val amountOwedDTTRule: ValidationRule[UktrSubmissionData] = ValidationRule { uktrSubmissionData: UktrSubmissionData =>
     if (
       uktrSubmissionData.liabilities.liableEntities
-        .forall(f => {
-          val amountResultBoolean = isValidUKTRAmount(f.amountOwedDTT.toString())
-          amountResultBoolean
-        }
-        )
+        .forall(f => isValidUKTRAmount(f.amountOwedDTT.toString()))
     )
       valid[UktrSubmissionData](uktrSubmissionData)
     else
       invalid(
         UktrSubmissionError(
-          "003",
+          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "amountOwedDTT",
           "amountOwedDTT" + amountErrorMessage
+        )
+      )
+  }
+
+  val amountOwedIIRRule: ValidationRule[UktrSubmissionData] = ValidationRule { uktrSubmissionData: UktrSubmissionData =>
+    if (
+      uktrSubmissionData.liabilities.liableEntities
+        .forall(f => isValidUKTRAmount(f.amountOwedIIR.toString()))
+    )
+      valid[UktrSubmissionData](uktrSubmissionData)
+    else
+      invalid(
+        UktrSubmissionError(
+          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+          "amountOwedIIR",
+          "amountOwedIIR" + amountErrorMessage
+        )
+      )
+  }
+
+  val amountOwedUTPRRule: ValidationRule[UktrSubmissionData] = ValidationRule { uktrSubmissionData: UktrSubmissionData =>
+    if (
+      uktrSubmissionData.liabilities.liableEntities
+        .forall(f => isValidUKTRAmount(f.amountOwedUTPR.toString()))
+    )
+      valid[UktrSubmissionData](uktrSubmissionData)
+    else
+      invalid(
+        UktrSubmissionError(
+          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+          "amountOwedUTPR",
+          "amountOwedUTPR" + amountErrorMessage
         )
       )
   }
@@ -118,6 +148,8 @@ object UktrSubmissionData {
       ukChargeableEntityNameRule,
       idTypeRule,
       idValueRule,
-      amountOwedDTTRule
-    )(AccumulateErrors)
+      amountOwedDTTRule,
+      amountOwedIIRRule,
+      amountOwedUTPRRule
+    )(FailFast)
 }

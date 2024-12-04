@@ -48,7 +48,7 @@ class SubmitUKTRController @Inject() (
 
     plrReference match {
       case "XEPLR0000000422" =>
-        Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse.detailed(ValidationError422.response))))
+        Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse.detailed(ValidationError422RegimeMissingOrInvalid.response))))
       case "XEPLR0000000500" =>
         Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SAPError500.response))))
       case "XEPLR0000000400" =>
@@ -63,20 +63,21 @@ class SubmitUKTRController @Inject() (
       case JsSuccess(uktrRequest: UktrSubmissionData, _) =>
         validateUktrSubmissionData(uktrRequest: UktrSubmissionData).flatMap {
           case Left(errors) =>
-            Future.successful(BadRequest(UktrSubmissionErrorJsonConverter.toJson(errors)))
+            Future.successful(UnprocessableEntity(UktrSubmissionErrorJsonConverter.toJson(errors)))
           case Right(_) =>
             Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
         }
       case JsSuccess(nilReturnRequest: UktrSubmissionNilReturn, _) =>
         validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn).flatMap {
-          case Left(errors) => Future.successful(BadRequest(Json.toJson(errors.toList.map(error => s"${error.field}: ${error.errorMessage}"))))
+          case Left(errors) =>
+            Future.successful(UnprocessableEntity(Json.toJson(errors.toList.map(error => s"${error.field}: ${error.errorMessage}"))))
           case Right(_) =>
             Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
         }
       case JsError(errors) =>
+        val errorsToString = errors.toString()
         Future.successful {
-          logger.info("JsErrors. Not NilReturn or UKTRSubmission. Did not validate. errors=" + errors)
-          BadRequest(Json.toJson(errors.map(_._1.toJsonString)))
+          formatMissingMandatoryFieldErrorMessage(errorsToString)
         }
       case _ =>
         Future.successful {
@@ -84,13 +85,30 @@ class SubmitUKTRController @Inject() (
         }
     }
 
+  def formatMissingMandatoryFieldErrorMessage(jsonErrorListString: String): Result =
+    jsonErrorListString match {
+      case str if str.contains("ukChargeableEntityName") && str.contains("JsonValidationError(List(error.path.missing)") =>
+        BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingUkChargeableEntityName.response)))
+      case str if str.contains("idType") && str.contains("JsonValidationError(List(error.path.missing)") =>
+        BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingIdType.response)))
+      case str if str.contains("idValue") && str.contains("JsonValidationError(List(error.path.missing)") =>
+        BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingIdValue.response)))
+      case str if str.contains("amountOwedDTT") && str.contains("JsonValidationError(List(error.path.missing)") =>
+        BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingAmountOwedDTT.response)))
+      case str if str.contains("amountOwedIIR") && str.contains("JsonValidationError(List(error.path.missing)") =>
+        BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingAmountOwedIIR.response)))
+      case str if str.contains("amountOwedUTPR") && str.contains("JsonValidationError(List(error.path.missing)") =>
+        BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingAmountOwedUTPR.response)))
+      case _ =>
+        BadRequest(Json.toJson(jsonErrorListString))
+    }
+
   def validateUktrSubmissionData(req: UktrSubmissionData): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionData]] = {
     val validationResult: ValidationResult[UktrSubmissionData] = req.validate
     Future.successful(validationResult.toEither)
   }
 
-  def validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionNilReturn]] = {
+  def validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionNilReturn]] =
     // Placeholder for NilReturn validation
     Future.successful(Right(nilReturnRequest))
-  }
 }

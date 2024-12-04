@@ -19,6 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 import cats.data.NonEmptyChain
 import cats.implicits.toFoldableOps
 import play.api.libs.json._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate
@@ -32,6 +33,8 @@ trait UktrSubmission {
 }
 
 object UktrSubmission {
+  val UKTR_STUB_PROCESSING_DATE = "2022-01-31T09:26:17Z"
+
   implicit val uktrSubmissionReads: Reads[UktrSubmission] = (json: JsValue) =>
     if ((json \ "liabilities" \ "returnType").isEmpty) {
       json.validate[UktrSubmissionData]
@@ -42,17 +45,18 @@ object UktrSubmission {
 
 case class UktrSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
 
+// Converts a validation error from our generic Stub validation framework format, into the format required by the UKTR Submit API Spec,
+// for 422 Business Validation Field Errors.
+// Because ETMP / HIP only ever return the FIRST business validation error found, we ony take the FIRST error from the errors list.
 object UktrSubmissionErrorJsonConverter {
-  def toJson(errors: NonEmptyChain[ValidationError]): JsObject = {
-    val errorJson = Json.obj(
-      "error" -> errors.toList.map(error =>
+  def toJson(errors: NonEmptyChain[ValidationError]): JsObject =
+    Json.obj(
+      "error" -> errors.toList.headOption.map(error =>
         Json.obj(
-          "code"    -> error.errorCode,
-          "field"   -> error.field,
-          "message" -> error.errorMessage
+          "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
+          "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+          "text"           -> error.errorMessage
         )
       )
     )
-    errorJson
-  }
 }
