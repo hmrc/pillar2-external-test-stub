@@ -18,10 +18,10 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse
 
 import play.api.libs.json.{Json, OWrites}
 
-import java.time.LocalDateTime
+import java.time.{ZoneOffset, ZonedDateTime}
 
 case class SubmitUKTRSuccessResponse(
-  processingDate:   LocalDateTime,
+  processingDate:   ZonedDateTime,
   formBundleNumber: String,
   chargeReference:  String
 )
@@ -32,7 +32,7 @@ object SubmitUKTRSuccessResponse {
   def successfulDomesticOnlyResponse(): ApiResponse =
     SuccessResponse(
       SubmitUKTRSuccessResponse(
-        processingDate = LocalDateTime.now(),
+        processingDate = ZonedDateTime.now(ZoneOffset.UTC),
         formBundleNumber = "119000004320",
         chargeReference = "XTC01234123412"
       )
