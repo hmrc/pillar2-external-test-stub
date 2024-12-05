@@ -44,8 +44,6 @@ class SubmitUKTRController @Inject() (
     with Logging {
 
   def submitUKTR(plrReference: String): Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
-    logger.info(s"... Submitting UKTR subscription for PLR reference: $plrReference")
-
     plrReference match {
       case "XEPLR0000000422" =>
         Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse.detailed(ValidationError422RegimeMissingOrInvalid.response))))
@@ -81,27 +79,29 @@ class SubmitUKTRController @Inject() (
         }
       case _ =>
         Future.successful {
-          BadRequest("Unknown Request type: must be either UktrSubmissionData or NilReturn.")
+          BadRequest("Unknown Request type: Submit UKTR Request Body must be either UktrSubmissionData or NilReturn.")
         }
     }
 
-  def formatMissingMandatoryFieldErrorMessage(jsonErrorListString: String): Result =
+  def formatMissingMandatoryFieldErrorMessage(jsonErrorListString: String): Result = {
+    val PATH_MISSING_STRING = "JsonValidationError(List(error.path.missing)"
     jsonErrorListString match {
-      case str if str.contains("ukChargeableEntityName") && str.contains("JsonValidationError(List(error.path.missing)") =>
+      case str if str.contains("ukChargeableEntityName") && str.contains(PATH_MISSING_STRING) =>
         BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingUkChargeableEntityName.response)))
-      case str if str.contains("idType") && str.contains("JsonValidationError(List(error.path.missing)") =>
+      case str if str.contains("idType") && str.contains(PATH_MISSING_STRING) =>
         BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingIdType.response)))
-      case str if str.contains("idValue") && str.contains("JsonValidationError(List(error.path.missing)") =>
+      case str if str.contains("idValue") && str.contains(PATH_MISSING_STRING) =>
         BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingIdValue.response)))
-      case str if str.contains("amountOwedDTT") && str.contains("JsonValidationError(List(error.path.missing)") =>
+      case str if str.contains("amountOwedDTT") && str.contains(PATH_MISSING_STRING) =>
         BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingAmountOwedDTT.response)))
-      case str if str.contains("amountOwedIIR") && str.contains("JsonValidationError(List(error.path.missing)") =>
+      case str if str.contains("amountOwedIIR") && str.contains(PATH_MISSING_STRING) =>
         BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingAmountOwedIIR.response)))
-      case str if str.contains("amountOwedUTPR") && str.contains("JsonValidationError(List(error.path.missing)") =>
+      case str if str.contains("amountOwedUTPR") && str.contains(PATH_MISSING_STRING) =>
         BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400MissingAmountOwedUTPR.response)))
       case _ =>
         BadRequest(Json.toJson(jsonErrorListString))
     }
+  }
 
   def validateUktrSubmissionData(req: UktrSubmissionData): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionData]] = {
     val validationResult: ValidationResult[UktrSubmissionData] = req.validate

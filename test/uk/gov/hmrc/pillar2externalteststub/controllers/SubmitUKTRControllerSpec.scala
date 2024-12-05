@@ -32,6 +32,59 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
   val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
+  val mandatoryFieldMissingErrorMessage = "is a mandatory field in each LiabilityEntity object."
+
+  def create400JSONErrorBody(fieldName: String, errorMessage: String): JsObject =
+    Json.obj(
+      "error" -> Json.obj(
+        "code"    -> "400",
+        "message" -> s"$fieldName $errorMessage",
+        "logID"   -> "C0000AB8190C86300000000200006836"
+      )
+    )
+
+  val ukChargeableEntityName422JSONError: JsObject = Json.obj(
+    "error" -> Json.obj(
+      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
+      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+      "text"           -> "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
+    )
+  )
+  val idType422JSONError: JsObject = Json.obj(
+    "error" -> Json.obj(
+      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
+      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+      "text"           -> "idType must be either UTR or CRN."
+    )
+  )
+  val idValue422JSONError: JsObject = Json.obj(
+    "error" -> Json.obj(
+      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
+      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+      "text"           -> "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
+    )
+  )
+  val amountOwedDTT422JSONError: JsObject = Json.obj(
+    "error" -> Json.obj(
+      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
+      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+      "text" -> "amountOwedDTT must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+    )
+  )
+  val amountOwedIIR422JSONError: JsObject = Json.obj(
+    "error" -> Json.obj(
+      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
+      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+      "text" -> "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+    )
+  )
+  val amountOwedUTPR422JSONError: JsObject = Json.obj(
+    "error" -> Json.obj(
+      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
+      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+      "text" -> "amountOwedUTPR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+    )
+  )
 
   val validRequestBody: JsObject = Json.obj(
     "accountingPeriodFrom" -> "2024-08-14",
@@ -55,13 +108,73 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           "idType"                 -> "CRN",
           "idValue"                -> "12345678",
           "amountOwedDTT"          -> 5000,
-          "electedDTT"             -> true,
           "amountOwedIIR"          -> 3400,
-          "amountOwedUTPR"         -> 6000.5,
-          "electedUTPR"            -> true
+          "amountOwedUTPR"         -> 6000.5
         )
       )
     )
+  )
+  val validLiableEntity1: JsObject = Json.obj(
+    "ukChargeableEntityName" -> "New Company",
+    "idType"                 -> "CRN",
+    "idValue"                -> "1234",
+    "amountOwedDTT"          -> 12345678901.0, // valid amt: 13 digits max, including the decimal point
+    "amountOwedIIR"          -> 1234567890.09, // valid amt: 13 digits max, including the decimal point
+    "amountOwedUTPR"         -> 600.50
+  )
+  val validLiableEntity2: JsObject = Json.obj(
+    "ukChargeableEntityName" -> "UK Co",
+    "idType"                 -> "UTR",
+    "idValue"                -> "a",
+    "amountOwedDTT"          -> 10.00, // valid amt
+    "amountOwedIIR"          -> 10, // valid amt
+    "amountOwedUTPR"         -> 10.0 // valid amt
+  )
+  val validLiableEntity3: JsObject = Json.obj(
+    "ukChargeableEntityName" -> "UK Company",
+    "idType"                 -> "UTR",
+    "idValue"                -> "abc45678",
+    "amountOwedDTT"          -> 12345678901.9, // valid amt:  13 digits, including the decimal point
+    "amountOwedIIR"          -> 1234567890.01, // valid amt:  13 digits, including the decimal point
+    "amountOwedUTPR"         -> 1234567890.99 // valid amt:  13 digits, including the decimal point
+  )
+  val invalidLiableEntityukChargeableEntityNameZeroLength: JsObject = Json.obj(
+    "ukChargeableEntityName" -> "",
+    "idType"                 -> "UTR",
+    "idValue"                -> "abc45678",
+    "amountOwedDTT"          -> 12345678901.9, // valid amt:  13 digits, including the decimal point
+    "amountOwedIIR"          -> 1234567890.01, // valid amt:  13 digits, including the decimal point
+    "amountOwedUTPR"         -> 1234567890.99 // valid amt:  13 digits, including the decimal point
+  )
+
+  val validThreeLiableEntitiesRequestBody: JsObject = validRequestBody ++ Json.obj(
+    "liabilities" -> validRequestBody
+      .value("liabilities")
+      .as[JsObject]
+      .deepMerge(
+        Json.obj(
+          "liableEntities" -> Json.arr(
+            validLiableEntity1,
+            validLiableEntity2,
+            validLiableEntity3
+          )
+        )
+      )
+  )
+
+  val invalidUkChargeableEntityNameThirdLiableEntityRequestBody: JsObject = validRequestBody ++ Json.obj(
+    "liabilities" -> validRequestBody
+      .value("liabilities")
+      .as[JsObject]
+      .deepMerge(
+        Json.obj(
+          "liableEntities" -> Json.arr(
+            validLiableEntity1,
+            validLiableEntity2,
+            invalidLiableEntityukChargeableEntityNameZeroLength
+          )
+        )
+      )
   )
 
   //  =============================================================
@@ -85,6 +198,24 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
+
+  // missingUkChargeableEntityNameRequestBody and invalidLiableEntityukChargeableEntityNameZeroLength
+  // => should ONLY give BAD_REQUEST 400 error on issingUkChargeableEntityNameRequestBody.
+  val missingUkChargeableEntityNameSecondLiableEntityRequestBody: JsObject = validRequestBody ++ Json.obj(
+    "liabilities" -> validRequestBody
+      .value("liabilities")
+      .as[JsObject]
+      .deepMerge(
+        Json.obj(
+          "liableEntities" -> Json.arr(
+            validLiableEntity1,
+            missingUkChargeableEntityNameRequestBody,
+            invalidLiableEntityukChargeableEntityNameZeroLength
+          )
+        )
+      )
+  )
+
   val missingIdTypeRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -176,10 +307,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       )
   )
 
-  //  =============================================================
-  //  invalid UKTR REQUESTS :  422 Business Validation Failures
-  //  =============================================================
-
+  //  ====================================================================================
+  //  invalid UKTR REQUESTS :  422 Business Validation Failures on Liability Entity Fields
+  //  ====================================================================================
   val invalidUkChargeableEntityNameRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -187,16 +317,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       .deepMerge(
         Json.obj(
           "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "",
-              "idType"                 -> "CRN",
-              "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 12345678901.0, // valid amt: 13 digits max, including the decimal point
-              "electedDTT"             -> true,
-              "amountOwedIIR"          -> 1234567890.09, // valid amt: 13 digits max, including the decimal point
-              "amountOwedUTPR"         -> 6000.50,
-              "electedUTPR"            -> true
-            )
+            invalidLiableEntityukChargeableEntityNameZeroLength
           )
         )
       )
@@ -216,6 +337,26 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
               "amountOwedDTT"  -> 12345678901.0, // valid amt: 13 digits max, including the decimal point
               "amountOwedIIR"  -> 1234567890.09, // valid amt: 13 digits max, including the decimal point
               "amountOwedUTPR" -> 6000.50
+            )
+          )
+        )
+      )
+  )
+
+  val invalidIdTypeZeroLengthRequestBody: JsObject = validRequestBody ++ Json.obj(
+    "liabilities" -> validRequestBody
+      .value("liabilities")
+      .as[JsObject]
+      .deepMerge(
+        Json.obj(
+          "liableEntities" -> Json.arr(
+            Json.obj(
+              "ukChargeableEntityName" -> "UK Company",
+              "idType"                 -> "",
+              "idValue"                -> "12345678",
+              "amountOwedDTT"          -> 0.01, // valid amt
+              "amountOwedIIR"          -> .57, // valid amt
+              "amountOwedUTPR"         -> 6000.50
             )
           )
         )
@@ -252,9 +393,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             Json.obj(
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "CRN",
-              "idValue"                -> "", // length=0 => invalid: min is 1.
-              "amountOwedDTT"          -> 0.01, // valid amt
-              "amountOwedIIR"          -> .57, // valid amt
+              "idValue"                -> "", // length=0 => invalid: minimum length is 1.
+              "amountOwedDTT"          -> 0.01,
+              "amountOwedIIR"          -> .57,
               "amountOwedUTPR"         -> 6000.50
             )
           )
@@ -273,9 +414,38 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "UTR",
               "idValue"                -> "abc4567890123456", // length=16 => invalid: max is 15.
+              "amountOwedDTT"          -> 0.00, // valid amt
+              "amountOwedIIR"          -> 0, // valid amt
+              "amountOwedUTPR"         -> 0.0 // valid amt
+            )
+          )
+        )
+      )
+  )
+
+  // should ONLY flag the FIRST error in LiableEntity1, invalidIdType.
+  val invalidIdTypeEntity1AndInvalidIdValueEntity2RequestBody: JsObject = validRequestBody ++ Json.obj(
+    "liabilities" -> validRequestBody
+      .value("liabilities")
+      .as[JsObject]
+      .deepMerge(
+        Json.obj(
+          "liableEntities" -> Json.arr(
+            Json.obj(
+              "ukChargeableEntityName" -> "UK Company",
+              "idType"                 -> "INVALID_ID_TYPE", // THIS ERROR IS FLAGGED.
+              "idValue"                -> "12345678",
               "amountOwedDTT"          -> 0.01, // valid amt
               "amountOwedIIR"          -> .57, // valid amt
               "amountOwedUTPR"         -> 6000.50
+            ),
+            Json.obj(
+              "ukChargeableEntityName" -> "UK Company",
+              "idType"                 -> "UTR",
+              "idValue"                -> "abc4567890123456", // length=16 => invalid:  THIS ERROR IS NOT FLAGGED.
+              "amountOwedDTT"          -> 0.00,
+              "amountOwedIIR"          -> 0,
+              "amountOwedUTPR"         -> 0.0
             )
           )
         )
@@ -322,6 +492,43 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       )
   )
 
+  // should ONLY flag the first error, invalidAmountOwedIIR, in LiableEntity2.
+  val invalidAmountOwedIIREntity2AndinvalidAmountOwedUTPREntity3RequestBody: JsObject = validRequestBody ++ Json.obj(
+    "liabilities" -> validRequestBody
+      .value("liabilities")
+      .as[JsObject]
+      .deepMerge(
+        Json.obj(
+          "liableEntities" -> Json.arr(
+            Json.obj(
+              "ukChargeableEntityName" -> "UK Company",
+              "idType"                 -> "UTR",
+              "idValue"                -> "abc45678",
+              "amountOwedDTT"          -> 50.00,
+              "amountOwedIIR"          -> 123.01,
+              "amountOwedUTPR"         -> 12345678901.9
+            ),
+            Json.obj(
+              "ukChargeableEntityName" -> "UK Company",
+              "idType"                 -> "UTR",
+              "idValue"                -> "abc45678",
+              "amountOwedDTT"          -> 50.00,
+              "amountOwedIIR"          -> 1234567890123.01, // invalid amt: > 13 digits, including the decimal point
+              "amountOwedUTPR"         -> 12345678901.9
+            ),
+            Json.obj(
+              "ukChargeableEntityName" -> "UK Company",
+              "idType"                 -> "UTR",
+              "idValue"                -> "abc45678",
+              "amountOwedDTT"          -> 50.00,
+              "amountOwedIIR"          -> 123.01,
+              "amountOwedUTPR"         -> -123.90 // invalid negative amt
+            )
+          )
+        )
+      )
+  )
+
   val invalidAmountOwedUTPRRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -354,6 +561,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     )
   )
 
+  //  ====================================================================================
+  //  scalatests
+  //  ====================================================================================
+
   "SubmitUKTRController" - {
     "when submitting UKTR" - {
       "should return CREATED (201) with success response" - {
@@ -361,6 +572,18 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000123").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
             .withBody(validRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe CREATED
+          val json = contentAsJson(result)
+          (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+          (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
+          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+        }
+
+        "when plrReference is valid and JSON is correct and has 3 Liable Entities" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000123").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(validThreeLiableEntitiesRequestBody)
           val result = route(app, request).value
           status(result) mustBe CREATED
           val json = contentAsJson(result)
@@ -443,13 +666,18 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingUkChargeableEntityNameRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe Json.obj(
-          "error" -> Json.obj(
-            "code"    -> "400",
-            "message" -> "ukChargeableEntityName is a mandatory field in each LiabilityEntity object.",
-            "logID"   -> "C0000AB8190C86300000000200006836"
-          )
-        )
+        contentAsJson(result) mustBe create400JSONErrorBody("ukChargeableEntityName", mandatoryFieldMissingErrorMessage)
+      }
+
+      // missingUkChargeableEntityNameRequestBody and invalidLiableEntityukChargeableEntityNameZeroLength
+      // => should ONLY give BAD_REQUEST 400 error on missingUkChargeableEntityNameRequestBody.
+      "when ukChargeableEntityName is missing and invalidLiableEntityukChargeableEntityNameZeroLength" in {
+        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+          .withHeaders("Content-Type" -> "application/json", authHeader)
+          .withBody(missingUkChargeableEntityNameSecondLiableEntityRequestBody)
+        val result = route(app, request).value
+        status(result) mustBe BAD_REQUEST
+        contentAsJson(result) mustBe create400JSONErrorBody("ukChargeableEntityName", mandatoryFieldMissingErrorMessage)
       }
 
       "when idType is missing" in {
@@ -458,13 +686,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingIdTypeRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe Json.obj(
-          "error" -> Json.obj(
-            "code"    -> "400",
-            "message" -> "idType is a mandatory field in each LiabilityEntity object.",
-            "logID"   -> "C0000AB8190C86300000000200006836"
-          )
-        )
+        contentAsJson(result) mustBe create400JSONErrorBody("idType", mandatoryFieldMissingErrorMessage)
       }
 
       "when idValue is missing" in {
@@ -473,13 +695,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingIdValueRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe Json.obj(
-          "error" -> Json.obj(
-            "code"    -> "400",
-            "message" -> "idValue is a mandatory field in each LiabilityEntity object.",
-            "logID"   -> "C0000AB8190C86300000000200006836"
-          )
-        )
+        contentAsJson(result) mustBe create400JSONErrorBody("idValue", mandatoryFieldMissingErrorMessage)
       }
 
       "when amountOwedDTT is missing" in {
@@ -488,13 +704,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingAmountOwedDTTRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe Json.obj(
-          "error" -> Json.obj(
-            "code"    -> "400",
-            "message" -> "amountOwedDTT is a mandatory field in each LiabilityEntity object.",
-            "logID"   -> "C0000AB8190C86300000000200006836"
-          )
-        )
+        contentAsJson(result) mustBe create400JSONErrorBody("amountOwedDTT", mandatoryFieldMissingErrorMessage)
       }
 
       "when amountOwedIIR is missing" in {
@@ -503,13 +713,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingAmountOwedIIRRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe Json.obj(
-          "error" -> Json.obj(
-            "code"    -> "400",
-            "message" -> "amountOwedIIR is a mandatory field in each LiabilityEntity object.",
-            "logID"   -> "C0000AB8190C86300000000200006836"
-          )
-        )
+        contentAsJson(result) mustBe create400JSONErrorBody("amountOwedIIR", mandatoryFieldMissingErrorMessage)
       }
 
       "when amountOwedUTPR is missing" in {
@@ -518,18 +722,13 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingAmountOwedUTPRRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe Json.obj(
-          "error" -> Json.obj(
-            "code"    -> "400",
-            "message" -> "amountOwedUTPR is a mandatory field in each LiabilityEntity object.",
-            "logID"   -> "C0000AB8190C86300000000200006836"
-          )
-        )
+        contentAsJson(result) mustBe create400JSONErrorBody("amountOwedUTPR", mandatoryFieldMissingErrorMessage)
       }
 
-      // =============================================
-      // 422 business validation failure errors
-      // =============================================
+      // ===========================================================
+      // 422 UNPROCESSABLE_ENTITY business validation failure errors
+      // ===========================================================
+
       "should return UNPROCESSABLE_ENTITY (422) + business validation failure error code 003" - {
         "when ukChargeableEntityName is Invalid" in {
           val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
@@ -537,13 +736,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidUkChargeableEntityNameRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-              "text"           -> "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
-            )
-          )
+          contentAsJson(result) mustBe ukChargeableEntityName422JSONError
         }
 
         "when ukChargeableEntityName exceeds 160 characters" in {
@@ -552,13 +745,25 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(ukChargeableEntityNameTooLongRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-              "text"           -> "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
-            )
-          )
+          contentAsJson(result) mustBe ukChargeableEntityName422JSONError
+        }
+
+        "when ukChargeableEntityName is Empty in 3rd LiableEntity" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidUkChargeableEntityNameThirdLiableEntityRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          contentAsJson(result) mustBe ukChargeableEntityName422JSONError
+        }
+
+        "when idType has zero length" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidIdTypeZeroLengthRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          contentAsJson(result) mustBe idType422JSONError
         }
 
         "when idType is Invalid" in {
@@ -567,13 +772,17 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidIdTypeRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-              "text"           -> "idType must be either UTR or CRN."
-            )
-          )
+          contentAsJson(result) mustBe idType422JSONError
+        }
+
+        // should ONLY flag the FIRST error in LiableEntity1, invalidIdType, and not the idValue error in LiableEntity2.
+        "when idType in LiableEntity1 is Invalid and idValue in LiableEntity2 is Invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidIdTypeEntity1AndInvalidIdValueEntity2RequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          contentAsJson(result) mustBe idType422JSONError
         }
 
         "when idValue has zero length" in {
@@ -582,13 +791,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidIdValueZeroLengthRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-              "text"           -> "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
-            )
-          )
+          contentAsJson(result) mustBe idValue422JSONError
         }
 
         "when idValue length exceeds 15 characters" in {
@@ -597,13 +800,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidIdValueLengthRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-              "text"           -> "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
-            )
-          )
+          contentAsJson(result) mustBe idValue422JSONError
         }
 
         "when amountOwedDTT is Invalid" in {
@@ -612,13 +809,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidAmountOwedDTTRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-              "text" -> "amountOwedDTT must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
-            )
-          )
+          contentAsJson(result) mustBe amountOwedDTT422JSONError
         }
 
         "when amountOwedIIR is Invalid" in {
@@ -627,13 +818,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidAmountOwedIIRRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-              "text" -> "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
-            )
-          )
+          contentAsJson(result) mustBe amountOwedIIR422JSONError
         }
 
         "when amountOwedUTPR is Invalid" in {
@@ -642,13 +827,17 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidAmountOwedUTPRRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-              "text" -> "amountOwedUTPR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
-            )
-          )
+          contentAsJson(result) mustBe amountOwedUTPR422JSONError
+        }
+
+        // should ONLY flag the first error, invalidAmountOwedIIR, in LiableEntity2.
+        "when amountOwedIIR is Invalid in LiableEntity2 and amountOwedUTPR is Invalid in LiableEntity3" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidAmountOwedIIREntity2AndinvalidAmountOwedUTPREntity3RequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          contentAsJson(result) mustBe amountOwedIIR422JSONError
         }
       }
     }

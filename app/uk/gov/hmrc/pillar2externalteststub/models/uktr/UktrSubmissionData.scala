@@ -37,7 +37,7 @@ object UktrSubmissionData {
     " must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
 
   // returns TRUE if the amount is a number which is:
-  // Positive only, Numeric, has 2 decimal places, and has 13 characters, including the decimal place.
+  // Numeric, Positive, up to 2 decimal places, and has at most 13 characters, including the decimal place.
   def isValidUKTRAmount(number: String): Boolean = {
     val pattern = """^\d{1,13}\.{0,1}\d{0,2}$""".r
     number match {
@@ -142,7 +142,6 @@ object UktrSubmissionData {
       )
   }
 
-  // n.b. uktrSubmissionValidator must be defined AFTER the individual Rules.
   implicit val uktrSubmissionValidator: ValidationRule[UktrSubmissionData] =
     ValidationRule.compose(
       ukChargeableEntityNameRule,
