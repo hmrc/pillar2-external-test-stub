@@ -32,7 +32,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
   val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
-  val mandatoryFieldMissingErrorMessage = "is a mandatory field in each LiabilityEntity object."
 
   def create400JSONErrorBody(fieldName: String, errorMessage: String): JsObject =
     Json.obj(
@@ -126,9 +125,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     "ukChargeableEntityName" -> "UK Co",
     "idType"                 -> "UTR",
     "idValue"                -> "a",
-    "amountOwedDTT"          -> 10.00, // valid amt
-    "amountOwedIIR"          -> 10, // valid amt
-    "amountOwedUTPR"         -> 10.0 // valid amt
+    "amountOwedDTT"          -> 10.00,
+    "amountOwedIIR"          -> 10,
+    "amountOwedUTPR"         -> 10.0
   )
   val validLiableEntity3: JsObject = Json.obj(
     "ukChargeableEntityName" -> "UK Company",
@@ -142,9 +141,17 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     "ukChargeableEntityName" -> "",
     "idType"                 -> "UTR",
     "idValue"                -> "abc45678",
-    "amountOwedDTT"          -> 12345678901.9, // valid amt:  13 digits, including the decimal point
-    "amountOwedIIR"          -> 1234567890.01, // valid amt:  13 digits, including the decimal point
-    "amountOwedUTPR"         -> 1234567890.99 // valid amt:  13 digits, including the decimal point
+    "amountOwedDTT"          -> 12345678901.9,
+    "amountOwedIIR"          -> 1234567890.01,
+    "amountOwedUTPR"         -> 1234567890.99
+  )
+  val invalidIdTypeZeroLength: JsObject = Json.obj(
+    "ukChargeableEntityName" -> "New Company",
+    "idType"                 -> "",
+    "idValue"                -> "abc45678",
+    "amountOwedDTT"          -> 12345678901.9,
+    "amountOwedIIR"          -> 1234567890.01,
+    "amountOwedUTPR"         -> 1234567890.99
   )
 
   val validThreeLiableEntitiesRequestBody: JsObject = validRequestBody ++ Json.obj(
@@ -199,9 +206,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       )
   )
 
-  // missingUkChargeableEntityNameRequestBody and invalidLiableEntityukChargeableEntityNameZeroLength
-  // => should ONLY give BAD_REQUEST 400 error on issingUkChargeableEntityNameRequestBody.
-  val missingUkChargeableEntityNameSecondLiableEntityRequestBody: JsObject = validRequestBody ++ Json.obj(
+  // missingUkChargeableEntityNameRequestBody in Entity2, and invalidIdTypeZeroLength in Entity3.
+  // => should ONLY give BAD_REQUEST 400 error on missingUkChargeableEntityNameRequestBody.
+  val missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
       .as[JsObject]
@@ -210,7 +217,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           "liableEntities" -> Json.arr(
             validLiableEntity1,
             missingUkChargeableEntityNameRequestBody,
-            invalidLiableEntityukChargeableEntityNameZeroLength
+            invalidIdTypeZeroLength
           )
         )
       )
@@ -493,7 +500,8 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
   )
 
   // should ONLY flag the first error, invalidAmountOwedIIR, in LiableEntity2.
-  val invalidAmountOwedIIREntity2AndinvalidAmountOwedUTPREntity3RequestBody: JsObject = validRequestBody ++ Json.obj(
+  // should not flag the 2nd error in field "amountOwedUTPR".
+  val invalidAmountOwedIIREntity2AndInvalidAmountOwedUTPREntity3RequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
       .as[JsObject]
@@ -666,18 +674,17 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingUkChargeableEntityNameRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe create400JSONErrorBody("ukChargeableEntityName", mandatoryFieldMissingErrorMessage)
       }
 
-      // missingUkChargeableEntityNameRequestBody and invalidLiableEntityukChargeableEntityNameZeroLength
+      // missingUkChargeableEntityNameRequestBody in Entity2, and invalidIdTypeZeroLength in Entity3.
       // => should ONLY give BAD_REQUEST 400 error on missingUkChargeableEntityNameRequestBody.
+      // =>  should NOT give an 422 error on the invalid IdType.
       "when ukChargeableEntityName is missing and invalidLiableEntityukChargeableEntityNameZeroLength" in {
         val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
           .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingUkChargeableEntityNameSecondLiableEntityRequestBody)
+          .withBody(missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe create400JSONErrorBody("ukChargeableEntityName", mandatoryFieldMissingErrorMessage)
       }
 
       "when idType is missing" in {
@@ -686,7 +693,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingIdTypeRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe create400JSONErrorBody("idType", mandatoryFieldMissingErrorMessage)
       }
 
       "when idValue is missing" in {
@@ -695,7 +701,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingIdValueRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe create400JSONErrorBody("idValue", mandatoryFieldMissingErrorMessage)
       }
 
       "when amountOwedDTT is missing" in {
@@ -704,7 +709,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingAmountOwedDTTRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe create400JSONErrorBody("amountOwedDTT", mandatoryFieldMissingErrorMessage)
       }
 
       "when amountOwedIIR is missing" in {
@@ -713,7 +717,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingAmountOwedIIRRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe create400JSONErrorBody("amountOwedIIR", mandatoryFieldMissingErrorMessage)
       }
 
       "when amountOwedUTPR is missing" in {
@@ -722,7 +725,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           .withBody(missingAmountOwedUTPRRequestBody)
         val result = route(app, request).value
         status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe create400JSONErrorBody("amountOwedUTPR", mandatoryFieldMissingErrorMessage)
       }
 
       // ===========================================================
@@ -834,7 +836,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         "when amountOwedIIR is Invalid in LiableEntity2 and amountOwedUTPR is Invalid in LiableEntity3" in {
           val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidAmountOwedIIREntity2AndinvalidAmountOwedUTPREntity3RequestBody)
+            .withBody(invalidAmountOwedIIREntity2AndInvalidAmountOwedUTPREntity3RequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
           contentAsJson(result) mustBe amountOwedIIR422JSONError
