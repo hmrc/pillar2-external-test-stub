@@ -45,9 +45,6 @@ object UktrSubmission {
 
 case class UktrSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
 
-// Converts a validation error from our generic Stub validation framework format, into the format required by the UKTR Submit API Spec,
-// for 422 Business Validation Field Errors. Because ETMP / HIP only ever return the FIRST business validation error found,
-// we onyl take the FIRST error from the head of the errors list.
 object UktrSubmissionErrorJsonConverter {
   def convertTo422JsonErrorFormat(errors: NonEmptyChain[ValidationError]): JsObject =
     Json.obj(

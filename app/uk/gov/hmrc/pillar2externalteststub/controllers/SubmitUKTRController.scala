@@ -34,7 +34,7 @@ import uk.gov.hmrc.pillar2externalteststub.validation.syntax._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future} // imports helper method
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class SubmitUKTRController @Inject() (
@@ -85,6 +85,5 @@ class SubmitUKTRController @Inject() (
   }
 
   def validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionNilReturn]] =
-    // Placeholder for NilReturn validation
     Future.successful(Right(nilReturnRequest))
 }

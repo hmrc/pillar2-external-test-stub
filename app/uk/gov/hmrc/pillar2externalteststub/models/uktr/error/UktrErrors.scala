@@ -58,7 +58,6 @@ object UktrBusinessValidationErrorDetail {
   implicit val format: OFormat[UktrBusinessValidationErrorDetail] = Json.format[UktrBusinessValidationErrorDetail]
 }
 
-// Error response objects
 object ValidationError422RegimeMissingOrInvalid {
   val response: UktrBusinessValidationErrorDetail = UktrBusinessValidationErrorDetail(
     processingDate = UktrSubmission.UKTR_STUB_PROCESSING_DATE,
