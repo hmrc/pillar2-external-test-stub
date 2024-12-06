@@ -25,8 +25,8 @@ import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse.ErrorResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse.SubmitUKTRSuccessResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.ErrorResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.SubmitUKTRSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.ValidationResult
 import uk.gov.hmrc.pillar2externalteststub.validation.syntax._

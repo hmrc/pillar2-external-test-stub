@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.models.uktr.repsonse
+package uk.gov.hmrc.pillar2externalteststub.models.uktr.response
 
 import play.api.libs.json.{Json, OWrites, Writes}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.ApiError
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.DetailedError
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.SimpleError
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrBusinessValidationErrorDetail
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrError
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
 
 sealed trait ApiResponse
 case class SuccessResponse(success: SubmitUKTRSuccessResponse) extends ApiResponse
