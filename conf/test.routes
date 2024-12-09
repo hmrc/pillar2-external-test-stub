@@ -1,4 +1,0 @@
-# microservice specific routes
-
-POST       /submit-uk-tax-return       uk.gov.hmrc.pillar2externalteststub.controllers.SubmitUKTRController.submitUKTR
-GET        /pillar2/subscription/:plrReference     uk.gov.hmrc.pillar2externalteststub.controllers.SubscriptionController.retrieveSubscription(plrReference: String)
