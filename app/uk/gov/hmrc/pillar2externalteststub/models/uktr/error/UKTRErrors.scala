@@ -47,6 +47,14 @@ object ValidationError422 {
   )
 }
 
+object MissingPLRReference {
+  val response: UKTRErrorDetail = UKTRErrorDetail(
+    processingDate = "2022-01-31T09:26:17Z",
+    code = "002",
+    text = "Pillar 2 ID missing or invalid"
+  )
+}
+
 object SAPError500 {
   val response: UKTRError = UKTRError(
     code = "500",
