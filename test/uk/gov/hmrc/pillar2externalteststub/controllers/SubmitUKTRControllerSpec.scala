@@ -73,10 +73,14 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
   "SubmitUKTRController" - {
     "when submitting UKTR" - {
       "should return CREATED (201) with success response" - {
-        "when plrReference is valid and JSON payload is correct" in {
+        "when plrReference header is valid and JSON payload is correct" in {
           val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000123").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders(
+              "Content-Type" -> "application/json",
+              authHeader,
+              "X-Pillar2-Id" -> "XEPLR0000000123"
+            )
             .withBody(validRequestBody)
 
           val result = route(app, request).value
@@ -90,8 +94,12 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
         "when submitting a nil return" in {
           val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000123").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders(
+              "Content-Type" -> "application/json",
+              authHeader,
+              "X-Pillar2-Id" -> "XEPLR0000000123"
+            )
             .withBody(validNilReturnRequestBody)
 
           val result = route(app, request).value
@@ -104,11 +112,58 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         }
       }
 
+      "should return BAD_REQUEST (400)" - {
+        "when PLR Reference is missing from headers" in {
+          val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(validRequestBody)
+
+          val result = route(app, request).value
+
+          status(result) mustBe BAD_REQUEST
+          contentAsJson(result) mustBe Json.obj(
+            "errors" -> Json.obj(
+              "processingDate" -> "2022-01-31T09:26:17Z",
+              "code"           -> "002",
+              "text"           -> "Pillar 2 ID missing or invalid"
+            )
+          )
+        }
+
+        "when plrReference indicates invalid JSON" in {
+          val authHeader  = HeaderNames.authorisation -> "Bearer valid_token"
+          val invalidJson = Json.obj("invalid" -> "json")
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders(
+              "Content-Type" -> "application/json",
+              authHeader,
+              "X-Pillar2-Id" -> "XEPLR0000000400"
+            )
+            .withBody(invalidJson)
+
+          val result = route(app, request).value
+
+          status(result) mustBe BAD_REQUEST
+          contentAsJson(result) mustBe Json.obj(
+            "error" -> Json.obj(
+              "code"    -> "400",
+              "message" -> "Invalid JSON message content used; Message: \"Expected a ',' or '}' at character 93...\"",
+              "logID"   -> "C0000AB8190C86300000000200006836"
+            )
+          )
+        }
+      }
+
       "should return UNPROCESSABLE_ENTITY (422)" - {
         "when plrReference indicates business validation failure" in {
           val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000422").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders(
+              "Content-Type" -> "application/json",
+              authHeader,
+              "X-Pillar2-Id" -> "XEPLR0000000422"
+            )
             .withBody(validRequestBody)
 
           val result = route(app, request).value
@@ -127,8 +182,12 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       "should return INTERNAL_SERVER_ERROR (500)" - {
         "when plrReference indicates SAP failure" in {
           val authHeader = HeaderNames.authorisation -> "Bearer valid_token"
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000500").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders(
+              "Content-Type" -> "application/json",
+              authHeader,
+              "X-Pillar2-Id" -> "XEPLR0000000500"
+            )
             .withBody(validRequestBody)
 
           val result = route(app, request).value
@@ -139,27 +198,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
               "code" -> "500",
               "message" -> "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
               "logID" -> "C0000AB8190C8E1F000000C700006836"
-            )
-          )
-        }
-      }
-
-      "should return BAD_REQUEST (400)" - {
-        "when plrReference indicates invalid JSON" in {
-          val authHeader  = HeaderNames.authorisation -> "Bearer valid_token"
-          val invalidJson = Json.obj("invalid" -> "json")
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000400").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidJson)
-
-          val result = route(app, request).value
-
-          status(result) mustBe BAD_REQUEST
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "code"    -> "400",
-              "message" -> "Invalid JSON message content used; Message: \"Expected a ',' or '}' at character 93...\"",
-              "logID"   -> "C0000AB8190C86300000000200006836"
             )
           )
         }
