@@ -51,7 +51,7 @@ class SubmitUKTRController @Inject() (
       case "XEPLR0000000500" =>
         Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SAPError500.response))))
       case "XEPLR0000000400" =>
-        Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400.response))))
+        Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
       case _ =>
         validateRequest(request)
     }
@@ -73,9 +73,20 @@ class SubmitUKTRController @Inject() (
           case Right(_) =>
             Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
         }
+      case JsError(errors) =>
+        val concatenatedErrorMessages = errors
+          .map { case (path, validationErrors) =>
+            val fieldName     = path.toJsonString
+            val errorMessages = validationErrors.map(_.message).mkString(", ")
+            s"Field: $fieldName: $errorMessages"
+          }
+          .mkString("; ")
+        Future.successful {
+          BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400DynamicErrorMessage.response(concatenatedErrorMessages))))
+        }
       case _ =>
         Future.successful {
-          BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400.response)))
+          BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response)))
         }
     }
 
