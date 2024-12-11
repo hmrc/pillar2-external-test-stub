@@ -75,10 +75,18 @@ object SAPError500 {
   )
 }
 
-object InvalidJsonError400 {
+object InvalidError400StaticErrorMessage {
   val response: UktrError = UktrError(
     code = UktrErrorCodes.BAD_REQUEST_400,
-    message = "Invalid JSON message content used; Message: \"Expected a ',' or '}' at character 93...\"",
+    message = "Invalid message content.",
     logID = Some("C0000AB8190C86300000000200006836")
+  )
+}
+
+object InvalidJsonError400DynamicErrorMessage {
+  def response(errorMessage: String): UktrError = UktrError(
+    code = UktrErrorCodes.BAD_REQUEST_400,
+    message = "Invalid JSON message content: " + errorMessage,
+    logID = Some("C000BADJSON000000000000000000400")
   )
 }

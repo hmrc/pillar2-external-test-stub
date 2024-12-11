@@ -88,8 +88,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
   val validRequestBody: JsObject = Json.obj(
     "accountingPeriodFrom" -> "2024-08-14",
     "accountingPeriodTo"   -> "2024-12-14",
-    "qualifyingGroup"      -> true,
-    "obligationDTT"        -> true,
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> true,
     "liabilities" -> Json.obj(
@@ -549,8 +547,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
   val validNilReturnRequestBody: JsObject = Json.obj(
     "accountingPeriodFrom" -> "2024-08-14",
     "accountingPeriodTo"   -> "2024-12-14",
-    "qualifyingGroup"      -> true,
-    "obligationDTT"        -> true,
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> true,
     "liabilities" -> Json.obj(
@@ -643,7 +639,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           contentAsJson(result) mustBe Json.obj(
             "error" -> Json.obj(
               "code"    -> "400",
-              "message" -> "Invalid JSON message content used; Message: \"Expected a ',' or '}' at character 93...\"",
+              "message" -> "Invalid message content.",
               "logID"   -> "C0000AB8190C86300000000200006836"
             )
           )
