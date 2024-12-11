@@ -20,8 +20,8 @@ import play.api.libs.json.Json
 import play.api.libs.json.Writes
 
 sealed trait ApiError
-case class DetailedError(errors: UKTRErrorDetail) extends ApiError
-case class SimpleError(error: UKTRError) extends ApiError
+case class DetailedError(errors: UktrBusinessValidationErrorDetail) extends ApiError
+case class SimpleError(error: UktrError) extends ApiError
 
 object ApiError {
   implicit val writes: Writes[ApiError] = Writes {

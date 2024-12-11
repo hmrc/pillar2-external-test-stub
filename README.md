@@ -96,8 +96,6 @@ curl -X POST "http://localhost:10055/pillar2/submitUKTR/XEPLR0000000422" \
 -d '{
   "accountingPeriodFrom": "2024-08-14",
   "accountingPeriodTo": "2024-12-14",
-  "qualifyingGroup": true,
-  "obligationDTT": true,
   "obligationMTT": true,
   "electionUKGAAP": true,
   "liabilities": {
