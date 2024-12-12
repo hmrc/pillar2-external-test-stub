@@ -17,7 +17,9 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr.error
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
+
+import java.time.temporal.ChronoUnit
+import java.time.{ZoneOffset, ZonedDateTime}
 
 case class UktrError(
   code:    String,
@@ -55,12 +57,13 @@ case class UktrBusinessValidationErrorDetail(
 )
 
 object UktrBusinessValidationErrorDetail {
-  implicit val format: OFormat[UktrBusinessValidationErrorDetail] = Json.format[UktrBusinessValidationErrorDetail]
+  implicit val format:  OFormat[UktrBusinessValidationErrorDetail] = Json.format[UktrBusinessValidationErrorDetail]
+  def nowZonedDateTime: ZonedDateTime                              = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS)
 }
 
 object ValidationError422RegimeMissingOrInvalid {
   val response: UktrBusinessValidationErrorDetail = UktrBusinessValidationErrorDetail(
-    processingDate = UktrSubmission.UKTR_STUB_PROCESSING_DATE,
+    processingDate = UktrBusinessValidationErrorDetail.nowZonedDateTime.toString,
     code = UktrErrorCodes.REGIME_MISSING_OR_INVALID_001,
     text = "REGIME missing or invalid"
   )

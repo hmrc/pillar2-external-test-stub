@@ -27,11 +27,22 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
+
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
   val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
+  val datePattern = DateTimeFormatter.ISO_DATE_TIME
+
+  def isValidDateString(date: String): Boolean =
+    try {
+      LocalDateTime.parse(date, datePattern)
+      true
+    } catch {
+      case _: Exception => false
+    }
 
   def create400JSONErrorBody(fieldName: String, errorMessage: String): JsObject =
     Json.obj(
@@ -41,49 +52,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         "logID"   -> "C0000AB8190C86300000000200006836"
       )
     )
-
-  val ukChargeableEntityName422JSONError: JsObject = Json.obj(
-    "error" -> Json.obj(
-      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-      "text"           -> "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
-    )
-  )
-  val idType422JSONError: JsObject = Json.obj(
-    "error" -> Json.obj(
-      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-      "text"           -> "idType must be either UTR or CRN."
-    )
-  )
-  val idValue422JSONError: JsObject = Json.obj(
-    "error" -> Json.obj(
-      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-      "text"           -> "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
-    )
-  )
-  val amountOwedDTT422JSONError: JsObject = Json.obj(
-    "error" -> Json.obj(
-      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-      "text" -> "amountOwedDTT must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
-    )
-  )
-  val amountOwedIIR422JSONError: JsObject = Json.obj(
-    "error" -> Json.obj(
-      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-      "text" -> "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
-    )
-  )
-  val amountOwedUTPR422JSONError: JsObject = Json.obj(
-    "error" -> Json.obj(
-      "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-      "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-      "text" -> "amountOwedUTPR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
-    )
-  )
 
   val validRequestBody: JsObject = Json.obj(
     "accountingPeriodFrom" -> "2024-08-14",
@@ -431,8 +399,8 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "INVALID_ID_TYPE",
               "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 0.01, // valid amt
-              "amountOwedIIR"          -> .57, // valid amt
+              "amountOwedDTT"          -> 0.01,
+              "amountOwedIIR"          -> .57,
               "amountOwedUTPR"         -> 6000.50
             ),
             Json.obj(
@@ -601,13 +569,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(validRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe Json.obj(
-            "errors" -> Json.obj(
-              "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> "001",
-              "text"           -> "REGIME missing or invalid"
-            )
-          )
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REGIME_MISSING_OR_INVALID_001
+          (json \ "errors" \ "text").as[String] mustBe "REGIME missing or invalid"
         }
       }
 
@@ -709,7 +674,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidUkChargeableEntityNameRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe ukChargeableEntityName422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
         }
 
         "when ukChargeableEntityName exceeds 160 characters" in {
@@ -718,7 +686,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(ukChargeableEntityNameTooLongRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe ukChargeableEntityName422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
         }
 
         "when ukChargeableEntityName is Empty in 3rd LiableEntity" in {
@@ -727,7 +698,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidUkChargeableEntityNameThirdLiableEntityRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe ukChargeableEntityName422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
         }
 
         "when idType has zero length" in {
@@ -736,7 +710,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidIdTypeZeroLengthRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe idType422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text").as[String] mustBe "idType must be either UTR or CRN."
         }
 
         "when idType is Invalid" in {
@@ -745,7 +722,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidIdTypeRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe idType422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text").as[String] mustBe "idType must be either UTR or CRN."
         }
 
         "when idType in LiableEntity1 is Invalid and idValue in LiableEntity2 is Invalid" in {
@@ -754,7 +734,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidIdTypeEntity1AndInvalidIdValueEntity2RequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe idType422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text").as[String] mustBe "idType must be either UTR or CRN."
         }
 
         "when idValue has zero length" in {
@@ -763,7 +746,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidIdValueZeroLengthRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe idValue422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
         }
 
         "when idValue length exceeds 15 characters" in {
@@ -772,7 +758,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidIdValueLengthExceeds15RequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe idValue422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
         }
 
         "when amountOwedDTT is Invalid" in {
@@ -781,7 +770,11 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidAmountOwedDTTRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe amountOwedDTT422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text")
+            .as[String] mustBe "amountOwedDTT must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
         }
 
         "when amountOwedIIR is Invalid" in {
@@ -790,7 +783,11 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidAmountOwedIIRRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe amountOwedIIR422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text")
+            .as[String] mustBe "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
         }
 
         "when amountOwedUTPR is Invalid" in {
@@ -799,7 +796,11 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidAmountOwedUTPRRequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe amountOwedUTPR422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text")
+            .as[String] mustBe "amountOwedUTPR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
         }
 
         "when amountOwedIIR is Invalid in LiableEntity2 and amountOwedUTPR is Invalid in LiableEntity3" in {
@@ -808,7 +809,11 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             .withBody(invalidAmountOwedIIREntity2AndInvalidAmountOwedUTPREntity3RequestBody)
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          contentAsJson(result) mustBe amountOwedIIR422JSONError
+          val json = contentAsJson(result)
+          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "error" \ "text")
+            .as[String] mustBe "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
         }
       }
     }
