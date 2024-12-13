@@ -17,6 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.models
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
 
 case class NilReturnSuccess(processingDate: String, message: String)
 
@@ -24,7 +25,7 @@ object NilReturnSuccess {
   implicit val format: OFormat[NilReturnSuccess] = Json.format[NilReturnSuccess]
 
   val successfulResponse: NilReturnSuccess = NilReturnSuccess(
-    processingDate = "2022-01-31T09:26:17Z",
+    processingDate = UktrSubmission.UKTR_STUB_PROCESSING_DATE,
     message = "Nil return received and processed successfully"
   )
 }
