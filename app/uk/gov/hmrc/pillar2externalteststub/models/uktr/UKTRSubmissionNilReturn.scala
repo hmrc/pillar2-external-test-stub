@@ -16,19 +16,17 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityNilReturn
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
 
 import java.time.LocalDate
 
-case class UktrSubmissionNilReturn(
+case class UKTRSubmissionNilReturn(
   accountingPeriodFrom: LocalDate,
   accountingPeriodTo:   LocalDate,
   obligationMTT:        Boolean,
   electionUKGAAP:       Boolean,
   liabilities:          LiabilityNilReturn
-) extends UktrSubmission
+) extends UKTRSubmission
 
-object UktrSubmissionNilReturn {
-  implicit val uktrSubmissionNilReturnFormat: OFormat[UktrSubmissionNilReturn] = Json.format[UktrSubmissionNilReturn]
+object UKTRSubmissionNilReturn {
+  implicit val uktrSubmissionNilReturnFormat: OFormat[UKTRSubmissionNilReturn] = Json.format[UKTRSubmissionNilReturn]
 }

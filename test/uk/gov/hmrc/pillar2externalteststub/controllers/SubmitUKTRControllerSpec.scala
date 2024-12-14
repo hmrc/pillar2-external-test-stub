@@ -22,8 +22,7 @@ import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.CREATED
-import play.api.libs.json.JsObject
-import play.api.libs.json.Json
+import play.api.libs.json.{JsBoolean, JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
@@ -33,8 +32,8 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
-  val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
-  val datePattern = DateTimeFormatter.ISO_DATE_TIME
+  val authHeader:  (String, String)  = HeaderNames.authorisation -> "Bearer valid_token"
+  val datePattern: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
 
   def isValidDateString(date: String): Boolean =
     try {
@@ -57,7 +56,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     "accountingPeriodFrom" -> "2024-08-14",
     "accountingPeriodTo"   -> "2024-12-14",
     "obligationMTT"        -> true,
-    "electionUKGAAP"       -> true,
+    "electionUKGAAP"       -> false,
     "liabilities" -> Json.obj(
       "electionDTTSingleMember"  -> false,
       "electionUTPRSingleMember" -> false,
@@ -524,7 +523,25 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
   "SubmitUKTRController" - {
     "when submitting UKTR" - {
-      "should return CREATED (201) with success response" - {
+      "should return CREATED (201)" - {
+        "when electionUKGAAPRule is true/false given a subscription where domesticOnly = true" in {
+          val requestWithTrue = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR5555555555").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(validRequestBody + ("electionUKGAAP" -> JsBoolean(true)))
+          val requestWithFalse = requestWithTrue.withBody(validRequestBody + ("electionUKGAAP" -> JsBoolean(false)))
+
+          status(route(app, requestWithTrue).value) mustBe CREATED
+          status(route(app, requestWithFalse).value) mustBe CREATED
+        }
+
+        "when electionUKGAAPRule is false given a subscription where domesticOnly = false" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR5555555555").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(validRequestBody + ("electionUKGAAP" -> JsBoolean(false)))
+
+          status(route(app, request).value) mustBe CREATED
+        }
+
         "when plrReference is valid and JSON payload is correct" in {
           val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000123").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
@@ -563,6 +580,20 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return UNPROCESSABLE_ENTITY (422)" - {
+        "when electionUKGAAPRule is true given a subscription where domesticOnly = false" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR5555555554").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(validRequestBody + ("electionUKGAAP" -> JsBoolean(true)))
+
+          val result = route(app, request).value
+
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "electionUKGAAP can be true only for a domestic-only group"
+        }
+
         "when plrReference indicates business validation failure" in {
           val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000422").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
@@ -574,22 +605,152 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REGIME_MISSING_OR_INVALID_001
           (json \ "errors" \ "text").as[String] mustBe "REGIME missing or invalid"
         }
-      }
-
-      "should return INTERNAL_SERVER_ERROR (500)" - {
-        "when plrReference indicates SAP failure" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000500").url)
+        "when ukChargeableEntityName is Invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(validRequestBody)
+            .withBody(invalidUkChargeableEntityNameRequestBody)
           val result = route(app, request).value
-          status(result) mustBe INTERNAL_SERVER_ERROR
-          contentAsJson(result) mustBe Json.obj(
-            "error" -> Json.obj(
-              "code" -> "500",
-              "message" -> "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
-              "logID" -> "C0000AB8190C8E1F000000C700006836"
-            )
-          )
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
+        }
+
+        "when ukChargeableEntityName exceeds 160 characters" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(ukChargeableEntityNameTooLongRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
+        }
+
+        "when ukChargeableEntityName is Empty in 3rd LiableEntity" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidUkChargeableEntityNameThirdLiableEntityRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
+        }
+
+        "when idType has zero length" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidIdTypeZeroLengthRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
+        }
+
+        "when idType is Invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidIdTypeRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
+        }
+
+        "when idType in LiableEntity1 is Invalid and idValue in LiableEntity2 is Invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidIdTypeEntity1AndInvalidIdValueEntity2RequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
+        }
+
+        "when idValue has zero length" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidIdValueZeroLengthRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
+        }
+
+        "when idValue length exceeds 15 characters" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidIdValueLengthExceeds15RequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
+        }
+
+        "when amountOwedDTT is Invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidAmountOwedDTTRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text")
+            .as[String] mustBe "amountOwedDTT must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+        }
+
+        "when amountOwedIIR is Invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidAmountOwedIIRRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text")
+            .as[String] mustBe "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+        }
+
+        "when amountOwedUTPR is Invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidAmountOwedUTPRRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text")
+            .as[String] mustBe "amountOwedUTPR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+        }
+
+        "when amountOwedIIR is Invalid in LiableEntity2 and amountOwedUTPR is Invalid in LiableEntity3" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidAmountOwedIIREntity2AndInvalidAmountOwedUTPREntity3RequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text")
+            .as[String] mustBe "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
         }
       }
 
@@ -609,211 +770,78 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             )
           )
         }
+
+        "when ukChargeableEntityName is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingUkChargeableEntityNameRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+
+        "when ukChargeableEntityName is missing and invalidLiableEntityukChargeableEntityNameZeroLength" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+
+        "when idType is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingIdTypeRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+
+        "when idValue is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingIdValueRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+
+        "when amountOwedDTT is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingAmountOwedDTTRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+
+        "when amountOwedIIR is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingAmountOwedIIRRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+
+        "when amountOwedUTPR is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingAmountOwedUTPRRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
       }
 
-      "when ukChargeableEntityName is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingUkChargeableEntityNameRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when ukChargeableEntityName is missing and invalidLiableEntityukChargeableEntityNameZeroLength" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when idType is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingIdTypeRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when idValue is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingIdValueRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when amountOwedDTT is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingAmountOwedDTTRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when amountOwedIIR is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingAmountOwedIIRRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when amountOwedUTPR is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingAmountOwedUTPRRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "should return UNPROCESSABLE_ENTITY (422) + business validation failure error code 003" - {
-        "when ukChargeableEntityName is Invalid" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+      "should return INTERNAL_SERVER_ERROR (500)" - {
+        "when plrReference indicates SAP failure" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000500").url)
             .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidUkChargeableEntityNameRequestBody)
+            .withBody(validRequestBody)
           val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
-        }
-
-        "when ukChargeableEntityName exceeds 160 characters" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(ukChargeableEntityNameTooLongRequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
-        }
-
-        "when ukChargeableEntityName is Empty in 3rd LiableEntity" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidUkChargeableEntityNameThirdLiableEntityRequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
-        }
-
-        "when idType has zero length" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidIdTypeZeroLengthRequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text").as[String] mustBe "idType must be either UTR or CRN."
-        }
-
-        "when idType is Invalid" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidIdTypeRequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text").as[String] mustBe "idType must be either UTR or CRN."
-        }
-
-        "when idType in LiableEntity1 is Invalid and idValue in LiableEntity2 is Invalid" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidIdTypeEntity1AndInvalidIdValueEntity2RequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text").as[String] mustBe "idType must be either UTR or CRN."
-        }
-
-        "when idValue has zero length" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidIdValueZeroLengthRequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
-        }
-
-        "when idValue length exceeds 15 characters" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidIdValueLengthExceeds15RequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
-        }
-
-        "when amountOwedDTT is Invalid" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidAmountOwedDTTRequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text")
-            .as[String] mustBe "amountOwedDTT must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
-        }
-
-        "when amountOwedIIR is Invalid" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidAmountOwedIIRRequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text")
-            .as[String] mustBe "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
-        }
-
-        "when amountOwedUTPR is Invalid" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidAmountOwedUTPRRequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text")
-            .as[String] mustBe "amountOwedUTPR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
-        }
-
-        "when amountOwedIIR is Invalid in LiableEntity2 and amountOwedUTPR is Invalid in LiableEntity3" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(invalidAmountOwedIIREntity2AndInvalidAmountOwedUTPREntity3RequestBody)
-          val result = route(app, request).value
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "error" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "error" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "error" \ "text")
-            .as[String] mustBe "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+          status(result) mustBe INTERNAL_SERVER_ERROR
+          contentAsJson(result) mustBe Json.obj(
+            "error" -> Json.obj(
+              "code" -> "500",
+              "message" -> "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
+              "logID" -> "C0000AB8190C8E1F000000C700006836"
+            )
+          )
         }
       }
     }

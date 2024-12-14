@@ -27,7 +27,7 @@ case class SubscriptionSuccessResponse(
   filingMemberDetails:      FilingMemberDetails,
   accountingPeriod:         AccountingPeriod,
   accountStatus:            AccountStatus
-)
+) extends SubscriptionResponse
 
 object SubscriptionSuccessResponse {
   implicit val writes: OWrites[SubscriptionSuccessResponse] = Json.writes[SubscriptionSuccessResponse]

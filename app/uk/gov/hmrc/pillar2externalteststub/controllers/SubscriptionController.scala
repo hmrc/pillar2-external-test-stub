@@ -20,9 +20,7 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.models._
-import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
-import uk.gov.hmrc.pillar2externalteststub.models.subscription._
+import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
@@ -34,25 +32,9 @@ class SubscriptionController @Inject() (
 ) extends BackendController(cc)
     with Logging {
 
-  def retrieveSubscription(plrReference: String): Action[AnyContent] =
-    (Action andThen authFilter).async { implicit request =>
-      logger.info(s"Retrieving subscription for PLR reference: $plrReference")
-
-      plrReference match {
-        case "XEPLR0123456404" =>
-          Future.successful(NotFound(Json.toJson(NotFoundSubscription.response)))
-        case "XEPLR0123456500" =>
-          Future.successful(InternalServerError(Json.toJson(ServerError500.response)))
-        case "XEPLR0123456503" =>
-          Future.successful(ServiceUnavailable(Json.toJson(ServiceUnavailable503.response)))
-        case "XEPLR5555555555" =>
-          Future.successful(Ok(Json.toJson(SubscriptionSuccessResponse.successfulDomesticOnlyResponse(plrReference))))
-        case "XEPLR1234567890" =>
-          Future.successful(Ok(Json.toJson(SubscriptionSuccessResponse.successfulNonDomesticResponse(plrReference))))
-        case "XEPLR0987654321" =>
-          Future.successful(Ok(Json.toJson(NilReturnSuccess.successfulResponse)))
-        case _ =>
-          Future.successful(NotFound(Json.toJson(NotFoundSubscription.response)))
-      }
-    }
+  def retrieveSubscription(plrReference: String): Action[AnyContent] = (Action andThen authFilter).async {
+    logger.info(s"Retrieving subscription for PLR reference: $plrReference")
+    val (status, response) = SubscriptionHelper.retrieveSubscription(plrReference)
+    Future.successful(status(Json.toJson(response)))
+  }
 }
