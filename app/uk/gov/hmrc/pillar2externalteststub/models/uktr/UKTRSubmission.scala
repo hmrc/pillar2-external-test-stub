@@ -19,12 +19,15 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 import cats.data.NonEmptyChain
 import cats.implicits.toFoldableOps
 import play.api.libs.json._
+import play.api.mvc.Result
+import play.api.mvc.Results.UnprocessableEntity
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate
+import scala.concurrent.Future
 
-trait UktrSubmission {
+trait UKTRSubmission {
   val accountingPeriodFrom: LocalDate
   val accountingPeriodTo:   LocalDate
   val obligationMTT:        Boolean
@@ -32,32 +35,31 @@ trait UktrSubmission {
   val liabilities:          Liability
 }
 
-object UktrSubmission {
+object UKTRSubmission {
   val UKTR_STUB_PROCESSING_DATE = "2022-01-31T09:26:17Z"
 
-  def isLocalDate(date: Any): Boolean = date match {
-    case _: java.time.LocalDate => true
-    case _ => false
-  }
-
-  implicit val uktrSubmissionReads: Reads[UktrSubmission] = (json: JsValue) =>
+  implicit val uktrSubmissionReads: Reads[UKTRSubmission] = (json: JsValue) =>
     if ((json \ "liabilities" \ "returnType").isEmpty) {
-      json.validate[UktrSubmissionData]
+      json.validate[UKTRSubmissionData]
     } else {
-      json.validate[UktrSubmissionNilReturn]
+      json.validate[UKTRSubmissionNilReturn]
     }
 }
 
 case class UktrSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
 
-object UktrSubmissionErrorJsonConverter {
-  def convertTo422JsonErrorFormat(errors: NonEmptyChain[ValidationError]): JsObject =
-    Json.obj(
-      "error" -> errors.toList.headOption.map(error =>
+object UKTRErrorTransformer {
+  def from422ToJson(errors: NonEmptyChain[ValidationError]): Future[Result] =
+    Future.successful(
+      UnprocessableEntity(
         Json.obj(
-          "processingDate" -> UktrSubmission.UKTR_STUB_PROCESSING_DATE,
-          "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "text"           -> error.errorMessage
+          "errors" -> errors.toList.headOption.map(error =>
+            Json.obj(
+              "processingDate" -> UKTRSubmission.UKTR_STUB_PROCESSING_DATE,
+              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+              "text"           -> error.errorMessage
+            )
+          )
         )
       )
     )

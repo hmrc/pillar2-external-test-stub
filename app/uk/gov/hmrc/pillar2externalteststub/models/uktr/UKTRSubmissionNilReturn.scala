@@ -16,28 +16,26 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityNilReturn
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UktrSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
-import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
 
 import java.time.LocalDate
 
-case class UktrSubmissionNilReturn(
+case class UKTRSubmissionNilReturn(
   accountingPeriodFrom: LocalDate,
   accountingPeriodTo:   LocalDate,
   obligationMTT:        Boolean,
   electionUKGAAP:       Boolean,
   liabilities:          LiabilityNilReturn
-) extends UktrSubmission
+) extends UKTRSubmission
 
-object UktrSubmissionNilReturn {
-  implicit val uktrSubmissionNilReturnFormat: OFormat[UktrSubmissionNilReturn] = Json.format[UktrSubmissionNilReturn]
+object UKTRSubmissionNilReturn {
+  implicit val UKTRSubmissionNilReturnFormat: OFormat[UKTRSubmissionNilReturn] = Json.format[UKTRSubmissionNilReturn]
 
-  val returnTypeRule: ValidationRule[UktrSubmissionNilReturn] = ValidationRule { uktrSubmissionNilReturn: UktrSubmissionNilReturn =>
-    if (uktrSubmissionNilReturn.liabilities.returnType.equals(ReturnType.NIL_RETURN))
-      valid[UktrSubmissionNilReturn](uktrSubmissionNilReturn)
+  val returnTypeRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
+    if (UKTRSubmissionNilReturn.liabilities.returnType.equals(ReturnType.NIL_RETURN))
+      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
     else
       invalid(
         UktrSubmissionError(
@@ -48,9 +46,9 @@ object UktrSubmissionNilReturn {
       )
   }
 
-  val accountingPeriodFromRule: ValidationRule[UktrSubmissionNilReturn] = ValidationRule { uktrSubmissionNilReturn: UktrSubmissionNilReturn =>
-    if (UktrSubmission.isLocalDate(uktrSubmissionNilReturn.accountingPeriodFrom))
-      valid[UktrSubmissionNilReturn](uktrSubmissionNilReturn)
+  val accountingPeriodFromRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
+    if (UKTRSubmission.isLocalDate(UKTRSubmissionNilReturn.accountingPeriodFrom))
+      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
     else
       invalid(
         UktrSubmissionError(
@@ -61,9 +59,9 @@ object UktrSubmissionNilReturn {
       )
   }
 
-  val accountingPeriodToRule: ValidationRule[UktrSubmissionNilReturn] = ValidationRule { uktrSubmissionNilReturn: UktrSubmissionNilReturn =>
-    if (UktrSubmission.isLocalDate(uktrSubmissionNilReturn.accountingPeriodTo))
-      valid[UktrSubmissionNilReturn](uktrSubmissionNilReturn)
+  val accountingPeriodToRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
+    if (UktrSubmission.isLocalDate(UKTRSubmissionNilReturn.accountingPeriodTo))
+      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
     else
       invalid(
         UktrSubmissionError(
@@ -73,9 +71,9 @@ object UktrSubmissionNilReturn {
         )
       )
   }
-  val obligationMTTRule: ValidationRule[UktrSubmissionNilReturn] = ValidationRule { uktrSubmissionNilReturn: UktrSubmissionNilReturn =>
-    if (uktrSubmissionNilReturn.obligationMTT.isInstanceOf[Boolean])
-      valid[UktrSubmissionNilReturn](uktrSubmissionNilReturn)
+  val obligationMTTRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
+    if (UKTRSubmissionNilReturn.obligationMTT.isInstanceOf[Boolean])
+      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
     else
       invalid(
         UktrSubmissionError(
@@ -85,9 +83,9 @@ object UktrSubmissionNilReturn {
         )
       )
   }
-  val electionUKGAAPRule: ValidationRule[UktrSubmissionNilReturn] = ValidationRule { uktrSubmissionNilReturn: UktrSubmissionNilReturn =>
-    if (uktrSubmissionNilReturn.electionUKGAAP.isInstanceOf[Boolean])
-      valid[UktrSubmissionNilReturn](uktrSubmissionNilReturn)
+  val electionUKGAAPRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
+    if (UKTRSubmissionNilReturn.electionUKGAAP.isInstanceOf[Boolean])
+      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
     else
       invalid(
         UktrSubmissionError(
@@ -98,7 +96,7 @@ object UktrSubmissionNilReturn {
       )
   }
 
-  implicit val uktrSubmissionNilReturnValidator: ValidationRule[UktrSubmissionNilReturn] =
+  implicit val UKTRSubmissionNilReturnValidator: ValidationRule[UKTRSubmissionNilReturn] =
     ValidationRule.compose(
       accountingPeriodFromRule,
       accountingPeriodToRule,
