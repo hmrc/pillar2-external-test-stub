@@ -38,6 +38,11 @@ trait UKTRSubmission {
 object UKTRSubmission {
   val UKTR_STUB_PROCESSING_DATE = "2022-01-31T09:26:17Z"
 
+  def isLocalDate(date: Any): Boolean = date match {
+    case _: java.time.LocalDate => true
+    case _ => false
+  }
+
   implicit val uktrSubmissionReads: Reads[UKTRSubmission] = (json: JsValue) =>
     if ((json \ "liabilities" \ "returnType").isEmpty) {
       json.validate[UKTRSubmissionData]

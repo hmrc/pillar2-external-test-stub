@@ -18,7 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
+import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
 
@@ -60,7 +60,7 @@ object UKTRSubmissionNilReturn {
   }
 
   val accountingPeriodToRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
-    if (UktrSubmission.isLocalDate(UKTRSubmissionNilReturn.accountingPeriodTo))
+    if (UKTRSubmission.isLocalDate(UKTRSubmissionNilReturn.accountingPeriodTo))
       valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
     else
       invalid(

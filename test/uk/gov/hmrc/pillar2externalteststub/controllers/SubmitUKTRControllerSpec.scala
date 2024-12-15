@@ -22,7 +22,7 @@ import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.CREATED
-import play.api.libs.json.{JsBoolean, JsObject, Json}
+import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
@@ -76,6 +76,15 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           "amountOwedUTPR"         -> 6000.5
         )
       )
+    )
+  )
+  val validNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-08-14",
+    "accountingPeriodTo"   -> "2024-12-14",
+    "obligationMTT"        -> true,
+    "electionUKGAAP"       -> true,
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
     )
   )
   val validLiableEntity1: JsObject = Json.obj(
@@ -520,9 +529,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     )
   )
   val missingAccountingPeriodFromNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodTo"   -> "2024-12-14",
-    "obligationMTT"        -> true,
-    "electionUKGAAP"       -> true,
+    "accountingPeriodTo" -> "2024-12-14",
+    "obligationMTT"      -> true,
+    "electionUKGAAP"     -> true,
     "liabilities" -> Json.obj(
       "returnType" -> "NIL_RETURN"
     )
@@ -597,8 +606,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       "returnType" -> ""
     )
   )
-
-
 
   "SubmitUKTRController" - {
     "when submitting UKTR with LiabilityData" - {
