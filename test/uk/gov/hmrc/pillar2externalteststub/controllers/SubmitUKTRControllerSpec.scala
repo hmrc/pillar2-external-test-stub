@@ -33,8 +33,8 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
-  val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
-  val datePattern = DateTimeFormatter.ISO_DATE_TIME
+  val authHeader:  (String, String)  = HeaderNames.authorisation -> "Bearer valid_token"
+  val datePattern: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
 
   def isValidDateString(date: String): Boolean =
     try {
@@ -79,6 +79,15 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       )
     )
   )
+  val validNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-08-14",
+    "accountingPeriodTo"   -> "2024-12-14",
+    "obligationMTT"        -> true,
+    "electionUKGAAP"       -> true,
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
+    )
+  )
   val validLiableEntity1: JsObject = Json.obj(
     "ukChargeableEntityName" -> "New Company",
     "idType"                 -> "CRN",
@@ -119,7 +128,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     "amountOwedIIR"          -> 1234567890.01,
     "amountOwedUTPR"         -> 1234567890.99
   )
-
   val validThreeLiableEntitiesRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -134,7 +142,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidUkChargeableEntityNameThirdLiableEntityRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -149,7 +156,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val missingUkChargeableEntityNameRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -168,7 +174,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -183,7 +188,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val missingIdTypeRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -274,7 +278,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidUkChargeableEntityNameRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -287,7 +290,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val ukChargeableEntityNameTooLongRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -307,7 +309,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidIdTypeZeroLengthRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -327,7 +328,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidIdTypeRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -347,7 +347,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidIdValueZeroLengthRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -367,7 +366,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidIdValueLengthExceeds15RequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -387,7 +385,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidIdTypeEntity1AndInvalidIdValueEntity2RequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -415,7 +412,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidAmountOwedDTTRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -435,7 +431,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidAmountOwedIIRRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -455,7 +450,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidAmountOwedIIREntity2AndInvalidAmountOwedUTPREntity3RequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -491,7 +485,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         )
       )
   )
-
   val invalidAmountOwedUTPRRequestBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
@@ -512,8 +505,8 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       )
   )
 
-  val validNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
+  val invalidAccountingPeriodFromNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "x",
     "accountingPeriodTo"   -> "2024-12-14",
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> true,
@@ -521,9 +514,89 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       "returnType" -> "NIL_RETURN"
     )
   )
+  val missingAccountingPeriodFromNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodTo"   -> "2024-12-14",
+    "obligationMTT"        -> true,
+    "electionUKGAAP"       -> true,
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
+    )
+  )
+  val invalidAccountingPeriodToNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-12-14",
+    "accountingPeriodTo"   -> "2025-02-31",
+    "obligationMTT"        -> true,
+    "electionUKGAAP"       -> true,
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
+    )
+  )
+  val missingAccountingPeriodToNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-12-14",
+    "obligationMTT"        -> true,
+    "electionUKGAAP"       -> true,
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
+    )
+  )
+  val invalidObligationMTTNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-12-14",
+    "accountingPeriodTo"   -> "2025-02-03",
+    "obligationMTT"        -> "x",
+    "electionUKGAAP"       -> true,
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
+    )
+  )
+  val missingObligationMTTNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-08-14",
+    "accountingPeriodTo"   -> "2024-12-14",
+    "electionUKGAAP"       -> true,
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
+    )
+  )
+  val invalidElectionUKGAAPNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-12-14",
+    "accountingPeriodTo"   -> "2025-02-03",
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> "Z",
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
+    )
+  )
+  val missingElectionUKGAAPNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-12-14",
+    "accountingPeriodTo"   -> "2025-02-03",
+    "obligationMTT"        -> false,
+    "liabilities" -> Json.obj(
+      "returnType" -> "NIL_RETURN"
+    )
+  )
+
+  val invalidReturnTypeNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-08-14",
+    "accountingPeriodTo"   -> "2024-12-14",
+    "obligationMTT"        -> true,
+    "electionUKGAAP"       -> true,
+    "liabilities" -> Json.obj(
+      "returnType" -> "INVALID_NIL_RETURN"
+    )
+  )
+  val emptyReturnTypeNilReturnRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-08-14",
+    "accountingPeriodTo"   -> "2024-12-14",
+    "obligationMTT"        -> true,
+    "electionUKGAAP"       -> true,
+    "liabilities" -> Json.obj(
+      "returnType" -> ""
+    )
+  )
+
+
 
   "SubmitUKTRController" - {
-    "when submitting UKTR" - {
+    "when submitting UKTR with LiabilityData" - {
       "should return CREATED (201) with success response" - {
         "when plrReference is valid and JSON payload is correct" in {
           val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000123").url)
@@ -532,9 +605,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           val result = route(app, request).value
           status(result) mustBe CREATED
           val json = contentAsJson(result)
+          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
           (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
           (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
-          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
         }
 
         "when plrReference is valid and JSON is correct and has 3 Liable Entities" in {
@@ -544,23 +617,11 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           val result = route(app, request).value
           status(result) mustBe CREATED
           val json = contentAsJson(result)
+          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
           (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
           (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
-          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
         }
-
-        "when submitting a nil return" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000002").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-            .withBody(validNilReturnRequestBody)
-          val result = route(app, request).value
-          status(result) mustBe CREATED
-          val json = contentAsJson(result)
-          (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-          (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
-          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        }
-      }
+      } // end: "should return CREATED (201) with success response"
 
       "should return UNPROCESSABLE_ENTITY (422)" - {
         "when plrReference indicates business validation failure" in {
@@ -609,64 +670,65 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             )
           )
         }
-      }
 
-      "when ukChargeableEntityName is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingUkChargeableEntityNameRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
+        "when ukChargeableEntityName is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingUkChargeableEntityNameRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
 
-      "when ukChargeableEntityName is missing and invalidLiableEntityukChargeableEntityNameZeroLength" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
+        "when ukChargeableEntityName is missing and invalidLiableEntityukChargeableEntityNameZeroLength" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
 
-      "when idType is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingIdTypeRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
+        "when idType is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingIdTypeRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
 
-      "when idValue is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingIdValueRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
+        "when idValue is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingIdValueRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
 
-      "when amountOwedDTT is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingAmountOwedDTTRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
+        "when amountOwedDTT is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingAmountOwedDTTRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
 
-      "when amountOwedIIR is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingAmountOwedIIRRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
+        "when amountOwedIIR is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingAmountOwedIIRRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when amountOwedUTPR is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingAmountOwedUTPRRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+      } //  end:  "should return BAD_REQUEST (400)"
+    } // end   "when submitting UKTR with LiabilityData"
 
-      "when amountOwedUTPR is missing" in {
-        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
-          .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(missingAmountOwedUTPRRequestBody)
-        val result = route(app, request).value
-        status(result) mustBe BAD_REQUEST
-      }
-
+    "when submitting UKTR with LiabilityData with 422 Business Validation Errors" - {
       "should return UNPROCESSABLE_ENTITY (422) + business validation failure error code 003" - {
         "when ukChargeableEntityName is Invalid" in {
           val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000003").url)
@@ -815,7 +877,97 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           (json \ "error" \ "text")
             .as[String] mustBe "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
         }
+      } //  end: "should return UNPROCESSABLE_ENTITY (422) + business validation failure error code 003"
+    } // / end:   "when submitting UKTR with LiabilityData with 422 Business Validation Errors"
+
+    // ============================= NIL RETURN TESTS ============================
+    "when submitting NilReturn UKTR" - {
+      "should return a 201 CREATED response" - {
+        "when submitting a VALID nil return" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000002").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(validNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe CREATED
+          val json = contentAsJson(result)
+          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+          (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
+
+        }
       }
-    }
-  }
-}
+      "should return BAD_REQUEST (400)" - {
+        "when NilReturn AccountingPeriodFrom date is invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidAccountingPeriodFromNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when NilReturn AccountingPeriodFrom date is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingAccountingPeriodFromNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when NilReturn AccountingPeriodTo date is invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidAccountingPeriodToNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when NilReturn AccountingPeriodTo date is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingAccountingPeriodToNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when NilReturn ObligationMTT field is invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidObligationMTTNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when NilReturn ObligationMTT field is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingObligationMTTNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when NilReturn ElectionUKGAAP field is invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidElectionUKGAAPNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when NilReturn ElectionUKGAAP field is missing" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(missingElectionUKGAAPNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when NilReturn returnType is invalid" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(invalidReturnTypeNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+        "when NilReturn returnType is empty" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000001").url)
+            .withHeaders("Content-Type" -> "application/json", authHeader)
+            .withBody(emptyReturnTypeNilReturnRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+        }
+      }
+    } // end "when submitting NilReturn UKTR"
+  } // end "SubmitUKTRController"
+} // end class SubmitUKTRControllerSpec

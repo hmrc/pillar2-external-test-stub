@@ -95,6 +95,8 @@ class SubmitUKTRController @Inject() (
     Future.successful(validationResult.toEither)
   }
 
-  def validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionNilReturn]] =
-    Future.successful(Right(nilReturnRequest))
+  def validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionNilReturn]] = {
+    val validationResult: ValidationResult[UktrSubmissionNilReturn] = nilReturnRequest.validate
+    Future.successful(validationResult.toEither)
+  }
 }
