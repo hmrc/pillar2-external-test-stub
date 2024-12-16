@@ -42,8 +42,8 @@ class SubmitUKTRController @Inject() (
     with Logging {
 
   def submitUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
-    val plrReference = request.headers.get("X-Pillar2-Id")
-    plrReference match {
+    val maybePlrReference = request.headers.get("X-Pillar2-Id")
+    maybePlrReference match {
       case None =>
         logger.warn("No PLR Reference provided in headers")
         Future.successful(BadRequest(Json.toJson(ErrorResponse.detailed(MissingPLRReference.response))))
