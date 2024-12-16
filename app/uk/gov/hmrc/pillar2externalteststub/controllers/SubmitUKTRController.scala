@@ -38,19 +38,25 @@ class SubmitUKTRController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def submitUKTR(plrReference: String): Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
-    plrReference match {
-      case "XEPLR0000000422" =>
-        Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse.detailed(ValidationError422RegimeMissingOrInvalid.response))))
-      case "XEPLR0000000500" =>
-        Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SAPError500.response))))
-      case "XEPLR0000000400" =>
-        Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
-      case _ => validateRequest(plrReference, request)
+  def submitUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
+    request.headers.get("X-Pillar2-Id") match {
+      case None =>
+        logger.warn("No PLR Reference provided in headers")
+        Future.successful(BadRequest(Json.toJson(ErrorResponse.detailed(MissingPLRReference.response))))
+      case Some(plrReference) =>
+        plrReference match {
+          case "XEPLR0000000422" =>
+            Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse.detailed(ValidationError422RegimeMissingOrInvalid.response))))
+          case "XEPLR0000000500" =>
+            Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SAPError500.response))))
+          case "XEPLR0000000400" =>
+            Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
+          case _ =>
+            validateRequest(request)
+        }
     }
-  }
 
-  private def validateRequest(plrReference: String, request: Request[JsValue]): Future[Result] =
+  def validateRequest(plrReference: String, request: Request[JsValue]): Future[Result] =
     request.body.validate[UKTRSubmission] match {
       case JsSuccess(uktrRequest: UKTRSubmissionData, _) =>
         Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {

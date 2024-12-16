@@ -78,6 +78,14 @@ object SAPError500 {
   )
 }
 
+object MissingPLRReference {
+  val response: UktrBusinessValidationErrorDetail = UktrBusinessValidationErrorDetail(
+    code = UktrErrorCodes.PILLAR_2_ID_MISSING_OR_INVALID_002,
+    processingDate = "2022-01-31T09:26:17Z",
+    text = "Pillar 2 ID missing or invalid"
+  )
+}
+
 object InvalidError400StaticErrorMessage {
   val response: UktrError = UktrError(
     code = UktrErrorCodes.BAD_REQUEST_400,
