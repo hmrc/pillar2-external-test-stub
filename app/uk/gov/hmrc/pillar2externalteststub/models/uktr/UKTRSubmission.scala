@@ -21,7 +21,7 @@ import cats.implicits.toFoldableOps
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results.UnprocessableEntity
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.{UktrBusinessValidationErrorDetail, UktrErrorCodes}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate
@@ -36,7 +36,7 @@ trait UKTRSubmission {
 }
 
 object UKTRSubmission {
-  val UKTR_STUB_PROCESSING_DATE = "2022-01-31T09:26:17Z"
+  val UKTR_STUB_STATIC_PROCESSING_DATE = "2022-01-31T09:26:17Z"
 
   def isLocalDate(date: Any): Boolean = date match {
     case _: java.time.LocalDate => true
@@ -60,7 +60,7 @@ object UKTRErrorTransformer {
         Json.obj(
           "errors" -> errors.toList.headOption.map(error =>
             Json.obj(
-              "processingDate" -> UKTRSubmission.UKTR_STUB_PROCESSING_DATE,
+              "processingDate" -> UktrBusinessValidationErrorDetail.nowZonedDateTime.toString,
               "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
               "text"           -> error.errorMessage
             )
