@@ -29,7 +29,7 @@ case class SubmitUKTRSuccessResponse(
 object SubmitUKTRSuccessResponse {
   implicit val writes: OWrites[SubmitUKTRSuccessResponse] = Json.writes[SubmitUKTRSuccessResponse]
 
-  def successfulDomesticOnlyResponse(): ApiResponse =
+  def successfulUKTRResponse(): ApiResponse =
     SuccessResponse(
       SubmitUKTRSuccessResponse(
         processingDate = ZonedDateTime.now(ZoneOffset.UTC),
@@ -37,4 +37,5 @@ object SubmitUKTRSuccessResponse {
         chargeReference = "XTC01234123412"
       )
     )
+
 }

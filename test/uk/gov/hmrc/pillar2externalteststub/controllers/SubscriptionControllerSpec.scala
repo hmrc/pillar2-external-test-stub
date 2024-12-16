@@ -25,9 +25,9 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.models._
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.subscription._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.NilReturnSubscriptionSuccess
 
 import scala.concurrent.Future
 
@@ -85,10 +85,10 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
         contentAsJson(result) shouldBe Json.toJson(NotFoundSubscription.response)
       }
 
-      "must return OK with NilReturnSuccess response for plrReference 'XEPLR0987654321'" in {
+      "must return OK with NilReturnSubscriptionSuccess response for plrReference 'XEPLR0987654321'" in {
         val result = route(app, authorizedRequest("XEPLR0987654321")).value
         status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(NilReturnSuccess.successfulResponse)
+        contentAsJson(result) shouldBe Json.toJson(NilReturnSubscriptionSuccess.successfulResponse)
       }
 
     }

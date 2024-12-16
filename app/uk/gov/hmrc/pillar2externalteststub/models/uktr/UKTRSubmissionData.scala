@@ -142,7 +142,7 @@ object UKTRSubmissionData {
       )
   }
 
-  val amountOwedUTPRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val amountOwedUTPRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
     if (
       uktrSubmissionData.liabilities.liableEntities
         .forall(f => isValidUKTRAmount(f.amountOwedUTPR.toString()))

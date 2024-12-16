@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper
+import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse.successfulDomesticOnlyResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
@@ -83,25 +85,30 @@ object UKTRSubmissionNilReturn {
         )
       )
   }
-  val electionUKGAAPRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
-    if (UKTRSubmissionNilReturn.electionUKGAAP.isInstanceOf[Boolean])
-      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
-    else
-      invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.BAD_REQUEST_400,
-          "electionUKGAAP",
-          s"electionUKGAAP must be either true or false."
-        )
-      )
+
+  private def electionUKGAAPDomesticOnlyNilReturnRule(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] = ValidationRule {
+    uktrSubmissionNilReturn =>
+      val subscriptionResponse = SubscriptionHelper.retrieveSubscription(plrReference)._2
+      val isDomesticOnly       = if (subscriptionResponse == successfulDomesticOnlyResponse(plrReference)) true else false
+      (uktrSubmissionNilReturn.electionUKGAAP, isDomesticOnly) match {
+        case (_, true) | (false, false) => valid[UKTRSubmissionNilReturn](uktrSubmissionNilReturn)
+        case _ =>
+          invalid(
+            UktrSubmissionError(
+              UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+              "electionUKGAAP",
+              "electionUKGAAP can be true only for a domestic-only group"
+            )
+          )
+      }
   }
 
-  implicit val UKTRSubmissionNilReturnValidator: ValidationRule[UKTRSubmissionNilReturn] =
+  implicit def UKTRSubmissionNilReturnValidator(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] =
     ValidationRule.compose(
       accountingPeriodFromRule,
       accountingPeriodToRule,
       obligationMTTRule,
-      electionUKGAAPRule,
+      electionUKGAAPDomesticOnlyNilReturnRule(plrReference),
       returnTypeRule
     )(FailFast)
 }
