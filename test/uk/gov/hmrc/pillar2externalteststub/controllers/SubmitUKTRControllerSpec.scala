@@ -954,9 +954,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           val result = route(app, request).value
           status(result) mustBe UNPROCESSABLE_ENTITY
           val json = contentAsJson(result)
-         (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-         (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-         (json \ "errors" \ "text").as[String] mustBe "electionUKGAAP can be true only for a domestic-only group"
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (json \ "errors" \ "text").as[String] mustBe "electionUKGAAP can be true only for a domestic-only group"
         }
       }
       "should return BAD_REQUEST (400)" - {
