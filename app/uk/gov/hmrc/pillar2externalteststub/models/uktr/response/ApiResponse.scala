@@ -17,7 +17,6 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr.response
 
 import play.api.libs.json.{Json, OWrites, Writes}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrBusinessValidationErrorDetail
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
 
 sealed trait ApiResponse

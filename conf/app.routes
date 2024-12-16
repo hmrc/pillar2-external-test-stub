@@ -2,4 +2,4 @@
 
 
 GET         /pillar2/subscription/:plrReference    uk.gov.hmrc.pillar2externalteststub.controllers.SubscriptionController.retrieveSubscription(plrReference: String)
-POST       /pillar2/submitUKTR/:plrReference      uk.gov.hmrc.pillar2externalteststub.controllers.SubmitUKTRController.submitUKTR(plrReference: String)
+POST        /RESTAdapter/PLR/UKTaxReturn           uk.gov.hmrc.pillar2externalteststub.controllers.SubmitUKTRController.submitUKTR
