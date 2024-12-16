@@ -52,9 +52,10 @@ class SubmitUKTRController @Inject() (
           case "XEPLR0000000400" =>
             Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
           case _ =>
-            validateRequest(request)
+            validateRequest(plrReference, request)
         }
     }
+  }
 
   def validateRequest(plrReference: String, request: Request[JsValue]): Future[Result] =
     request.body.validate[UKTRSubmission] match {
