@@ -525,8 +525,8 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     "when submitting UKTR" - {
       "should return CREATED (201)" - {
         "when electionUKGAAPRule is true/false given a subscription where domesticOnly = true" in {
-          val requestWithTrue = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR5555555555").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
+          val requestWithTrue = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR5555555555")
             .withBody(validRequestBody + ("electionUKGAAP" -> JsBoolean(true)))
           val requestWithFalse = requestWithTrue.withBody(validRequestBody + ("electionUKGAAP" -> JsBoolean(false)))
 
@@ -535,26 +535,20 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         }
 
         "when electionUKGAAPRule is false given a subscription where domesticOnly = false" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR5555555555").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR5555555555")
             .withBody(validRequestBody + ("electionUKGAAP" -> JsBoolean(false)))
 
           status(route(app, request).value) mustBe CREATED
         }
 
-        "when plrReference is valid and JSON payload is correct" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR0000000123").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
-      "should return CREATED (201) with success response" - {
         "when plrReference header is valid and JSON payload is correct" in {
           val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
-            .withHeaders(
-              "Content-Type" -> "application/json",
-              authHeader,
-              "X-Pillar2-Id" -> "XEPLR0000000123"
-            )
+            .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR0000000123")
             .withBody(validRequestBody)
+
           val result = route(app, request).value
+
           status(result) mustBe CREATED
           val json = contentAsJson(result)
           (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
@@ -610,28 +604,27 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           )
         }
 
-        "should return BAD_REQUEST (400)" - {
-          "when plrReference indicates invalid JSON" in {
-            val invalidJson = Json.obj("invalid" -> "json")
-            val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
-              .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR0000000400")
-              .withBody(invalidJson)
-            val result = route(app, request).value
-            status(result) mustBe BAD_REQUEST
-            contentAsJson(result) mustBe Json.obj(
-              "error" -> Json.obj(
-                "code"    -> "400",
-                "message" -> "Invalid message content.",
-                "logID"   -> "C0000AB8190C86300000000200006836"
-              )
+        "when plrReference indicates invalid JSON" in {
+          val invalidJson = Json.obj("invalid" -> "json")
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR0000000400")
+            .withBody(invalidJson)
+          val result = route(app, request).value
+          status(result) mustBe BAD_REQUEST
+          contentAsJson(result) mustBe Json.obj(
+            "error" -> Json.obj(
+              "code"    -> "400",
+              "message" -> "Invalid message content.",
+              "logID"   -> "C0000AB8190C86300000000200006836"
             )
-          }
+          )
         }
+      }
 
-        "should return UNPROCESSABLE_ENTITY (422)" - {
+      "should return UNPROCESSABLE_ENTITY (422)" - {
         "when electionUKGAAPRule is true given a subscription where domesticOnly = false" in {
-          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR("XEPLR5555555554").url)
-            .withHeaders("Content-Type" -> "application/json", authHeader)
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR5555555554")
             .withBody(validRequestBody + ("electionUKGAAP" -> JsBoolean(true)))
 
           val result = route(app, request).value
@@ -643,44 +636,21 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           (json \ "errors" \ "text").as[String] mustBe "electionUKGAAP can be true only for a domestic-only group"
         }
 
-          "when plrReference indicates business validation failure" in {
-            val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
-              .withHeaders(
-                "Content-Type" -> "application/json",
-                authHeader,
-                "X-Pillar2-Id" -> "XEPLR0000000422"
-              )
-              .withBody(validRequestBody)
-            val result = route(app, request).value
-            status(result) mustBe UNPROCESSABLE_ENTITY
-            val json = contentAsJson(result)
-            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REGIME_MISSING_OR_INVALID_001
-            (json \ "errors" \ "text").as[String] mustBe "REGIME missing or invalid"
-          }
-        }
-
-        "should return INTERNAL_SERVER_ERROR (500)" - {
-          "when plrReference indicates SAP failure" in {
-            val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
-              .withHeaders(
-                "Content-Type" -> "application/json",
-                authHeader,
-                "X-Pillar2-Id" -> "XEPLR0000000500"
-              )
-              .withBody(validRequestBody)
-            val result = route(app, request).value
-            status(result) mustBe INTERNAL_SERVER_ERROR
-            contentAsJson(result) mustBe Json.obj(
-              "error" -> Json.obj(
-                "code" -> "500",
-                "message" -> "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
-                "logID" -> "C0000AB8190C8E1F000000C700006836"
-              )
+        "when plrReference indicates business validation failure" in {
+          val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+            .withHeaders(
+              "Content-Type" -> "application/json",
+              authHeader,
+              "X-Pillar2-Id" -> "XEPLR0000000422"
             )
-          }
+            .withBody(validRequestBody)
+          val result = route(app, request).value
+          status(result) mustBe UNPROCESSABLE_ENTITY
+          val json = contentAsJson(result)
+          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REGIME_MISSING_OR_INVALID_001
+          (json \ "errors" \ "text").as[String] mustBe "REGIME missing or invalid"
         }
-
         "when ukChargeableEntityName is missing" in {
           val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
             .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR0000000003")
@@ -745,9 +715,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
           }
 
           "when ukChargeableEntityName exceeds 160 characters" in {
@@ -757,9 +727,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
           }
 
           "when ukChargeableEntityName is Empty in 3rd LiableEntity" in {
@@ -769,9 +739,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
           }
 
           "when idType has zero length" in {
@@ -781,9 +751,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
           }
 
           "when idType is Invalid" in {
@@ -793,9 +763,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
           }
 
           "when idType in LiableEntity1 is Invalid and idValue in LiableEntity2 is Invalid" in {
@@ -805,9 +775,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
           }
 
           "when idValue has zero length" in {
@@ -817,9 +787,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text")
+              .as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
           }
 
           "when idValue length exceeds 15 characters" in {
@@ -829,9 +800,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text")
+              .as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
           }
 
           "when amountOwedDTT is Invalid" in {
@@ -841,9 +813,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text")
               .as[String] mustBe "amountOwedDTT must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
           }
 
@@ -854,9 +826,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text")
               .as[String] mustBe "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
           }
 
@@ -867,9 +839,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text")
               .as[String] mustBe "amountOwedUTPR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
           }
 
@@ -880,10 +852,31 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             val result = route(app, request).value
             status(result) mustBe UNPROCESSABLE_ENTITY
             val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
+            (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+            (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+            (json \ "errors" \ "text")
               .as[String] mustBe "amountOwedIIR must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+          }
+        }
+
+        "should return INTERNAL_SERVER_ERROR (500)" - {
+          "when plrReference indicates SAP failure" in {
+            val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+              .withHeaders(
+                "Content-Type" -> "application/json",
+                authHeader,
+                "X-Pillar2-Id" -> "XEPLR0000000500"
+              )
+              .withBody(validRequestBody)
+            val result = route(app, request).value
+            status(result) mustBe INTERNAL_SERVER_ERROR
+            contentAsJson(result) mustBe Json.obj(
+              "error" -> Json.obj(
+                "code" -> "500",
+                "message" -> "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
+                "logID" -> "C0000AB8190C8E1F000000C700006836"
+              )
+            )
           }
         }
       }

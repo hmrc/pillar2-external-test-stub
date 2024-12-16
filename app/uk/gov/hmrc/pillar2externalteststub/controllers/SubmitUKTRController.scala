@@ -23,9 +23,11 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.{ErrorResponse, SubmitUKTRSuccessResponse}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRErrorTransformer, UKTRSubmission, UKTRSubmissionData, UKTRSubmissionNilReturn}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.ValidationResult
+import uk.gov.hmrc.pillar2externalteststub.validation.syntax.ValidateOps
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -53,9 +55,10 @@ class SubmitUKTRController @Inject() (
             Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SAPError500.response))))
           case "XEPLR0000000400" =>
             Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
-      case _ => validateRequest(plrReference, request)
+          case _ => validateRequest(plrReference, request)
         }
     }
+  }
 
   private def validateRequest(plrReference: String, request: Request[JsValue]): Future[Result] =
     request.body.validate[UKTRSubmission] match {
@@ -83,6 +86,6 @@ class SubmitUKTRController @Inject() (
       case _ => Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
     }
 
-  def validateNilReturn(nilReturnRequest: UKTRSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UKTRSubmissionNilReturn]] =
+  private def validateNilReturn(nilReturnRequest: UKTRSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UKTRSubmissionNilReturn]] =
     Future.successful(Right(nilReturnRequest))
 }
