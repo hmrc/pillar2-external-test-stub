@@ -905,13 +905,56 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
         (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
       }
+      "when submitting a domestic-only Nil Return with obligationMTT = false" in {
+        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+          .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR5555555555")
+          .withBody(nilReturnBody(obligationMTT = false, electionUKGAAP = true))
+        val result = route(app, request).value
+        status(result) mustBe CREATED
+        val json = contentAsJson(result)
+        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+      }
+      "when submitting a non-domestic Nil Return with obligationMTT = true" in {
+        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+          .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR1234567890")
+          .withBody(nilReturnBody(obligationMTT = true, electionUKGAAP = false))
+        val result = route(app, request).value
+        status(result) mustBe CREATED
+        val json = contentAsJson(result)
+        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+      }
     }
 
     "should return UNPROCESSABLE_ENTITY (422)" - {
+      "when submitting a domestic-only Nil Return with obligationMTT = true" in {
+        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+          .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR5555555555")
+          .withBody(nilReturnBody(obligationMTT = true, electionUKGAAP = true))
+        val result = route(app, request).value
+        status(result) mustBe UNPROCESSABLE_ENTITY
+        val json = contentAsJson(result)
+        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+        (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+        (json \ "errors" \ "text").as[String] mustBe "obligationMTT cannot be true for a domestic-only group or false for a non-domestic-only group"
+      }
+
+      "when submitting a non-domestic Nil Return with obligationMTT = false" in {
+        val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
+          .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR1234567890")
+          .withBody(nilReturnBody(obligationMTT = false, electionUKGAAP = true))
+        val result = route(app, request).value
+        status(result) mustBe UNPROCESSABLE_ENTITY
+        val json = contentAsJson(result)
+        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+        (json \ "errors" \ "code").as[String] mustBe UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+        (json \ "errors" \ "text").as[String] mustBe "obligationMTT cannot be true for a domestic-only group or false for a non-domestic-only group"
+      }
+
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = true" in {
         val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
           .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR1234567890")
-          .withHeaders("Content-Type" -> "application/json", authHeader)
           .withBody(nilReturnBody(obligationMTT = true, electionUKGAAP = true))
         val result = route(app, request).value
         status(result) mustBe UNPROCESSABLE_ENTITY
