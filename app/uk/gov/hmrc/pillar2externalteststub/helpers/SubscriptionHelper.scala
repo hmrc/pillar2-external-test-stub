@@ -17,9 +17,9 @@
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
 import play.api.mvc.Results._
-import uk.gov.hmrc.pillar2externalteststub.models.NilReturnSuccess
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse.{successfulDomesticOnlyResponse, successfulNonDomesticResponse}
 import uk.gov.hmrc.pillar2externalteststub.models.subscription._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.NilReturnSubscriptionSuccess
 
 object SubscriptionHelper {
   def retrieveSubscription(plrReference: String): (Status, SubscriptionResponse) =
@@ -27,9 +27,9 @@ object SubscriptionHelper {
       case "XEPLR0123456404" => (NotFound, NotFoundSubscription.response)
       case "XEPLR0123456500" => (InternalServerError, ServerError500.response)
       case "XEPLR0123456503" => (ServiceUnavailable, ServiceUnavailable503.response)
-      case "XEPLR5555555555" => (Ok, successfulDomesticOnlyResponse(plrReference))
-      case "XEPLR1234567890" => (Ok, successfulNonDomesticResponse(plrReference))
-      case "XEPLR0987654321" => (Ok, NilReturnSuccess.successfulResponse)
+      case "XEPLR5555555555" => (Ok, successfulDomesticOnlyResponse)
+      case "XEPLR1234567890" => (Ok, successfulNonDomesticResponse)
+      case "XEPLR0987654321" => (Ok, NilReturnSubscriptionSuccess.successfulResponse)
       case _                 => (NotFound, NotFoundSubscription.response)
     }
 }

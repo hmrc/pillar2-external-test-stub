@@ -16,6 +16,11 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper
+import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse.successfulDomesticOnlyResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
+import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
 
@@ -28,5 +33,82 @@ case class UKTRSubmissionNilReturn(
 ) extends UKTRSubmission
 
 object UKTRSubmissionNilReturn {
-  implicit val uktrSubmissionNilReturnFormat: OFormat[UKTRSubmissionNilReturn] = Json.format[UKTRSubmissionNilReturn]
+  implicit val UKTRSubmissionNilReturnFormat: OFormat[UKTRSubmissionNilReturn] = Json.format[UKTRSubmissionNilReturn]
+
+  private val returnTypeRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
+    if (UKTRSubmissionNilReturn.liabilities.returnType.equals(ReturnType.NIL_RETURN))
+      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
+    else
+      invalid(
+        UktrSubmissionError(
+          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+          "returnType",
+          s"returnType must be ${ReturnType.NIL_RETURN}."
+        )
+      )
+  }
+
+  private val accountingPeriodFromRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
+    if (UKTRSubmission.isLocalDate(UKTRSubmissionNilReturn.accountingPeriodFrom))
+      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
+    else
+      invalid(
+        UktrSubmissionError(
+          UktrErrorCodes.BAD_REQUEST_400,
+          "accountingPeriodFrom",
+          s"accountingPeriodFrom must be a valid date."
+        )
+      )
+  }
+
+  private val accountingPeriodToRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
+    if (UKTRSubmission.isLocalDate(UKTRSubmissionNilReturn.accountingPeriodTo))
+      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
+    else
+      invalid(
+        UktrSubmissionError(
+          UktrErrorCodes.BAD_REQUEST_400,
+          "accountingPeriodTo",
+          s"accountingPeriodTo must be a valid date."
+        )
+      )
+  }
+  private val obligationMTTRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
+    if (UKTRSubmissionNilReturn.obligationMTT.isInstanceOf[Boolean])
+      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
+    else
+      invalid(
+        UktrSubmissionError(
+          UktrErrorCodes.BAD_REQUEST_400,
+          "obligationMTT",
+          s"obligationMTT must be either true or false."
+        )
+      )
+  }
+
+  private def electionUKGAAPDomesticOnlyNilReturnRule(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] = ValidationRule {
+    uktrSubmissionNilReturn =>
+      val subscriptionResponse = SubscriptionHelper.retrieveSubscription(plrReference)._2
+      val isDomesticOnly       = if (subscriptionResponse == successfulDomesticOnlyResponse) true else false
+      (uktrSubmissionNilReturn.electionUKGAAP, isDomesticOnly) match {
+        case (_, true) | (false, false) => valid[UKTRSubmissionNilReturn](uktrSubmissionNilReturn)
+        case _ =>
+          invalid(
+            UktrSubmissionError(
+              UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+              "electionUKGAAP",
+              "electionUKGAAP can be true only for a domestic-only group"
+            )
+          )
+      }
+  }
+
+  implicit def UKTRSubmissionNilReturnValidator(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] =
+    ValidationRule.compose(
+      accountingPeriodFromRule,
+      accountingPeriodToRule,
+      obligationMTTRule,
+      electionUKGAAPDomesticOnlyNilReturnRule(plrReference),
+      returnTypeRule
+    )(FailFast)
 }

@@ -48,7 +48,7 @@ object UKTRSubmissionData {
 
   private def electionUKGAAPRule(plrReference: String): ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData =>
     val subscriptionResponse = SubscriptionHelper.retrieveSubscription(plrReference)._2
-    val isDomesticOnly       = if (subscriptionResponse == successfulDomesticOnlyResponse(plrReference)) true else false
+    val isDomesticOnly       = if (subscriptionResponse == successfulDomesticOnlyResponse) true else false
     (uktrSubmissionData.electionUKGAAP, isDomesticOnly) match {
       case (_, true) | (false, false) => valid[UKTRSubmissionData](uktrSubmissionData)
       case _ =>
