@@ -30,13 +30,16 @@ case class UKTRSubmissionData(
   accountingPeriodTo:   LocalDate,
   obligationMTT:        Boolean,
   electionUKGAAP:       Boolean,
-  liabilities:          LiabilityData
+  liabilities:          Liability
 ) extends UKTRSubmission
 
 object UKTRSubmissionData {
   implicit val uktrSubmissionDataFormat: OFormat[UKTRSubmissionData] = Json.format[UKTRSubmissionData]
   val amountErrorMessage =
     " must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
+
+  private def isDomesticOnly(plrReference: String): Boolean =
+    if (SubscriptionHelper.retrieveSubscription(plrReference)._2 == successfulDomesticOnlyResponse) true else false
 
   private def isValidUKTRAmount(number: String): Boolean = {
     val pattern = """^\d{1,13}\.{0,1}\d{0,2}$""".r
@@ -46,12 +49,9 @@ object UKTRSubmissionData {
     }
   }
 
-  private def electionUKGAAPRule(plrReference: String): ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData =>
-    val subscriptionResponse = SubscriptionHelper.retrieveSubscription(plrReference)._2
-    val isDomesticOnly       = if (subscriptionResponse == successfulDomesticOnlyResponse) true else false
-    (uktrSubmissionData.electionUKGAAP, isDomesticOnly) match {
-      case (_, true) | (false, false) => valid[UKTRSubmissionData](uktrSubmissionData)
-      case _ =>
+  private def electionUKGAAPRule(plrReference: String): ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
+    (data.electionUKGAAP, isDomesticOnly(plrReference)) match {
+      case (true, false) =>
         invalid(
           UktrSubmissionError(
             UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
@@ -59,15 +59,16 @@ object UKTRSubmissionData {
             "electionUKGAAP can be true only for a domestic-only group"
           )
         )
+      case _ => valid[UKTRSubmissionData](data)
     }
   }
 
-  private val ukChargeableEntityNameRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val ukChargeableEntityNameRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$"))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
         UktrSubmissionError(
@@ -78,12 +79,12 @@ object UKTRSubmissionData {
       )
   }
 
-  private val idTypeRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val idTypeRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => f.idType.equals("UTR") || f.idType.equals("CRN"))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
         UktrSubmissionError(
@@ -94,12 +95,12 @@ object UKTRSubmissionData {
       )
   }
 
-  private val idValueRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val idValueRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => f.idValue.matches("^[a-zA-Z0-9]{1,15}$"))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
         UktrSubmissionError(
@@ -110,12 +111,12 @@ object UKTRSubmissionData {
       )
   }
 
-  private val amountOwedDTTRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val amountOwedDTTRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => isValidUKTRAmount(f.amountOwedDTT.toString()))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
         UktrSubmissionError(
@@ -126,12 +127,12 @@ object UKTRSubmissionData {
       )
   }
 
-  private val amountOwedIIRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val amountOwedIIRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => isValidUKTRAmount(f.amountOwedIIR.toString()))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
         UktrSubmissionError(
@@ -142,12 +143,12 @@ object UKTRSubmissionData {
       )
   }
 
-  private val amountOwedUTPRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val amountOwedUTPRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => isValidUKTRAmount(f.amountOwedUTPR.toString()))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
         UktrSubmissionError(

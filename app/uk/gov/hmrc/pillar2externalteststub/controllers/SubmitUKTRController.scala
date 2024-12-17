@@ -24,6 +24,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.ErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.SubmitUKTRSuccessResponse.successfulUKTRResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.UKTRNilReturnSuccessResponse.successfulNilReturnResponse
 import uk.gov.hmrc.pillar2externalteststub.validation.syntax.ValidateOps
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -60,16 +61,16 @@ class SubmitUKTRController @Inject() (
 
   private def validateRequest(plrReference: String, request: Request[JsValue]): Future[Result] =
     request.body.validate[UKTRSubmission] match {
-      case JsSuccess(request: UKTRSubmission, _) =>
-        Future
-          .successful((request: @unchecked) match {
-            case uktrSubmission: UKTRSubmissionData      => uktrSubmission.validate(plrReference).toEither
-            case nilReturn:      UKTRSubmissionNilReturn => nilReturn.validate(plrReference).toEither
-          })
-          .flatMap {
-            case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-            case Right(_)     => Future.successful(Created(Json.toJson(successfulUKTRResponse())))
-          }
+      case JsSuccess(uktrRequest: UKTRSubmissionData, _) =>
+        Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
+          case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+          case Right(_)     => Future.successful(Created(Json.toJson(successfulUKTRResponse)))
+        }
+      case JsSuccess(nilReturnRequest: UKTRSubmissionNilReturn, _) =>
+        Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
+          case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+          case Right(_)     => Future.successful(Created(Json.toJson(successfulNilReturnResponse)))
+        }
       case JsError(errors) =>
         val concatenatedErrorMessages = errors
           .map { case (path, validationErrors) =>

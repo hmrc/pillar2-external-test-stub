@@ -79,24 +79,12 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     )
   )
 
-  val nilReturnElectionUKGAAPTrueRequestBody: JsObject = Json.obj(
+  def nilReturnBody(obligationMTT: Boolean, electionUKGAAP: Boolean): JsObject = Json.obj(
     "accountingPeriodFrom" -> "2024-08-14",
     "accountingPeriodTo"   -> "2024-12-14",
-    "obligationMTT"        -> true,
-    "electionUKGAAP"       -> true,
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
-  )
-
-  val nilReturnElectionUKGAAPFalseRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
-    "obligationMTT"        -> true,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
+    "obligationMTT"        -> obligationMTT,
+    "electionUKGAAP"       -> electionUKGAAP,
+    "liabilities"          -> Json.obj("returnType" -> "NIL_RETURN")
   )
 
   val validLiableEntity1: JsObject = Json.obj(
@@ -887,47 +875,44 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
   "when submitting NilReturn UKTR" - {
     "should return CREATED (201)" - {
-      "when submitting a Domestic-Only Nil Return with electionUKGAAP=true" in {
+      "when submitting a Domestic-Only Nil Return with electionUKGAAP = true" in {
         val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
           .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR5555555555")
-          .withBody(nilReturnElectionUKGAAPTrueRequestBody)
+          .withBody(nilReturnBody(obligationMTT = false, electionUKGAAP = true))
         val result = route(app, request).value
         status(result) mustBe CREATED
         val json = contentAsJson(result)
         (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
         (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-        (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
       }
-      "when submitting a Domestic-Only Nil Return with electionUKGAAP=false" in {
+      "when submitting a Domestic-Only Nil Return with electionUKGAAP = false" in {
         val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
           .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR5555555555")
-          .withBody(nilReturnElectionUKGAAPFalseRequestBody)
+          .withBody(nilReturnBody(obligationMTT = false, electionUKGAAP = false))
         val result = route(app, request).value
         status(result) mustBe CREATED
         val json = contentAsJson(result)
         (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
         (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-        (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
       }
-      "when submitting a Non-Domestic Nil Return with electionUKGAAP=false" in {
+      "when submitting a Non-Domestic Nil Return with electionUKGAAP = false" in {
         val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
           .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR1234567890")
-          .withBody(nilReturnElectionUKGAAPFalseRequestBody)
+          .withBody(nilReturnBody(obligationMTT = true, electionUKGAAP = false))
         val result = route(app, request).value
         status(result) mustBe CREATED
         val json = contentAsJson(result)
         (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
         (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-        (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
       }
     }
 
     "should return UNPROCESSABLE_ENTITY (422)" - {
-      "when submitting a Non-Domestic Nil Return with electionUKGAAP=true" in {
+      "when submitting a Non-Domestic Nil Return with electionUKGAAP = true" in {
         val request = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
           .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> "XEPLR1234567890")
           .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(nilReturnElectionUKGAAPTrueRequestBody)
+          .withBody(nilReturnBody(obligationMTT = true, electionUKGAAP = true))
         val result = route(app, request).value
         status(result) mustBe UNPROCESSABLE_ENTITY
         val json = contentAsJson(result)

@@ -35,9 +35,12 @@ case class UKTRSubmissionNilReturn(
 object UKTRSubmissionNilReturn {
   implicit val UKTRSubmissionNilReturnFormat: OFormat[UKTRSubmissionNilReturn] = Json.format[UKTRSubmissionNilReturn]
 
-  private val returnTypeRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
-    if (UKTRSubmissionNilReturn.liabilities.returnType.equals(ReturnType.NIL_RETURN))
-      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
+  private def isDomesticOnly(plrReference: String): Boolean =
+    if (SubscriptionHelper.retrieveSubscription(plrReference)._2 == successfulDomesticOnlyResponse) true else false
+
+  private val returnTypeRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { data =>
+    if (data.liabilities.returnType.equals(ReturnType.NIL_RETURN))
+      valid[UKTRSubmissionNilReturn](data)
     else
       invalid(
         UktrSubmissionError(
@@ -48,9 +51,9 @@ object UKTRSubmissionNilReturn {
       )
   }
 
-  private val accountingPeriodFromRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
-    if (UKTRSubmission.isLocalDate(UKTRSubmissionNilReturn.accountingPeriodFrom))
-      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
+  private val accountingPeriodFromRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { data =>
+    if (UKTRSubmission.isLocalDate(data.accountingPeriodFrom))
+      valid[UKTRSubmissionNilReturn](data)
     else
       invalid(
         UktrSubmissionError(
@@ -61,9 +64,9 @@ object UKTRSubmissionNilReturn {
       )
   }
 
-  private val accountingPeriodToRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
-    if (UKTRSubmission.isLocalDate(UKTRSubmissionNilReturn.accountingPeriodTo))
-      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
+  private val accountingPeriodToRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { data =>
+    if (UKTRSubmission.isLocalDate(data.accountingPeriodTo))
+      valid[UKTRSubmissionNilReturn](data)
     else
       invalid(
         UktrSubmissionError(
@@ -73,42 +76,38 @@ object UKTRSubmissionNilReturn {
         )
       )
   }
-  private val obligationMTTRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { UKTRSubmissionNilReturn: UKTRSubmissionNilReturn =>
-    if (UKTRSubmissionNilReturn.obligationMTT.isInstanceOf[Boolean])
-      valid[UKTRSubmissionNilReturn](UKTRSubmissionNilReturn)
-    else
+  private def obligationMTTRule(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { data =>
+    if (data.obligationMTT == isDomesticOnly(plrReference)) {
       invalid(
         UktrSubmissionError(
           UktrErrorCodes.BAD_REQUEST_400,
           "obligationMTT",
-          s"obligationMTT must be either true or false."
+          "obligationMTT cannot be true for a domestic-only group or false for a non-domestic-only group"
         )
       )
+    } else valid[UKTRSubmissionNilReturn](data)
   }
 
-  private def electionUKGAAPDomesticOnlyNilReturnRule(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] = ValidationRule {
-    uktrSubmissionNilReturn =>
-      val subscriptionResponse = SubscriptionHelper.retrieveSubscription(plrReference)._2
-      val isDomesticOnly       = if (subscriptionResponse == successfulDomesticOnlyResponse) true else false
-      (uktrSubmissionNilReturn.electionUKGAAP, isDomesticOnly) match {
-        case (_, true) | (false, false) => valid[UKTRSubmissionNilReturn](uktrSubmissionNilReturn)
-        case _ =>
-          invalid(
-            UktrSubmissionError(
-              UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-              "electionUKGAAP",
-              "electionUKGAAP can be true only for a domestic-only group"
-            )
+  private def electionUKGAAPRule(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { data =>
+    (data.electionUKGAAP, isDomesticOnly(plrReference)) match {
+      case (true, false) =>
+        invalid(
+          UktrSubmissionError(
+            UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+            "electionUKGAAP",
+            "electionUKGAAP can be true only for a domestic-only group"
           )
-      }
+        )
+      case _ => valid[UKTRSubmissionNilReturn](data)
+    }
   }
 
-  implicit def UKTRSubmissionNilReturnValidator(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] =
+  implicit def uktrNilReturnValidator(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] =
     ValidationRule.compose(
       accountingPeriodFromRule,
       accountingPeriodToRule,
-      obligationMTTRule,
-      electionUKGAAPDomesticOnlyNilReturnRule(plrReference),
+      obligationMTTRule(plrReference),
+      electionUKGAAPRule(plrReference),
       returnTypeRule
     )(FailFast)
 }
