@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.models.uktr.response
+package uk.gov.hmrc.pillar2externalteststub.models.response
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 
-case class NilReturnSubscriptionSuccess(processingDate: String, message: String) extends SubscriptionResponse
+case class NilReturnSubscriptionSuccess(processingDate: String, message: String)
 
 object NilReturnSubscriptionSuccess {
   implicit val format: OFormat[NilReturnSubscriptionSuccess] = Json.format[NilReturnSubscriptionSuccess]

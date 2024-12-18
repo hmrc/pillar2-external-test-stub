@@ -17,9 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper
-import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse.successfulDomesticOnlyResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.isDomesticOnly
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
@@ -38,9 +37,6 @@ object UKTRSubmissionData {
   val amountErrorMessage =
     " must be Numeric, positive, with at most 2 decimal places, and less than or equal to 13 characters, including the decimal place."
 
-  private def isDomesticOnly(plrReference: String): Boolean =
-    if (SubscriptionHelper.retrieveSubscription(plrReference)._2 == successfulDomesticOnlyResponse) true else false
-
   private def isValidUKTRAmount(number: String): Boolean = {
     val pattern = """^\d{1,13}\.{0,1}\d{0,2}$""".r
     number match {
@@ -53,8 +49,8 @@ object UKTRSubmissionData {
     (data.electionUKGAAP, isDomesticOnly(plrReference)) match {
       case (true, false) =>
         invalid(
-          UktrSubmissionError(
-            UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+          UKTRSubmissionError(
+            UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
             "electionUKGAAP",
             "electionUKGAAP can be true only for a domestic-only group"
           )
@@ -71,8 +67,8 @@ object UKTRSubmissionData {
       valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "ukChargeableEntityName",
           "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
         )
@@ -87,8 +83,8 @@ object UKTRSubmissionData {
       valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "idType",
           "idType must be either UTR or CRN."
         )
@@ -103,8 +99,8 @@ object UKTRSubmissionData {
       valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "idValue",
           "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
         )
@@ -119,8 +115,8 @@ object UKTRSubmissionData {
       valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "amountOwedDTT",
           "amountOwedDTT" + amountErrorMessage
         )
@@ -135,8 +131,8 @@ object UKTRSubmissionData {
       valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "amountOwedIIR",
           "amountOwedIIR" + amountErrorMessage
         )
@@ -151,8 +147,8 @@ object UKTRSubmissionData {
       valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "amountOwedUTPR",
           "amountOwedUTPR" + amountErrorMessage
         )

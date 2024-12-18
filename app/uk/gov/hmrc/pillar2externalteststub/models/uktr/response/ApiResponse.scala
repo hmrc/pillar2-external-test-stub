@@ -28,8 +28,8 @@ object SuccessResponse {
 }
 
 object ErrorResponse {
-  def simple(error: UktrError):                           ErrorResponse = ErrorResponse(SimpleError(error))
-  def detailed(error: UktrBusinessValidationErrorDetail): ErrorResponse = ErrorResponse(DetailedError(error))
+  def simple(error: UKTRError):                           ErrorResponse = ErrorResponse(SimpleError(error))
+  def detailed(error: UKTRBusinessValidationErrorDetail): ErrorResponse = ErrorResponse(DetailedError(error))
 
   implicit val writes: Writes[ErrorResponse] = Writes { response =>
     Json.toJson(response.apiError)
