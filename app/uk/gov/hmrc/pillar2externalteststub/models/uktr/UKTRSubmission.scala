@@ -21,8 +21,8 @@ import cats.implicits.toFoldableOps
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results.UnprocessableEntity
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrBusinessValidationErrorDetail.nowZonedDateTime
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UKTRBusinessValidationErrorDetail.nowZonedDateTime
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate
@@ -33,7 +33,7 @@ trait UKTRSubmission {
   val accountingPeriodTo:   LocalDate
   val obligationMTT:        Boolean
   val electionUKGAAP:       Boolean
-  val liabilities:          Liability
+  val liabilities:          Liabilities
 }
 
 object UKTRSubmission {
@@ -52,7 +52,7 @@ object UKTRSubmission {
     }
 }
 
-case class UktrSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
+case class UKTRSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
 
 object UKTRErrorTransformer {
   def from422ToJson(errors: NonEmptyChain[ValidationError]): Future[Result] =
@@ -62,7 +62,7 @@ object UKTRErrorTransformer {
           "errors" -> errors.toList.headOption.map(error =>
             Json.obj(
               "processingDate" -> nowZonedDateTime.toString,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+              "code"           -> UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
               "text"           -> error.errorMessage
             )
           )
