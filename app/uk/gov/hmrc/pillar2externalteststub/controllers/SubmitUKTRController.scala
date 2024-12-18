@@ -16,17 +16,15 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import cats.data.NonEmptyChain
-import cats.implicits._
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.{ErrorResponse, SubmitUKTRSuccessResponse}
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.ErrorResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.SubmitUKTRSuccessResponse.successfulUKTRResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.UKTRNilReturnSuccessResponse.successfulNilReturnResponse
 import uk.gov.hmrc.pillar2externalteststub.validation.syntax.ValidateOps
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -55,7 +53,8 @@ class SubmitUKTRController @Inject() (
             Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SAPError500.response))))
           case "XEPLR0000000400" =>
             Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
-          case _ => validateRequest(plrReference, request)
+          case _ =>
+            validateRequest(plrReference, request)
         }
     }
   }
@@ -65,14 +64,12 @@ class SubmitUKTRController @Inject() (
       case JsSuccess(uktrRequest: UKTRSubmissionData, _) =>
         Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => Future.successful(Created(Json.toJson(successfulDomesticOnlyResponse())))
+          case Right(_)     => Future.successful(Created(Json.toJson(successfulUKTRResponse)))
         }
       case JsSuccess(nilReturnRequest: UKTRSubmissionNilReturn, _) =>
-        validateNilReturn(nilReturnRequest: UKTRSubmissionNilReturn).flatMap {
-          case Left(errors) =>
-            Future.successful(UnprocessableEntity(Json.toJson(errors.toList.map(error => s"${error.field}: ${error.errorMessage}"))))
-          case Right(_) =>
-            Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
+        Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
+          case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+          case Right(_)     => Future.successful(Created(Json.toJson(successfulNilReturnResponse)))
         }
       case JsError(errors) =>
         val concatenatedErrorMessages = errors
@@ -85,7 +82,4 @@ class SubmitUKTRController @Inject() (
         Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400DynamicErrorMessage.response(concatenatedErrorMessages)))))
       case _ => Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
     }
-
-  private def validateNilReturn(nilReturnRequest: UKTRSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UKTRSubmissionNilReturn]] =
-    Future.successful(Right(nilReturnRequest))
 }

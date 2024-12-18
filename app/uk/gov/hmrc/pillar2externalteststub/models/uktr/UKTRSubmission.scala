@@ -21,7 +21,8 @@ import cats.implicits.toFoldableOps
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results.UnprocessableEntity
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UKTRBusinessValidationErrorDetail.nowZonedDateTime
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate
@@ -32,11 +33,16 @@ trait UKTRSubmission {
   val accountingPeriodTo:   LocalDate
   val obligationMTT:        Boolean
   val electionUKGAAP:       Boolean
-  val liabilities:          Liability
+  val liabilities:          Liabilities
 }
 
 object UKTRSubmission {
-  val UKTR_STUB_PROCESSING_DATE = "2022-01-31T09:26:17Z"
+  val UKTR_STUB_STATIC_PROCESSING_DATE = "2022-01-31T09:26:17Z"
+
+  def isLocalDate(date: Any): Boolean = date match {
+    case _: java.time.LocalDate => true
+    case _ => false
+  }
 
   implicit val uktrSubmissionReads: Reads[UKTRSubmission] = (json: JsValue) =>
     if ((json \ "liabilities" \ "returnType").isEmpty) {
@@ -46,7 +52,7 @@ object UKTRSubmission {
     }
 }
 
-case class UktrSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
+case class UKTRSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
 
 object UKTRErrorTransformer {
   def from422ToJson(errors: NonEmptyChain[ValidationError]): Future[Result] =
@@ -55,8 +61,8 @@ object UKTRErrorTransformer {
         Json.obj(
           "errors" -> errors.toList.headOption.map(error =>
             Json.obj(
-              "processingDate" -> UKTRSubmission.UKTR_STUB_PROCESSING_DATE,
-              "code"           -> UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+              "processingDate" -> nowZonedDateTime.toString,
+              "code"           -> UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
               "text"           -> error.errorMessage
             )
           )

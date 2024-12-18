@@ -17,9 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper
-import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse.successfulDomesticOnlyResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UktrErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.isDomesticOnly
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
@@ -30,7 +29,7 @@ case class UKTRSubmissionData(
   accountingPeriodTo:   LocalDate,
   obligationMTT:        Boolean,
   electionUKGAAP:       Boolean,
-  liabilities:          LiabilityData
+  liabilities:          Liability
 ) extends UKTRSubmission
 
 object UKTRSubmissionData {
@@ -46,112 +45,110 @@ object UKTRSubmissionData {
     }
   }
 
-  private def electionUKGAAPRule(plrReference: String): ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData =>
-    val subscriptionResponse = SubscriptionHelper.retrieveSubscription(plrReference)._2
-    val isDomesticOnly       = if (subscriptionResponse == successfulDomesticOnlyResponse(plrReference)) true else false
-    (uktrSubmissionData.electionUKGAAP, isDomesticOnly) match {
-      case (_, true) | (false, false) => valid[UKTRSubmissionData](uktrSubmissionData)
-      case _ =>
+  private def electionUKGAAPRule(plrReference: String): ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
+    (data.electionUKGAAP, isDomesticOnly(plrReference)) match {
+      case (true, false) =>
         invalid(
-          UktrSubmissionError(
-            UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+          UKTRSubmissionError(
+            UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
             "electionUKGAAP",
             "electionUKGAAP can be true only for a domestic-only group"
           )
         )
+      case _ => valid[UKTRSubmissionData](data)
     }
   }
 
-  private val ukChargeableEntityNameRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val ukChargeableEntityNameRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$"))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "ukChargeableEntityName",
           "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
         )
       )
   }
 
-  private val idTypeRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val idTypeRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => f.idType.equals("UTR") || f.idType.equals("CRN"))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "idType",
           "idType must be either UTR or CRN."
         )
       )
   }
 
-  private val idValueRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val idValueRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => f.idValue.matches("^[a-zA-Z0-9]{1,15}$"))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "idValue",
           "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
         )
       )
   }
 
-  private val amountOwedDTTRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val amountOwedDTTRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => isValidUKTRAmount(f.amountOwedDTT.toString()))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "amountOwedDTT",
           "amountOwedDTT" + amountErrorMessage
         )
       )
   }
 
-  private val amountOwedIIRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val amountOwedIIRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => isValidUKTRAmount(f.amountOwedIIR.toString()))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "amountOwedIIR",
           "amountOwedIIR" + amountErrorMessage
         )
       )
   }
 
-  private val amountOwedUTPRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { uktrSubmissionData: UKTRSubmissionData =>
+  private val amountOwedUTPRRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (
-      uktrSubmissionData.liabilities.liableEntities
+      data.liabilities.liableEntities
         .forall(f => isValidUKTRAmount(f.amountOwedUTPR.toString()))
     )
-      valid[UKTRSubmissionData](uktrSubmissionData)
+      valid[UKTRSubmissionData](data)
     else
       invalid(
-        UktrSubmissionError(
-          UktrErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "amountOwedUTPR",
           "amountOwedUTPR" + amountErrorMessage
         )

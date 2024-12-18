@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.models.uktr
+package uk.gov.hmrc.pillar2externalteststub.models.response
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 
-case class LiableEntity(
-  ukChargeableEntityName: String,
-  idType:                 String,
-  idValue:                String,
-  amountOwedDTT:          BigDecimal,
-  amountOwedIIR:          BigDecimal,
-  amountOwedUTPR:         BigDecimal
-)
+case class NilReturnSubscriptionSuccess(processingDate: String, message: String)
 
-object LiableEntity {
-  implicit val format: OFormat[LiableEntity] = Json.format[LiableEntity]
+object NilReturnSubscriptionSuccess {
+  implicit val format: OFormat[NilReturnSubscriptionSuccess] = Json.format[NilReturnSubscriptionSuccess]
+
+  val successfulResponse: NilReturnSubscriptionSuccess = NilReturnSubscriptionSuccess(
+    processingDate = UKTRSubmission.UKTR_STUB_STATIC_PROCESSING_DATE,
+    message = "Nil return received and processed successfully"
+  )
 }
