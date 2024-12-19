@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.models.uktr
+package uk.gov.hmrc.pillar2externalteststub.models.subscription
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json._
 
-case class LiableEntity(
-  ukChargeableEntityName: String,
-  idType:                 String,
-  idValue:                String,
-  amountOwedDTT:          BigDecimal,
-  amountOwedIIR:          BigDecimal,
-  amountOwedUTPR:         BigDecimal
-)
+trait SubscriptionResponse
 
-object LiableEntity {
-  implicit val format: OFormat[LiableEntity] = Json.format[LiableEntity]
+object SubscriptionResponse {
+  implicit val writes: Writes[SubscriptionResponse] = {
+    case success: SubscriptionSuccessResponse => Json.toJson(success)(SubscriptionSuccessResponse.writes)
+    case error:   ErrorResponse               => Json.toJson(error)(ErrorResponse.format)
+    case _ => throw new IllegalStateException("Unknown SubscriptionResponse type")
+  }
 }

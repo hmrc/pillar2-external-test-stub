@@ -21,17 +21,17 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.temporal.ChronoUnit
 import java.time.{ZoneOffset, ZonedDateTime}
 
-case class UktrError(
+case class UKTRError(
   code:    String,
   message: String,
   logID:   Option[String]
 )
 
-object UktrError {
-  implicit val format: OFormat[UktrError] = Json.format[UktrError]
+object UKTRError {
+  implicit val format: OFormat[UKTRError] = Json.format[UKTRError]
 }
 
-object UktrErrorCodes {
+object UKTRErrorCodes {
   val REGIME_MISSING_OR_INVALID_001                             = "001"
   val PILLAR_2_ID_MISSING_OR_INVALID_002                        = "002"
   val REQUEST_COULD_NOT_BE_PROCESSED_003                        = "003"
@@ -50,28 +50,28 @@ object UktrErrorCodes {
   val INTERNAL_SERVER_ERROR_500                                 = "500"
 }
 
-case class UktrBusinessValidationErrorDetail(
+case class UKTRBusinessValidationErrorDetail(
   processingDate: String,
   code:           String,
   text:           String
 )
 
-object UktrBusinessValidationErrorDetail {
-  implicit val format:  OFormat[UktrBusinessValidationErrorDetail] = Json.format[UktrBusinessValidationErrorDetail]
+object UKTRBusinessValidationErrorDetail {
+  implicit val format:  OFormat[UKTRBusinessValidationErrorDetail] = Json.format[UKTRBusinessValidationErrorDetail]
   def nowZonedDateTime: ZonedDateTime                              = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS)
 }
 
 object ValidationError422RegimeMissingOrInvalid {
-  val response: UktrBusinessValidationErrorDetail = UktrBusinessValidationErrorDetail(
-    processingDate = UktrBusinessValidationErrorDetail.nowZonedDateTime.toString,
-    code = UktrErrorCodes.REGIME_MISSING_OR_INVALID_001,
+  val response: UKTRBusinessValidationErrorDetail = UKTRBusinessValidationErrorDetail(
+    processingDate = UKTRBusinessValidationErrorDetail.nowZonedDateTime.toString,
+    code = UKTRErrorCodes.REGIME_MISSING_OR_INVALID_001,
     text = "REGIME missing or invalid"
   )
 }
 
 object SAPError500 {
-  val response: UktrError = UktrError(
-    code = UktrErrorCodes.INTERNAL_SERVER_ERROR_500,
+  val response: UKTRError = UKTRError(
+    code = UKTRErrorCodes.INTERNAL_SERVER_ERROR_500,
     message =
       "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
     logID = Some("C0000AB8190C8E1F000000C700006836")
@@ -79,24 +79,24 @@ object SAPError500 {
 }
 
 object MissingPLRReference {
-  val response: UktrBusinessValidationErrorDetail = UktrBusinessValidationErrorDetail(
-    code = UktrErrorCodes.PILLAR_2_ID_MISSING_OR_INVALID_002,
+  val response: UKTRBusinessValidationErrorDetail = UKTRBusinessValidationErrorDetail(
+    code = UKTRErrorCodes.PILLAR_2_ID_MISSING_OR_INVALID_002,
     processingDate = "2022-01-31T09:26:17Z",
     text = "Pillar 2 ID missing or invalid"
   )
 }
 
 object InvalidError400StaticErrorMessage {
-  val response: UktrError = UktrError(
-    code = UktrErrorCodes.BAD_REQUEST_400,
+  val response: UKTRError = UKTRError(
+    code = UKTRErrorCodes.BAD_REQUEST_400,
     message = "Invalid message content.",
     logID = Some("C0000AB8190C86300000000200006836")
   )
 }
 
 object InvalidJsonError400DynamicErrorMessage {
-  def response(errorMessage: String): UktrError = UktrError(
-    code = UktrErrorCodes.BAD_REQUEST_400,
+  def response(errorMessage: String): UKTRError = UKTRError(
+    code = UKTRErrorCodes.BAD_REQUEST_400,
     message = "Invalid JSON message content: " + errorMessage,
     logID = Some("C000BADJSON000000000000000000400")
   )

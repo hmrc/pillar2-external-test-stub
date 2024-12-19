@@ -15,12 +15,13 @@
  */
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
-
+import enumeratum.EnumEntry.UpperSnakecase
+import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.Liability
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiableEntity
 
-case class LiabilityData(
+sealed trait Liabilities
+
+case class Liability(
   electionDTTSingleMember:  Boolean,
   electionUTPRSingleMember: Boolean,
   numberSubGroupDTT:        Int,
@@ -30,8 +31,34 @@ case class LiabilityData(
   totalLiabilityIIR:        BigDecimal,
   totalLiabilityUTPR:       BigDecimal,
   liableEntities:           Seq[LiableEntity]
-) extends Liability
+) extends Liabilities
 
-object LiabilityData {
-  implicit val liabilityDataFormat: OFormat[LiabilityData] = Json.format[LiabilityData]
+object Liability {
+  implicit val liabilityDataFormat: OFormat[Liability] = Json.format[Liability]
+}
+
+case class LiabilityNilReturn(returnType: ReturnType) extends Liabilities
+
+object LiabilityNilReturn {
+  implicit val liabilityNilReturnFormat: OFormat[LiabilityNilReturn] = Json.format[LiabilityNilReturn]
+}
+
+case class LiableEntity(
+  ukChargeableEntityName: String,
+  idType:                 String,
+  idValue:                String,
+  amountOwedDTT:          BigDecimal,
+  amountOwedIIR:          BigDecimal,
+  amountOwedUTPR:         BigDecimal
+)
+
+object LiableEntity {
+  implicit val format: OFormat[LiableEntity] = Json.format[LiableEntity]
+}
+
+sealed trait ReturnType extends EnumEntry with UpperSnakecase
+
+object ReturnType extends Enum[ReturnType] with PlayJsonEnum[ReturnType] {
+  val values: IndexedSeq[ReturnType] = findValues
+  case object NIL_RETURN extends ReturnType
 }

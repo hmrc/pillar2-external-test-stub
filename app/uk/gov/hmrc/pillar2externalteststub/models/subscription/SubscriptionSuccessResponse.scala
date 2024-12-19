@@ -27,12 +27,12 @@ case class SubscriptionSuccessResponse(
   filingMemberDetails:      FilingMemberDetails,
   accountingPeriod:         AccountingPeriod,
   accountStatus:            AccountStatus
-)
+) extends SubscriptionResponse
 
 object SubscriptionSuccessResponse {
   implicit val writes: OWrites[SubscriptionSuccessResponse] = Json.writes[SubscriptionSuccessResponse]
 
-  def successfulDomesticOnlyResponse(plrReference: String): SubscriptionSuccessResponse =
+  def successfulDomesticOnlyResponse: SubscriptionSuccessResponse =
     SubscriptionSuccessResponse(
       formBundleNumber = "123456789123",
       upeDetails = UPEDetails(
@@ -76,7 +76,7 @@ object SubscriptionSuccessResponse {
       accountStatus = AccountStatus(inactive = true)
     )
 
-  def successfulNonDomesticResponse(plrReference: String): SubscriptionSuccessResponse =
+  def successfulNonDomesticResponse: SubscriptionSuccessResponse =
     SubscriptionSuccessResponse(
       formBundleNumber = "123456789123",
       upeDetails = UPEDetails(

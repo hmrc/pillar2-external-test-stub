@@ -24,7 +24,7 @@ object Failure {
   implicit val format: OFormat[Failure] = Json.format[Failure]
 }
 
-case class ErrorResponse(failures: Seq[Failure])
+case class ErrorResponse(failures: Seq[Failure]) extends SubscriptionResponse
 
 object ErrorResponse {
   implicit val format: OFormat[ErrorResponse] = Json.format[ErrorResponse]
