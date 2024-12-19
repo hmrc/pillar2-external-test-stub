@@ -34,19 +34,6 @@ case class UKTRSubmissionNilReturn(
 object UKTRSubmissionNilReturn {
   implicit val UKTRSubmissionNilReturnFormat: OFormat[UKTRSubmissionNilReturn] = Json.format[UKTRSubmissionNilReturn]
 
-  private val returnTypeRule: ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { data =>
-    if (data.liabilities.returnType.equals(ReturnType.NIL_RETURN))
-      valid[UKTRSubmissionNilReturn](data)
-    else
-      invalid(
-        UKTRSubmissionError(
-          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "returnType",
-          s"returnType must be ${ReturnType.NIL_RETURN}."
-        )
-      )
-  }
-
   private def obligationMTTRule(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { data =>
     if (data.obligationMTT == isDomesticOnly(plrReference)) {
       invalid(
@@ -76,7 +63,6 @@ object UKTRSubmissionNilReturn {
   implicit def uktrNilReturnValidator(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] =
     ValidationRule.compose(
       obligationMTTRule(plrReference),
-      electionUKGAAPRule(plrReference),
-      returnTypeRule
+      electionUKGAAPRule(plrReference)
     )(FailFast)
 }
