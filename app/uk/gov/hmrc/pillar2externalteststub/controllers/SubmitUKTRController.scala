@@ -16,18 +16,15 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import cats.data.NonEmptyChain
-import cats.implicits._
 import play.api.Logging
-import play.api.libs.json.Format.GenericFormat
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.{ErrorResponse, SubmitUKTRSuccessResponse}
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.ValidationResult
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.ErrorResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.SubmitUKTRSuccessResponse.successfulUKTRResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.UKTRNilReturnSuccessResponse.successfulNilReturnResponse
 import uk.gov.hmrc.pillar2externalteststub.validation.syntax.ValidateOps
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -43,7 +40,8 @@ class SubmitUKTRController @Inject() (
     with Logging {
 
   def submitUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
-    request.headers.get("X-Pillar2-Id") match {
+    val maybePlrReference = request.headers.get("X-Pillar2-Id")
+    maybePlrReference match {
       case None =>
         logger.warn("No PLR Reference provided in headers")
         Future.successful(BadRequest(Json.toJson(ErrorResponse.detailed(MissingPLRReference.response))))
@@ -56,27 +54,22 @@ class SubmitUKTRController @Inject() (
           case "XEPLR0000000400" =>
             Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
           case _ =>
-            validateRequest(request)
+            validateRequest(plrReference, request)
         }
     }
-
   }
 
-  def validateRequest(request: Request[JsValue]): Future[Result] =
-    request.body.validate[UktrSubmission] match {
-      case JsSuccess(uktrRequest: UktrSubmissionData, _) =>
-        validateUktrSubmissionData(uktrRequest: UktrSubmissionData).flatMap {
-          case Left(errors) =>
-            Future.successful(UnprocessableEntity(UktrSubmissionErrorJsonConverter.convertTo422JsonErrorFormat(errors)))
-          case Right(_) =>
-            Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
+  private def validateRequest(plrReference: String, request: Request[JsValue]): Future[Result] =
+    request.body.validate[UKTRSubmission] match {
+      case JsSuccess(uktrRequest: UKTRSubmissionData, _) =>
+        Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
+          case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+          case Right(_)     => Future.successful(Created(Json.toJson(successfulUKTRResponse)))
         }
-      case JsSuccess(nilReturnRequest: UktrSubmissionNilReturn, _) =>
-        validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn).flatMap {
-          case Left(errors) =>
-            Future.successful(UnprocessableEntity(Json.toJson(errors.toList.map(error => s"${error.field}: ${error.errorMessage}"))))
-          case Right(_) =>
-            Future.successful(Created(Json.toJson(SubmitUKTRSuccessResponse.successfulDomesticOnlyResponse())))
+      case JsSuccess(nilReturnRequest: UKTRSubmissionNilReturn, _) =>
+        Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
+          case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+          case Right(_)     => Future.successful(Created(Json.toJson(successfulNilReturnResponse)))
         }
       case JsError(errors) =>
         val concatenatedErrorMessages = errors
@@ -86,20 +79,7 @@ class SubmitUKTRController @Inject() (
             s"Field: $fieldName: $errorMessages"
           }
           .mkString("; ")
-        Future.successful {
-          BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400DynamicErrorMessage.response(concatenatedErrorMessages))))
-        }
-      case _ =>
-        Future.successful {
-          BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response)))
-        }
+        Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidJsonError400DynamicErrorMessage.response(concatenatedErrorMessages)))))
+      case _ => Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
     }
-
-  def validateUktrSubmissionData(req: UktrSubmissionData): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionData]] = {
-    val validationResult: ValidationResult[UktrSubmissionData] = req.validate
-    Future.successful(validationResult.toEither)
-  }
-
-  def validateNilReturn(nilReturnRequest: UktrSubmissionNilReturn): Future[Either[NonEmptyChain[ValidationError], UktrSubmissionNilReturn]] =
-    Future.successful(Right(nilReturnRequest))
 }

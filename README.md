@@ -57,14 +57,13 @@ non-domestic status and specific error responses.
 
 Response Codes and Conditions:
 
-| plrReference                 | HTTP Status               | Description                                                                    |
-|:-----------------------------|---------------------------|--------------------------------------------------------------------------------|
-| XEPLR0123456404              | 404 Not Found             | Subscription not found                                                         |
-| XEPLR0123456500              | 500 Internal Server Error | Server error                                                                  |
-| XEPLR0123456503              | 503 Service Unavailable   | Dependent systems are currently not responding                                |
-| XEPLR5555555555              | 200 OK                    | Success response with domesticOnly = true                                     |
-| XEPLR1234567890              | 200 OK                    | Success response with domesticOnly = false                                    |
-| XEPLR0987654321              | 200 OK                    | Success response for a Nil Return                                             |
+| plrReference            | HTTP Status               | Description                                     |
+|:------------------------|---------------------------|-------------------------------------------------|
+| XEPLR0123456500         | 500 Internal Server Error | Server error                                    |
+| XEPLR0123456503         | 503 Service Unavailable   | Dependent systems are currently not responding  |
+| XEPLR5555555555         | 200 OK                    | Success response with domesticOnly = true       |
+| XEPLR1234567890         | 200 OK                    | Success response with domesticOnly = false      |
+| Any other               | 404 Not Found             | Subscription not found                          |
 
 ### 2. Submit UKTR
 
@@ -72,12 +71,12 @@ The /pillar2/submitUKTR/:plrReference endpoint submits a UKTR to ETMP.
 
 Response Codes and Conditions:
 
-| plrReference      | HTTP Status               | Description                                                 |
-|:-----------------|---------------------------|-------------------------------------------------------------|
-| XEPLR0000000422  | 422 Unprocessable Entity | Business validation failure with error details               |
-| XEPLR0000000500  | 500 Internal Server Error| SAP system failure with error details                       |
-| XEPLR0000000400  | 400 Bad Request         | Invalid JSON payload error                                   |
-| Any other        | 201 Created             | Successful UKTR submission with form bundle details          |
+| plrReference    | HTTP Status               | Description                                         |
+|:----------------|---------------------------|-----------------------------------------------------|
+| XEPLR0000000422 | 422 Unprocessable Entity  | Business validation failure with error details      |
+| XEPLR0000000500 | 500 Internal Server Error | SAP system failure with error details               |
+| XEPLR0000000400 | 400 Bad Request           | Invalid JSON payload error                          |
+| Any other       | 201 Created               | Successful UKTR submission with form bundle details |
 
 ## Example Requests
 

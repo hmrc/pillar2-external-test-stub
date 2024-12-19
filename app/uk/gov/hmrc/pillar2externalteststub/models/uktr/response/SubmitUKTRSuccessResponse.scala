@@ -16,25 +16,52 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr.response
 
-import play.api.libs.json.{Json, OWrites}
+import play.api.libs.json.{Json, OWrites, Writes}
 
 import java.time.{ZoneOffset, ZonedDateTime}
+
+sealed trait UKTRSuccessResponse
+
+object UKTRSuccessResponse {
+  implicit val writes: Writes[UKTRSuccessResponse] = {
+    case liabilityReturn: SubmitUKTRSuccessResponse    => Json.toJson(liabilityReturn)(SubmitUKTRSuccessResponse.writes)
+    case nilReturn:       UKTRNilReturnSuccessResponse => Json.toJson(nilReturn)(UKTRNilReturnSuccessResponse.writes)
+    case _ => throw new IllegalStateException(s"Unknown UKTRSuccessResponse type")
+  }
+}
 
 case class SubmitUKTRSuccessResponse(
   processingDate:   ZonedDateTime,
   formBundleNumber: String,
   chargeReference:  String
-)
+) extends UKTRSuccessResponse
 
 object SubmitUKTRSuccessResponse {
   implicit val writes: OWrites[SubmitUKTRSuccessResponse] = Json.writes[SubmitUKTRSuccessResponse]
 
-  def successfulDomesticOnlyResponse(): ApiResponse =
+  def successfulUKTRResponse: ApiResponse =
     SuccessResponse(
       SubmitUKTRSuccessResponse(
         processingDate = ZonedDateTime.now(ZoneOffset.UTC),
         formBundleNumber = "119000004320",
         chargeReference = "XTC01234123412"
+      )
+    )
+}
+
+case class UKTRNilReturnSuccessResponse(
+  processingDate:   ZonedDateTime,
+  formBundleNumber: String
+) extends UKTRSuccessResponse
+
+object UKTRNilReturnSuccessResponse {
+  implicit val writes: OWrites[UKTRNilReturnSuccessResponse] = Json.writes[UKTRNilReturnSuccessResponse]
+
+  def successfulNilReturnResponse: ApiResponse =
+    SuccessResponse(
+      UKTRNilReturnSuccessResponse(
+        processingDate = ZonedDateTime.now(ZoneOffset.UTC),
+        formBundleNumber = "119000004320"
       )
     )
 }

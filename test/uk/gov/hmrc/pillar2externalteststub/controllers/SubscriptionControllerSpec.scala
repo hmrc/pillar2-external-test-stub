@@ -25,8 +25,6 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.models._
-import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 
 import scala.concurrent.Future
@@ -70,13 +68,13 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
       "must return OK with detailed success response for domesticOnly=true for plrReference 'XEPLR5555555555'" in {
         val result = route(app, authorizedRequest("XEPLR5555555555")).value
         status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(SubscriptionSuccessResponse.successfulDomesticOnlyResponse("XEPLR5555555555"))
+        contentAsJson(result) shouldBe Json.toJson(SubscriptionSuccessResponse.successfulDomesticOnlyResponse)
       }
 
       "must return OK with detailed success response for domesticOnly=false for plrReference 'XEPLR1234567890'" in {
         val result = route(app, authorizedRequest("XEPLR1234567890")).value
         status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(SubscriptionSuccessResponse.successfulNonDomesticResponse("XEPLR1234567890"))
+        contentAsJson(result) shouldBe Json.toJson(SubscriptionSuccessResponse.successfulNonDomesticResponse)
       }
 
       "must return NOT_FOUND for any other plrReference not explicitly handled" in {
@@ -84,13 +82,6 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
         status(result)        shouldBe NOT_FOUND
         contentAsJson(result) shouldBe Json.toJson(NotFoundSubscription.response)
       }
-
-      "must return OK with NilReturnSuccess response for plrReference 'XEPLR0987654321'" in {
-        val result = route(app, authorizedRequest("XEPLR0987654321")).value
-        status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(NilReturnSuccess.successfulResponse)
-      }
-
     }
   }
 }
