@@ -24,7 +24,7 @@ object SubscriptionHelper {
   def isDomesticOnly(plrReference: String): Boolean =
     retrieveSubscription(plrReference)._2 match {
       case success: SubscriptionSuccessResponse => success.upeDetails.domesticOnly
-      case _ => throw new IllegalStateException("Expected SubscriptionSuccessResponse")
+      case _ => throw new IllegalStateException(s"Unable to fetch subscription for pillar2 ID: $plrReference")
     }
 
   def retrieveSubscription(plrReference: String): (Status, SubscriptionResponse) =
