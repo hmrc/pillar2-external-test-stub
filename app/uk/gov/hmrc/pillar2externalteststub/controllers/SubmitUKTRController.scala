@@ -20,6 +20,8 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
+import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
+import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.error._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.response.ErrorResponse
@@ -54,7 +56,10 @@ class SubmitUKTRController @Inject() (
           case "XEPLR0000000400" =>
             Future.successful(BadRequest(Json.toJson(ErrorResponse.simple(InvalidError400StaticErrorMessage.response))))
           case _ =>
-            validateRequest(plrReference, request)
+            retrieveSubscription(plrReference)._2 match {
+              case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
+              case _ => Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SubscriptionError500(plrReference)))))
+            }
         }
     }
   }

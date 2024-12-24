@@ -78,6 +78,14 @@ object SAPError500 {
   )
 }
 
+object SubscriptionError500 {
+  def apply(plrReference: String): UKTRError = UKTRError(
+    code = UKTRErrorCodes.INTERNAL_SERVER_ERROR_500,
+    message = s"Unable to fetch subscription for pillar2 ID: $plrReference",
+    logID = Some("C0000AB8190C8E1F000000C700006836")
+  )
+}
+
 object MissingPLRReference {
   val response: UKTRBusinessValidationErrorDetail = UKTRBusinessValidationErrorDetail(
     code = UKTRErrorCodes.PILLAR_2_ID_MISSING_OR_INVALID_002,
