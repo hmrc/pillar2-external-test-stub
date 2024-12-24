@@ -35,12 +35,12 @@ object UKTRSubmissionNilReturn {
   implicit val UKTRSubmissionNilReturnFormat: OFormat[UKTRSubmissionNilReturn] = Json.format[UKTRSubmissionNilReturn]
 
   private def obligationMTTRule(plrReference: String): ValidationRule[UKTRSubmissionNilReturn] = ValidationRule { data =>
-    if (data.obligationMTT == isDomesticOnly(plrReference)) {
+    if (data.obligationMTT && isDomesticOnly(plrReference)) {
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.BAD_REQUEST_400,
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "obligationMTT",
-          "obligationMTT cannot be true for a domestic-only group or false for a non-domestic group"
+          "obligationMTT cannot be true for a domestic-only group"
         )
       )
     } else valid[UKTRSubmissionNilReturn](data)
