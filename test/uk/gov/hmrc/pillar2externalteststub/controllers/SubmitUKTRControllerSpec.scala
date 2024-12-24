@@ -876,7 +876,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         val json = contentAsJson(result)
         (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
         (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text").as[String] mustBe "obligationMTT cannot be true for a domestic-only group or false for a non-domestic group"
+        (json \ "errors" \ "text").as[String] mustBe "obligationMTT cannot be true for a domestic-only group"
       }
 
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = true" in {

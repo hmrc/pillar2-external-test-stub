@@ -40,7 +40,7 @@ object UKTRSubmissionNilReturn {
         UKTRSubmissionError(
           UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
           "obligationMTT",
-          "obligationMTT cannot be true for a domestic-only group or false for a non-domestic group"
+          "obligationMTT cannot be true for a domestic-only group"
         )
       )
     } else valid[UKTRSubmissionNilReturn](data)
