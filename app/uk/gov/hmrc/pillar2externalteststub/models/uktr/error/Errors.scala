@@ -18,7 +18,6 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr.error
 
 import play.api.libs.json.{Json, OFormat}
 
-import java.time.temporal.ChronoUnit
 import java.time.{ZoneOffset, ZonedDateTime}
 
 case class UKTRError(
@@ -51,19 +50,21 @@ object UKTRErrorCodes {
 }
 
 case class UKTRBusinessValidationErrorDetail(
-  processingDate: String,
+  processingDate: ZonedDateTime,
   code:           String,
   text:           String
 )
 
 object UKTRBusinessValidationErrorDetail {
   implicit val format:  OFormat[UKTRBusinessValidationErrorDetail] = Json.format[UKTRBusinessValidationErrorDetail]
-  def nowZonedDateTime: ZonedDateTime                              = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS)
+  def nowZonedDateTime: ZonedDateTime                              = ZonedDateTime.now(ZoneOffset.UTC)
+
+  def apply(code: String, text: String) = new UKTRBusinessValidationErrorDetail(ZonedDateTime.now(ZoneOffset.UTC), code, text)
 }
 
 object ValidationError422RegimeMissingOrInvalid {
   val response: UKTRBusinessValidationErrorDetail = UKTRBusinessValidationErrorDetail(
-    processingDate = UKTRBusinessValidationErrorDetail.nowZonedDateTime.toString,
+    processingDate = UKTRBusinessValidationErrorDetail.nowZonedDateTime,
     code = UKTRErrorCodes.REGIME_MISSING_OR_INVALID_001,
     text = "REGIME missing or invalid"
   )
@@ -78,18 +79,16 @@ object SAPError500 {
   )
 }
 
-object SubscriptionError500 {
-  def apply(plrReference: String): UKTRError = UKTRError(
-    code = UKTRErrorCodes.INTERNAL_SERVER_ERROR_500,
-    message = s"Unable to fetch subscription for pillar2 ID: $plrReference",
-    logID = Some("C0000AB8190C8E1F000000C700006836")
+object SubscriptionNotFound {
+  def apply(plrReference: String): UKTRBusinessValidationErrorDetail = UKTRBusinessValidationErrorDetail(
+    code = UKTRErrorCodes.BUSINESS_PARTNER_DOES_NOT_HAVE_AN_ACTIVE_SUBSCRIPTION_007,
+    text = s"Unable to fetch subscription for pillar2 ID: $plrReference"
   )
 }
 
 object MissingPLRReference {
   val response: UKTRBusinessValidationErrorDetail = UKTRBusinessValidationErrorDetail(
     code = UKTRErrorCodes.PILLAR_2_ID_MISSING_OR_INVALID_002,
-    processingDate = "2022-01-31T09:26:17Z",
     text = "Pillar 2 ID missing or invalid"
   )
 }

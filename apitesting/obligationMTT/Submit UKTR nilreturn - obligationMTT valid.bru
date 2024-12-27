@@ -1,0 +1,34 @@
+meta {
+  name: Submit UKTR nilreturn - obligationMTT valid
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:10055/RESTAdapter/PLR/UKTaxReturn
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Pillar2-Id: {{multinationalPlrId}}
+  Authorization: validBearerToken
+}
+
+body:json {
+  {
+    "accountingPeriodFrom": "2024-08-14",
+    "accountingPeriodTo": "2024-12-14",
+    "obligationMTT": true,
+    "electionUKGAAP": false,
+    "liabilities": {
+      "returnType":"NIL_RETURN"
+    }
+  }
+}
+
+assert {
+  res.body.success: isDefined
+  res.status: eq 201
+}

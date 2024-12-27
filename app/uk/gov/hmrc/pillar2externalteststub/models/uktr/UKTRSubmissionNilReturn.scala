@@ -38,7 +38,7 @@ object UKTRSubmissionNilReturn {
     if (data.obligationMTT && isDomesticOnly(plrReference)) {
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+          UKTRErrorCodes.INVALID_RETURN_093,
           "obligationMTT",
           "obligationMTT cannot be true for a domestic-only group"
         )
@@ -51,7 +51,7 @@ object UKTRSubmissionNilReturn {
       case (true, false) =>
         invalid(
           UKTRSubmissionError(
-            UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+            UKTRErrorCodes.INVALID_RETURN_093,
             "electionUKGAAP",
             "electionUKGAAP can be true only for a domestic-only group"
           )
