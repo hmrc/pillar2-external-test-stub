@@ -572,6 +572,16 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         }
       }
 
+      "when liabilityEntity is invalid" in {
+        val result = route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr()))))).value
+
+        status(result) mustBe UNPROCESSABLE_ENTITY
+        val json = contentAsJson(result)
+        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
+        (json \ "errors" \ "text").as[String] mustBe "liabilityEntity cannot be empty"
+      }
+
       "when ukChargeableEntityName is Invalid" in {
         val result = route(app, request(body = invalidUkChargeableEntityNameRequestBody)).value
 
