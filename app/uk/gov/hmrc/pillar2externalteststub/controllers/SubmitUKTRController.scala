@@ -46,7 +46,7 @@ class SubmitUKTRController @Inject() (
     maybePlrReference match {
       case None =>
         logger.warn("No PLR Reference provided in headers")
-        Future.successful(BadRequest(Json.toJson(ErrorResponse.detailed(MissingPLRReference.response))))
+        Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse.detailed(MissingPLRReference.response))))
       case Some(plrReference) =>
         plrReference match {
           case "XEPLR0000000422" =>
@@ -58,7 +58,7 @@ class SubmitUKTRController @Inject() (
           case _ =>
             retrieveSubscription(plrReference)._2 match {
               case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
-              case _ => Future.successful(InternalServerError(Json.toJson(ErrorResponse.simple(SubscriptionError500(plrReference)))))
+              case _ => Future.successful(UnprocessableEntity(Json.toJson(ErrorResponse.detailed(SubscriptionNotFound(plrReference)))))
             }
         }
     }
