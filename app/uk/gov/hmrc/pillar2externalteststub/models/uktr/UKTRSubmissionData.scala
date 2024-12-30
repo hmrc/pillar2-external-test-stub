@@ -113,6 +113,18 @@ object UKTRSubmissionData {
       )
   }
 
+  private val liabilityEntityRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
+    if (data.liabilities.liableEntities.nonEmpty) valid[UKTRSubmissionData](data)
+    else
+      invalid(
+        UKTRSubmissionError(
+          UKTRErrorCodes.INVALID_RETURN_093,
+          "liabilityEntity",
+          "liabilityEntity cannot be empty"
+        )
+      )
+  }
+
   private val ukChargeableEntityNameRule: ValidationRule[UKTRSubmissionData] = ValidationRule { data =>
     if (data.liabilities.liableEntities.forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$"))) valid[UKTRSubmissionData](data)
     else
@@ -193,6 +205,7 @@ object UKTRSubmissionData {
       totalLiabilityDTTRule,
       totalLiabilityIIRRule,
       totalLiabilityUTPRRule,
+      liabilityEntityRule,
       ukChargeableEntityNameRule,
       idTypeRule,
       idValueRule,
