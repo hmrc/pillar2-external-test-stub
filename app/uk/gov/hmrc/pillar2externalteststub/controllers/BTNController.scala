@@ -35,13 +35,10 @@ class BTNController @Inject() (cc: ControllerComponents, authFilter: AuthActionF
     request.headers.get("X-Pillar2-Id") match {
       case Some(plrReference) =>
         plrReference match {
-          case "XEPLR4000000000" => BadRequest(Json.toJson(BTN_ERROR_400(message = "Bad Request")))
-          case "XEPLR5000000000" => InternalServerError(Json.toJson(BTN_ERROR_500(message = "Internal Server Error")))
-          case "XEPLR4220000002" => UnprocessableEntity(Json.toJson(BTN_PILLAR2_MISSING_002))
-          case "XEPLR4220000003" => UnprocessableEntity(Json.toJson(BTN_REQUEST_INVALID_003))
-          case "XEPLR4220000004" => UnprocessableEntity(Json.toJson(BTN_DUPLICATE_SUBMISSION_004))
-          case "XEPLR4220000007" => UnprocessableEntity(Json.toJson(BTN_BUSINESS_PARTNER_NOT_ACTIVE_007))
-          case "XEPLR4220000044" => UnprocessableEntity(Json.toJson(BTN_TAX_OBLIGATION_FULFILLED_044))
+          case "XEPLR0000000201" => Created(Json.toJson(BTN_SUCCESS_201))
+          case "XEPLR0000000400" => BadRequest(Json.toJson(BTN_ERROR_400(message = "Invalid JSON payload error")))
+          case "XEPLR0000000422" => UnprocessableEntity(Json.toJson(BTN_GENERIC_422))
+          case "XEPLR0000000500" => InternalServerError(Json.toJson(BTN_ERROR_500(message = "SAP system failure: ...")))
           case _ =>
             Try(Json.parse(request.body)) match {
               case Success(json) =>

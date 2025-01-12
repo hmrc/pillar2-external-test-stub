@@ -79,6 +79,14 @@ case class BTNFailureResponse(errors: BTNFailure) extends BTNResponse
 object BTNFailureResponse {
   implicit val format: OFormat[BTNFailureResponse] = Json.format[BTNFailureResponse]
 
+  def BTN_GENERIC_422: BTNFailureResponse = BTNFailureResponse(
+    BTNFailure(
+      processingDate = now,
+      code = "422",
+      text = "Business validation failed"
+    )
+  )
+
   def BTN_PILLAR2_MISSING_002: BTNFailureResponse = BTNFailureResponse(
     BTNFailure(
       processingDate = now,

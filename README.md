@@ -67,7 +67,7 @@ Response Codes and Conditions:
 
 ### 2. Submit UKTR
 
-The /pillar2/submitUKTR/:plrReference endpoint submits a UKTR to ETMP.
+Endpoint: /RESTAdapter/PLR/UKTaxReturn
 
 Response Codes and Conditions:
 
@@ -77,6 +77,23 @@ Response Codes and Conditions:
 | XEPLR0000000500 | 500 Internal Server Error | SAP system failure with error details               |
 | XEPLR0000000400 | 400 Bad Request           | Invalid JSON payload error                          |
 | Any other       | 201 Created               | Successful UKTR submission with form bundle details |
+
+### 3. Amend UKTR (Placeholder)
+
+### 4. Submit Below Threshold Notification (BTN)
+
+Endpoint: /RESTAdapter/PLR/below-threshold-notification
+
+Response Codes and Conditions:
+
+| plrReference    | HTTP Status               | Description                                    |
+|:----------------|---------------------------|------------------------------------------------|
+| XEPLR0000000201 | 201 Created               | Business validation failure with error details |
+| XEPLR0000000400 | 400 Bad Request           | Invalid JSON payload error                     |
+| XEPLR0000000422 | 422 Unprocessable Entity  | Business validation failure with error details |
+| XEPLR0000000500 | 500 Internal Server Error | SAP system failure: ...                        |
+| Any other       | (validation-dependent)    | (validation-dependent)                         |
+
 
 ## Example Requests
 
@@ -89,7 +106,7 @@ curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR5555555555" \
 
 ### Submit UKTR Request Example
 ```bash
-curl -X POST "http://localhost:10055/pillar2/submitUKTR/XEPLR0000000422" \
+curl -X POST "http://localhost:10055/RESTAdapter/PLR/UKTaxReturn" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json" \
 -d '{
@@ -118,6 +135,20 @@ curl -X POST "http://localhost:10055/pillar2/submitUKTR/XEPLR0000000422" \
         "electedUTPR": true
       }
     ]
+  }
+}'
+```
+
+
+### Submit Below Threshold Notification (BTN) Request Example
+```bash
+curl -X POST "http://localhost:10055/RESTAdapter/PLR/below-threshold-notification" \
+-H "Authorization: Bearer valid_token" \
+-H "Content-Type: application/json" \
+-H "X-Pillar2-Id: XEPLR0000000201" 
+-d '{
+  "accountingPeriodFrom": "2024-08-14",
+  "accountingPeriodTo": "2024-12-14"
   }
 }'
 ```

@@ -44,7 +44,7 @@ class BTNControllerSpec extends AnyFunSuite with Matchers with GuiceOneAppPerSui
     implicit val pillar2Id: String = "XMPLR00000000000"
     val result = route(app, request).value
 
-    status(result) shouldEqual 201
+    status(result) shouldEqual CREATED
     contentAsJson(result).validate[BTNSuccessResponse].asEither.isRight shouldBe true
   }
 
@@ -55,7 +55,7 @@ class BTNControllerSpec extends AnyFunSuite with Matchers with GuiceOneAppPerSui
 
     val result = route(app, requestWithoutId).value
 
-    status(result) shouldEqual 422
+    status(result) shouldEqual UNPROCESSABLE_ENTITY
     contentAsJson(result).validate[BTNFailureResponse].asEither.isRight shouldBe true
     contentAsJson(result).as[BTNFailureResponse].errors.code shouldEqual "002"
   }
@@ -69,7 +69,7 @@ class BTNControllerSpec extends AnyFunSuite with Matchers with GuiceOneAppPerSui
 
     val result = route(app, invalidPeriodRequest).value
 
-    status(result) shouldEqual 422
+    status(result) shouldEqual UNPROCESSABLE_ENTITY
     contentAsJson(result).validate[BTNFailureResponse].asEither.isRight shouldBe true
     contentAsJson(result).as[BTNFailureResponse].errors.code shouldEqual "003"
   }
@@ -83,70 +83,34 @@ class BTNControllerSpec extends AnyFunSuite with Matchers with GuiceOneAppPerSui
 
     val result = route(app, invalidRequest).value
 
-    status(result) shouldEqual 400
+    status(result) shouldEqual BAD_REQUEST
     contentAsJson(result).validate[BTNErrorResponse].asEither.isRight shouldBe true
     contentAsJson(result).as[BTNErrorResponse].error.code shouldEqual "400"
-  }
-
-  test("Pillar2 Missing (002)") {
-    implicit val pillar2Id: String = "XEPLR4220000002"
-    val result = route(app, request).value
-
-    status(result) shouldEqual 422
-    contentAsJson(result).validate[BTNFailureResponse].asEither.isRight shouldBe true
-    contentAsJson(result).as[BTNFailureResponse].errors.code shouldEqual "002"
-  }
-
-  test("Request Invalid (003)") {
-    implicit val pillar2Id: String = "XEPLR4220000003"
-    val result = route(app, request).value
-
-    status(result) shouldEqual 422
-    contentAsJson(result).validate[BTNFailureResponse].asEither.isRight shouldBe true
-    contentAsJson(result).as[BTNFailureResponse].errors.code shouldEqual "003"
-  }
-
-  test("Duplicate Submission (004)") {
-    implicit val pillar2Id: String = "XEPLR4220000004"
-    val result = route(app, request).value
-
-    status(result) shouldEqual 422
-    contentAsJson(result).validate[BTNFailureResponse].asEither.isRight shouldBe true
-    contentAsJson(result).as[BTNFailureResponse].errors.code shouldEqual "004"
-  }
-
-  test("Business Partner Not Active (007)") {
-    implicit val pillar2Id: String = "XEPLR4220000007"
-    val result = route(app, request).value
-
-    status(result) shouldEqual 422
-    contentAsJson(result).validate[BTNFailureResponse].asEither.isRight shouldBe true
-    contentAsJson(result).as[BTNFailureResponse].errors.code shouldEqual "007"
-  }
-
-  test("Tax Obligation Fulfilled (044)") {
-    implicit val pillar2Id: String = "XEPLR4220000044"
-    val result = route(app, request).value
-
-    status(result) shouldEqual 422
-    contentAsJson(result).validate[BTNFailureResponse].asEither.isRight shouldBe true
-    contentAsJson(result).as[BTNFailureResponse].errors.code shouldEqual "044"
   }
 
   test("Bad Request BTN submission") {
-    implicit val pillar2Id: String = "XEPLR4000000000"
+    implicit val pillar2Id: String = "XEPLR0000000400"
     val result = route(app, request).value
 
-    status(result) shouldEqual 400
+    status(result) shouldEqual BAD_REQUEST
     contentAsJson(result).validate[BTNErrorResponse].asEither.isRight shouldBe true
     contentAsJson(result).as[BTNErrorResponse].error.code shouldEqual "400"
   }
 
-  test("Internal Server Error BTN submission") {
-    implicit val pillar2Id: String = "XEPLR5000000000"
+  test("Unprocessable entity BTN submission") {
+    implicit val pillar2Id: String = "XEPLR0000000422"
     val result = route(app, request).value
 
-    status(result) shouldEqual 500
+    status(result) shouldEqual UNPROCESSABLE_ENTITY
+    contentAsJson(result).validate[BTNFailureResponse].asEither.isRight shouldBe true
+    contentAsJson(result).as[BTNFailureResponse].errors.code shouldEqual "422"
+  }
+
+  test("Internal Server Error BTN submission") {
+    implicit val pillar2Id: String = "XEPLR0000000500"
+    val result = route(app, request).value
+
+    status(result) shouldEqual INTERNAL_SERVER_ERROR
     contentAsJson(result).validate[BTNErrorResponse].asEither.isRight shouldBe true
     contentAsJson(result).as[BTNErrorResponse].error.code shouldEqual "500"
   }
