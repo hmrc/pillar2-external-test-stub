@@ -1,0 +1,35 @@
+meta {
+  name: Submit UKTR nilreturn - obligationMTT invalid
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/UKTaxReturn
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Pillar2-Id: {{domesticOnlyPlrId}}
+  Authorization: validBearerToken
+}
+
+assert {
+  res.body.errors: isDefined
+  res.body.errors.code: eq "093"
+  res.status: eq 422
+}
+
+body:json {
+  {
+    "accountingPeriodFrom": "2024-08-14",
+    "accountingPeriodTo": "2024-12-14",
+    "obligationMTT": true,
+    "electionUKGAAP": true,
+    "liabilities": {
+      "returnType":"NIL_RETURN"
+    }
+  }
+}
