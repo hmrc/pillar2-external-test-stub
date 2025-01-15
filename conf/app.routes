@@ -2,6 +2,8 @@
 
 
 GET         /pillar2/subscription/:plrReference              uk.gov.hmrc.pillar2externalteststub.controllers.SubscriptionController.retrieveSubscription(plrReference: String)
+
 POST        /RESTAdapter/PLR/UKTaxReturn                     uk.gov.hmrc.pillar2externalteststub.controllers.SubmitUKTRController.submitUKTR
 PUT         /RESTAdapter/PLR/UKTaxReturn                     uk.gov.hmrc.pillar2externalteststub.controllers.AmendUKTRController.amendUKTR
+
 POST        /RESTAdapter/PLR/below-threshold-notification    uk.gov.hmrc.pillar2externalteststub.controllers.BTNController.submitBTN
