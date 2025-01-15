@@ -17,30 +17,18 @@
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.scalatest.Inspectors.forAll
-import org.scalatest.OptionValues
-import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.CREATED
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.error.UKTRErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
 
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 
-class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
-  val authHeader:  (String, String)  = HeaderNames.authorisation -> "Bearer valid_token"
-  val datePattern: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
-
-  val invalidUKTRAmounts: Seq[BigDecimal] = Seq(-5, 1e+13, 10.999)
-
-  val domesticOnlyPlrReference    = "XEPLR5555555555"
-  val nonDomesticOnlyPlrReference = "XEPLR1234567890"
-
+class SubmitUKTRControllerSpec extends UKTRDataFixture {
   def request(plrReference: String = domesticOnlyPlrReference, body: JsObject): FakeRequest[JsObject] =
     FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
       .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> plrReference)
@@ -103,13 +91,13 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
     "should return UNPROCESSABLE_ENTITY (422)" - {
       "when plrReference indicates business validation failure" in {
-        val result = route(app, request(plrReference = "XEPLR0000000422", body = validRequestBody)).value
+        val result = route(app, request(plrReference = UnprocessableEntityPlrId, body = validRequestBody)).value
 
         status(result) mustBe UNPROCESSABLE_ENTITY
         val json = contentAsJson(result)
         (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REGIME_MISSING_OR_INVALID_001
-        (json \ "errors" \ "text").as[String] mustBe "REGIME missing or invalid"
+        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.TAX_OBLIGATION_ALREADY_FULFILLED_044
+        (json \ "errors" \ "text").as[String] mustBe "Tax Obligation Already Fulfilled"
       }
 
       "when totalLiability is invalid" in {
@@ -343,14 +331,14 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     "should return BAD_REQUEST (400)" - {
       "when plrReference indicates invalid JSON" in {
         val invalidJson = Json.obj("invalid" -> "json")
-        val result      = route(app, request(plrReference = "XEPLR0000000400", body = invalidJson)).value
+        val result      = route(app, request(plrReference = BadRequestPlrId, body = invalidJson)).value
 
         status(result) mustBe BAD_REQUEST
         contentAsJson(result) mustBe Json.obj(
           "error" -> Json.obj(
             "code"    -> "400",
-            "message" -> "Invalid message content.",
-            "logID"   -> "C0000AB8190C86300000000200006836"
+            "message" -> "Invalid JSON",
+            "logID"   -> "C0000000000000000000000000000400"
           )
         )
       }
@@ -399,14 +387,14 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
     "should return INTERNAL_SERVER_ERROR (500)" - {
       "when plrReference indicates SAP failure" in {
-        val result = route(app, request(plrReference = "XEPLR0000000500", body = validRequestBody)).value
+        val result = route(app, request(plrReference = ServerErrorPlrId, body = validRequestBody)).value
 
         status(result) mustBe INTERNAL_SERVER_ERROR
         contentAsJson(result) mustBe Json.obj(
           "error" -> Json.obj(
-            "code" -> "500",
-            "message" -> "Error while sending message to module processor: System Error Received. HTTP Status Code = 200; ErrorCode = INCORRECT_PAYLOAD_DATA; Additional text = Error while processing message payload",
-            "logID" -> "C0000AB8190C8E1F000000C700006836"
+            "code"    -> "500",
+            "message" -> "Internal server error",
+            "logID"   -> "C0000000000000000000000000000500"
           )
         )
       }
@@ -435,7 +423,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = false" in {
         val result =
-          route(app, request(plrReference = nonDomesticOnlyPlrReference, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
+          route(app, request(plrReference = PlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
 
         status(result) mustBe CREATED
         val json = contentAsJson(result)
@@ -454,7 +442,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "when submitting a non-domestic Nil Return with obligationMTT = false" in {
         val result =
-          route(app, request(plrReference = nonDomesticOnlyPlrReference, body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
+          route(app, request(plrReference = PlrId, body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
 
         status(result) mustBe CREATED
         val json = contentAsJson(result)
@@ -464,7 +452,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "when submitting a non-domestic Nil Return with obligationMTT = true" in {
         val result =
-          route(app, request(plrReference = nonDomesticOnlyPlrReference, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
+          route(app, request(plrReference = PlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
 
         status(result) mustBe CREATED
         val json = contentAsJson(result)
@@ -486,7 +474,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = true" in {
         val result =
-          route(app, request(plrReference = nonDomesticOnlyPlrReference, body = nilReturnBody(obligationMTT = true, electionUKGAAP = true))).value
+          route(app, request(plrReference = PlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = true))).value
 
         status(result) mustBe UNPROCESSABLE_ENTITY
         val json = contentAsJson(result)
@@ -549,437 +537,4 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
     }
   }
-
-  val validLiableEntity: JsObject = Json.obj(
-    "ukChargeableEntityName" -> "New Company",
-    "idType"                 -> "CRN",
-    "idValue"                -> "1234",
-    "amountOwedDTT"          -> 12345678901.0,
-    "amountOwedIIR"          -> 1234567890.09,
-    "amountOwedUTPR"         -> 600.50
-  )
-
-  val validRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
-    "obligationMTT"        -> false,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "electionDTTSingleMember"  -> false,
-      "electionUTPRSingleMember" -> false,
-      "numberSubGroupDTT"        -> 4,
-      "numberSubGroupUTPR"       -> 5,
-      "totalLiability"           -> 10000.99,
-      "totalLiabilityDTT"        -> 5000.99,
-      "totalLiabilityIIR"        -> 4000,
-      "totalLiabilityUTPR"       -> 10000.99,
-      "liableEntities"           -> Json.arr(validLiableEntity)
-    )
-  )
-
-  def nilReturnBody(obligationMTT: Boolean, electionUKGAAP: Boolean): JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
-    "obligationMTT"        -> obligationMTT,
-    "electionUKGAAP"       -> electionUKGAAP,
-    "liabilities"          -> Json.obj("returnType" -> "NIL_RETURN")
-  )
-
-  val invalidLiableEntityukChargeableEntityNameZeroLength: JsObject = Json.obj(
-    "ukChargeableEntityName" -> "",
-    "idType"                 -> "UTR",
-    "idValue"                -> "abc45678",
-    "amountOwedDTT"          -> 12345678901.9,
-    "amountOwedIIR"          -> 1234567890.01,
-    "amountOwedUTPR"         -> 1234567890.99
-  )
-  val invalidIdTypeZeroLength: JsObject = Json.obj(
-    "ukChargeableEntityName" -> "New Company",
-    "idType"                 -> "",
-    "idValue"                -> "abc45678",
-    "amountOwedDTT"          -> 12345678901.9,
-    "amountOwedIIR"          -> 1234567890.01,
-    "amountOwedUTPR"         -> 1234567890.99
-  )
-
-  val missingUkChargeableEntityNameRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "idType"         -> "CRN",
-              "idValue"        -> "12345678",
-              "amountOwedDTT"  -> 12345678901.0,
-              "amountOwedIIR"  -> 1234567890.09,
-              "amountOwedUTPR" -> 6000.50
-            )
-          )
-        )
-      )
-  )
-  val missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            validLiableEntity,
-            missingUkChargeableEntityNameRequestBody,
-            invalidIdTypeZeroLength
-          )
-        )
-      )
-  )
-  val missingIdTypeRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UKTR Newco PLC",
-              "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 12345678901.0,
-              "amountOwedIIR"          -> 1234567890.09,
-              "amountOwedUTPR"         -> 6000.50
-            )
-          )
-        )
-      )
-  )
-  val missingIdValueRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UKTR Newco PLC",
-              "idType"                 -> "CRN",
-              "amountOwedDTT"          -> 12345678901.0,
-              "amountOwedIIR"          -> 1234567890.09,
-              "amountOwedUTPR"         -> 6000.50
-            )
-          )
-        )
-      )
-  )
-  val missingAmountOwedDTTRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UKTR Newco PLC",
-              "idType"                 -> "CRN",
-              "idValue"                -> "12345678",
-              "amountOwedIIR"          -> 1234567890.09,
-              "amountOwedUTPR"         -> 6000.50
-            )
-          )
-        )
-      )
-  )
-  val missingAmountOwedIIRRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UKTR Newco PLC",
-              "idType"                 -> "CRN",
-              "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 12345678901.0,
-              "amountOwedUTPR"         -> 6000.50
-            )
-          )
-        )
-      )
-  )
-  val missingAmountOwedUTPRRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UKTR Newco PLC",
-              "idType"                 -> "CRN",
-              "idValue"                -> "12345678",
-              "amountOwedIIR"          -> 1234567890.09,
-              "amountOwedDTT"          -> 12345678901.0
-            )
-          )
-        )
-      )
-  )
-  val invalidUkChargeableEntityNameRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            invalidLiableEntityukChargeableEntityNameZeroLength
-          )
-        )
-      )
-  )
-  val ukChargeableEntityNameTooLongRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901",
-              "idType"         -> "CRN",
-              "idValue"        -> "12345678",
-              "amountOwedDTT"  -> 12345678901.0,
-              "amountOwedIIR"  -> 1234567890.09,
-              "amountOwedUTPR" -> 6000.50
-            )
-          )
-        )
-      )
-  )
-  val invalidIdTypeZeroLengthRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UK Company",
-              "idType"                 -> "",
-              "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 0.01,
-              "amountOwedIIR"          -> .57,
-              "amountOwedUTPR"         -> 6000.50
-            )
-          )
-        )
-      )
-  )
-  val invalidIdTypeRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UK Company",
-              "idType"                 -> "INVALID_ID_TYPE",
-              "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 0.01,
-              "amountOwedIIR"          -> .57,
-              "amountOwedUTPR"         -> 6000.50
-            )
-          )
-        )
-      )
-  )
-  val invalidIdValueZeroLengthRequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UK Company",
-              "idType"                 -> "CRN",
-              "idValue"                -> "",
-              "amountOwedDTT"          -> 0.01,
-              "amountOwedIIR"          -> .57,
-              "amountOwedUTPR"         -> 6000.50
-            )
-          )
-        )
-      )
-  )
-  val invalidIdValueLengthExceeds15RequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UK Company",
-              "idType"                 -> "UTR",
-              "idValue"                -> "abc4567890123456",
-              "amountOwedDTT"          -> 0.00,
-              "amountOwedIIR"          -> 0,
-              "amountOwedUTPR"         -> 0.0
-            )
-          )
-        )
-      )
-  )
-  val invalidIdTypeEntity1AndInvalidIdValueEntity2RequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UK Company",
-              "idType"                 -> "INVALID_ID_TYPE",
-              "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 0.01,
-              "amountOwedIIR"          -> .57,
-              "amountOwedUTPR"         -> 6000.50
-            ),
-            Json.obj(
-              "ukChargeableEntityName" -> "UK Company",
-              "idType"                 -> "UTR",
-              "idValue"                -> "abc4567890123456",
-              "amountOwedDTT"          -> 0.00,
-              "amountOwedIIR"          -> 0,
-              "amountOwedUTPR"         -> 0.0
-            )
-          )
-        )
-      )
-  )
-
-  val invalidAmountOwedIIREntity2AndInvalidAmountOwedUTPREntity3RequestBody: JsObject = validRequestBody ++ Json.obj(
-    "liabilities" -> validRequestBody
-      .value("liabilities")
-      .as[JsObject]
-      .deepMerge(
-        Json.obj(
-          "liableEntities" -> Json.arr(
-            Json.obj(
-              "ukChargeableEntityName" -> "UK Company",
-              "idType"                 -> "UTR",
-              "idValue"                -> "abc45678",
-              "amountOwedDTT"          -> 50.00,
-              "amountOwedIIR"          -> 123456789101112.01,
-              "amountOwedUTPR"         -> 12345678901.9
-            ),
-            Json.obj(
-              "ukChargeableEntityName" -> "UK Company",
-              "idType"                 -> "UTR",
-              "idValue"                -> "abc45678",
-              "amountOwedDTT"          -> 50.00,
-              "amountOwedIIR"          -> 1234567890123.01,
-              "amountOwedUTPR"         -> 12345678901.9
-            ),
-            Json.obj(
-              "ukChargeableEntityName" -> "UK Company",
-              "idType"                 -> "UTR",
-              "idValue"                -> "abc45678",
-              "amountOwedDTT"          -> 50.00,
-              "amountOwedIIR"          -> 123.01,
-              "amountOwedUTPR"         -> -123.90
-            )
-          )
-        )
-      )
-  )
-
-  val invalidAccountingPeriodFromNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "x",
-    "accountingPeriodTo"   -> "2024-12-14",
-    "obligationMTT"        -> true,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
-  )
-  val missingAccountingPeriodFromNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodTo" -> "2024-12-14",
-    "obligationMTT"      -> true,
-    "electionUKGAAP"     -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
-  )
-  val invalidAccountingPeriodToNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-12-14",
-    "accountingPeriodTo"   -> "2025-02-31",
-    "obligationMTT"        -> true,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
-  )
-  val missingAccountingPeriodToNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-12-14",
-    "obligationMTT"        -> true,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
-  )
-  val invalidObligationMTTNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-12-14",
-    "accountingPeriodTo"   -> "2025-02-03",
-    "obligationMTT"        -> "x",
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
-  )
-  val missingObligationMTTNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
-  )
-  val invalidElectionUKGAAPNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-12-14",
-    "accountingPeriodTo"   -> "2025-02-03",
-    "obligationMTT"        -> false,
-    "electionUKGAAP"       -> "Z",
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
-  )
-  val missingElectionUKGAAPNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-12-14",
-    "accountingPeriodTo"   -> "2025-02-03",
-    "obligationMTT"        -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> "NIL_RETURN"
-    )
-  )
-
-  val invalidReturnTypeNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
-    "obligationMTT"        -> true,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> "INVALID_NIL_RETURN"
-    )
-  )
-  val emptyReturnTypeNilReturnRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
-    "obligationMTT"        -> true,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "returnType" -> ""
-    )
-  )
 }

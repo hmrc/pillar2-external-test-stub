@@ -35,23 +35,23 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SubmitUKTRController @Inject() (
+class AmendUKTRController @Inject() (
   cc:          ControllerComponents,
   authFilter:  AuthActionFilter
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def submitUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
+  def amendUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
     request.headers.get("X-Pillar2-Id") match {
       case None =>
         logger.warn("X-Pillar2-Id header is missing")
         Future.successful(UnprocessableEntity(Json.toJson(MissingPLRReference)))
       case Some(plrReference) =>
         plrReference match {
-          case UnprocessableEntityPlrId => Future.successful(UnprocessableEntity(Json.toJson(TaxObligationFulfilled)))
-          case ServerErrorPlrId         => Future.successful(InternalServerError(Json.toJson(SAPError)))
-          case BadRequestPlrId          => Future.successful(BadRequest(Json.toJson(InvalidJsonError())))
+          case TaxObligationMetPlrId => Future.successful(UnprocessableEntity(Json.toJson(TaxObligationFulfilled)))
+          case ServerErrorPlrId      => Future.successful(InternalServerError(Json.toJson(SAPError)))
+          case BadRequestPlrId       => Future.successful(BadRequest(Json.toJson(InvalidJsonError())))
           case _ =>
             retrieveSubscription(plrReference)._2 match {
               case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
@@ -66,12 +66,12 @@ class SubmitUKTRController @Inject() (
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
         Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => Future.successful(Created(Json.toJson(successfulUKTRResponse)))
+          case Right(_)     => Future.successful(Ok(Json.toJson(successfulUKTRResponse)))
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => Future.successful(Created(Json.toJson(successfulNilReturnResponse)))
+          case Right(_)     => Future.successful(Ok(Json.toJson(successfulNilReturnResponse)))
         }
       case JsError(errors) =>
         val errorMessage = errors

@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.models.uktr.error
+package uk.gov.hmrc.pillar2externalteststub.helpers
+import java.time.temporal.ChronoUnit
+import java.time.{ZoneOffset, ZonedDateTime}
 
-import play.api.libs.json.Json
-import play.api.libs.json.Writes
+object UKTRHelper {
+  val PlrId                    = "XEPLR1234567890"
+  val domesticOnlyPlrReference = "XEPLR5555555555"
+  val TaxObligationMetPlrId    = "XEPLR4220000044"
+  val UnprocessableEntityPlrId = "XEPLR4220000000"
+  val BadRequestPlrId          = "XEPLR5000000000"
+  val ServerErrorPlrId         = "XEPLR4000000000"
 
-sealed trait ApiError
-case class DetailedError(errors: UKTRBusinessValidationErrorDetail) extends ApiError
-case class SimpleError(error: UKTRError) extends ApiError
-
-object ApiError {
-  implicit val writes: Writes[ApiError] = Writes {
-    case d: DetailedError => Json.obj("errors" -> d.errors)
-    case s: SimpleError   => Json.obj("error" -> s.error)
-  }
+  def nowZonedDateTime: String = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString
 }
