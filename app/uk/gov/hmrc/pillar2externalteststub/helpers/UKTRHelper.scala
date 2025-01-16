@@ -23,8 +23,8 @@ object UKTRHelper {
   val domesticOnlyPlrReference = "XEPLR5555555555"
   val TaxObligationMetPlrId    = "XEPLR4220000044"
   val UnprocessableEntityPlrId = "XEPLR4220000000"
-  val BadRequestPlrId          = "XEPLR5000000000"
-  val ServerErrorPlrId         = "XEPLR4000000000"
+  val BadRequestPlrId          = "XEPLR4000000000"
+  val ServerErrorPlrId         = "XEPLR5000000000"
 
   def nowZonedDateTime: String = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString
 }
