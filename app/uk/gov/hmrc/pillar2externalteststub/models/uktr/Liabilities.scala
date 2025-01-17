@@ -15,6 +15,7 @@
  */
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
+
 import enumeratum.EnumEntry.UpperSnakecase
 import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
 import play.api.libs.json.{Json, OFormat}
