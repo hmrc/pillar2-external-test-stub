@@ -19,7 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
+import uk.gov.hmrc.pillar2externalteststub.controllers.actions.{AuthActionFilter, TestScenarioFilter}
 import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
@@ -28,6 +28,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successf
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, SubscriptionNotFound, TaxObligationFulfilled}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSimpleError.{InvalidJsonError, SAPError}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.models.TestScenarios
 import uk.gov.hmrc.pillar2externalteststub.validation.syntax.ValidateOps
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -42,7 +43,10 @@ class SubmitUKTRController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def submitUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
+  private val validTestScenarios = TestScenarios.UKTR.all.map(_.code)
+  private val testFilter = new TestScenarioFilter(validTestScenarios)
+
+  def submitUKTR: Action[JsValue] = (Action andThen authFilter andThen testFilter).async(parse.json) { implicit request =>
     request.headers.get("X-Pillar2-Id") match {
       case None =>
         logger.warn("X-Pillar2-Id header is missing")

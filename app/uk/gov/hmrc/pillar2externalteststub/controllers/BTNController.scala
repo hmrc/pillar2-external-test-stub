@@ -19,19 +19,27 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
+import uk.gov.hmrc.pillar2externalteststub.controllers.actions.{AuthActionFilter, TestScenarioFilter}
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNErrorResponse.{BTN_ERROR_400, BTN_ERROR_500}
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNFailureResponse._
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNSuccessResponse.BTN_SUCCESS_201
-import uk.gov.hmrc.pillar2externalteststub.models.btn._
+import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
+import uk.gov.hmrc.pillar2externalteststub.models.TestScenarios
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
-class BTNController @Inject() (cc: ControllerComponents, authFilter: AuthActionFilter) extends BackendController(cc) with Logging {
+class BTNController @Inject() (
+  cc: ControllerComponents, 
+  authFilter: AuthActionFilter
+)(implicit ec: ExecutionContext) extends BackendController(cc) with Logging {
 
-  def submitBTN: Action[String] = (Action(parse.tolerantText) andThen authFilter) { implicit request =>
+  private val validTestScenarios = TestScenarios.BTN.all.map(_.code)
+  private val testFilter = new TestScenarioFilter(validTestScenarios)
+
+  def submitBTN: Action[String] = (Action(parse.tolerantText) andThen authFilter andThen testFilter) { implicit request =>
     request.headers.get("X-Pillar2-Id") match {
       case Some(plrReference) =>
         plrReference match {
@@ -49,7 +57,6 @@ class BTNController @Inject() (cc: ControllerComponents, authFilter: AuthActionF
                   case JsError(error) => BadRequest(Json.toJson(BTN_ERROR_400(error.map(_._2).toString)))
                 }
               case Failure(exception) => BadRequest(Json.toJson(BTN_ERROR_400(exception.getLocalizedMessage)))
-
             }
         }
       case None => UnprocessableEntity(Json.toJson(BTN_PILLAR2_MISSING_002))
