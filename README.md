@@ -94,6 +94,35 @@ Response Codes and Conditions:
 | XEPLR0000000500 | 500 Internal Server Error | SAP system failure: ...                        |
 | Any other       | (validation-dependent)    | (validation-dependent)                         |
 
+### 5. Organisation Management
+
+Endpoints for managing test organisation data:
+
+| Method | Endpoint                            | Description                                    | Response Codes |
+|:-------|-------------------------------------|------------------------------------------------|---------------|
+| POST   | /pillar2/organisation/:pillar2Id    | Create a new organisation                      | 201, 400, 500 |
+| GET    | /pillar2/organisation/:pillar2Id    | Retrieve organisation details                  | 200, 404      |
+| PUT    | /pillar2/organisation/:pillar2Id    | Update existing organisation                   | 200, 400, 500 |
+| DELETE | /pillar2/organisation/:pillar2Id    | Delete organisation                            | 204, 500      |
+
+Example Request:
+```bash
+curl -X POST "http://localhost:10055/pillar2/organisation/XEPLR1234567890" \
+-H "Authorization: Bearer valid_token" \
+-H "Content-Type: application/json" \
+-d '{
+  "orgDetails": {
+    "domesticOnly": false,
+    "organisationName": "Test Organisation Ltd",
+    "registrationDate": "2024-01-01"
+  },
+  "accountingPeriod": {
+    "startDate": "2024-01-01",
+    "endDate": "2024-12-31",
+    "duetDate": "2024-04-06"
+  }
+}'
+```
 
 ## Example Requests
 
