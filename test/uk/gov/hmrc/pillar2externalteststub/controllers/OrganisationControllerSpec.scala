@@ -164,6 +164,38 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
       )
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
     }
+
+    "return 404 Not Found when organisation does not exist" in {
+      val pillar2Id = "test123"
+      val requestBody = Json.toJson(
+        OrganisationDetailsRequest(
+          orgDetails = OrgDetails(
+            domesticOnly = false,
+            organisationName = "Test Org",
+            registrationDate = LocalDate.parse("2024-01-01")
+          ),
+          accountingPeriod = AccountingPeriod(
+            startDate = LocalDate.parse("2024-01-01"),
+            endDate = LocalDate.parse("2024-12-31"),
+            dueDate = LocalDate.parse("2024-12-31")
+          )
+        )
+      )
+
+      when(mockService.updateOrganisation(eqTo(pillar2Id), any[OrganisationDetails]))
+        .thenReturn(Future.successful(Left(s"No organisation found with pillar2Id: $pillar2Id")))
+
+      val request = FakeRequest("PUT", s"/pillar2/test/organisation/$pillar2Id")
+        .withHeaders("Content-Type" -> "application/json")
+        .withBody(requestBody)
+
+      val result = controller.update(pillar2Id)(request)
+
+      status(result) shouldBe NOT_FOUND
+      contentAsJson(result) shouldBe Json.obj(
+        "message" -> s"No organisation found with pillar2Id: $pillar2Id"
+      )
+    }
   }
 
   "delete" should {

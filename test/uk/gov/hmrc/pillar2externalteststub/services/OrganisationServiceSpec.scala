@@ -119,19 +119,52 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
   "updateorganisation" should {
     "return Right with updated organisation when update is successful" in {
-      when(mockRepository.update(eqTo(organisationWithId))).thenReturn(Future.successful(true))
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(Some(organisationWithId)))
+      when(mockRepository.update(eqTo(organisationWithId)))
+        .thenReturn(Future.successful(true))
 
       val result = service.updateOrganisation(pillar2Id, organisationDetails).futureValue
       result shouldBe Right(organisationWithId)
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).update(organisationWithId)
     }
 
     "return Left with error message when update fails" in {
-      when(mockRepository.update(eqTo(organisationWithId))).thenReturn(Future.successful(false))
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(Some(organisationWithId)))
+      when(mockRepository.update(eqTo(organisationWithId)))
+        .thenReturn(Future.successful(false))
 
       val result = service.updateOrganisation(pillar2Id, organisationDetails).futureValue
-      result shouldBe Left("Failed to update organisation")
+      result shouldBe Left("Failed to update organisation due to database error")
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).update(organisationWithId)
+    }
+
+    "return Left with error message when organisation does not exist" in {
+      val pillar2Id = "test123"
+      val details = OrganisationDetails(
+        orgDetails = OrgDetails(
+          domesticOnly = false,
+          organisationName = "Test Org",
+          registrationDate = LocalDate.parse("2024-01-01")
+        ),
+        accountingPeriod = AccountingPeriod(
+          startDate = LocalDate.parse("2024-01-01"),
+          endDate = LocalDate.parse("2024-12-31"),
+          dueDate = LocalDate.parse("2024-12-31")
+        )
+      )
+
+      when(mockRepository.findByPillar2Id(pillar2Id))
+        .thenReturn(Future.successful(None))
+
+      val result = service.updateOrganisation(pillar2Id, details).futureValue
+
+      result shouldBe Left(s"No organisation found with pillar2Id: $pillar2Id")
+      verify(mockRepository).findByPillar2Id(pillar2Id)
+      verify(mockRepository, never).update(any[OrganisationDetailsWithId])
     }
   }
 

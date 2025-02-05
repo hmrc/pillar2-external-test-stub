@@ -71,7 +71,9 @@ class OrganisationController @Inject() (
           val details = OrganisationDetails.fromRequest(requestDetails)
           organisationService.updateOrganisation(pillar2Id, details).map {
             case Right(updated) => Ok(Json.toJson(updated))
-            case Left(error)    => InternalServerError(Json.obj("message" -> error))
+            case Left(error) if error.contains("No organisation found") =>
+              NotFound(Json.obj("message" -> error))
+            case Left(error) => InternalServerError(Json.obj("message" -> error))
           }
         }
       )

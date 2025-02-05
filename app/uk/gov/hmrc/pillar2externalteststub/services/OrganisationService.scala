@@ -44,9 +44,13 @@ class OrganisationService @Inject() (
 
   def updateOrganisation(pillar2Id: String, details: OrganisationDetails): Future[Either[String, OrganisationDetailsWithId]] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)
-    repository.update(organisationWithId).map {
-      case true  => Right(organisationWithId)
-      case false => Left("Failed to update organisation")
+    repository.findByPillar2Id(pillar2Id).flatMap {
+      case None => Future.successful(Left(s"No organisation found with pillar2Id: $pillar2Id"))
+      case Some(_) =>
+        repository.update(organisationWithId).map {
+          case true  => Right(organisationWithId)
+          case false => Left("Failed to update organisation due to database error")
+        }
     }
   }
 
