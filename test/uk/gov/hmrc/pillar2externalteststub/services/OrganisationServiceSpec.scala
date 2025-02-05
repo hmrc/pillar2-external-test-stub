@@ -52,7 +52,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
     dueDate = LocalDate.of(2024, 4, 6)
   )
 
-  private val organisationDetails = OrganisationDetails(
+  private val organisationDetails = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
@@ -81,7 +81,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
       val result = service.createOrganisation(pillar2Id, organisationDetails).futureValue
       result shouldBe Left(s"Organisation with pillar2Id: $pillar2Id already exists")
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
-      verify(mockRepository, never).insert(any[OrganisationDetailsWithId])
+      verify(mockRepository, never).insert(any[TestOrganisationWithId])
     }
 
     "return Left with error message when database operation fails" in {
@@ -144,7 +144,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "return Left with error message when organisation does not exist" in {
       val pillar2Id = "test123"
-      val details = OrganisationDetails(
+      val details = TestOrganisation(
         orgDetails = OrgDetails(
           domesticOnly = false,
           organisationName = "Test Org",
@@ -164,7 +164,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
       result shouldBe Left(s"No organisation found with pillar2Id: $pillar2Id")
       verify(mockRepository).findByPillar2Id(pillar2Id)
-      verify(mockRepository, never).update(any[OrganisationDetailsWithId])
+      verify(mockRepository, never).update(any[TestOrganisationWithId])
     }
   }
 

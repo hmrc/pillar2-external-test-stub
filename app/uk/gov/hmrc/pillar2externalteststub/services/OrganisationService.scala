@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.{OrganisationDetails, OrganisationDetailsWithId}
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{TestOrganisation, TestOrganisationWithId}
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
 
 import javax.inject.{Inject, Singleton}
@@ -27,7 +27,7 @@ class OrganisationService @Inject() (
   repository:  OrganisationRepository
 )(implicit ec: ExecutionContext) {
 
-  def createOrganisation(pillar2Id: String, details: OrganisationDetails): Future[Either[String, OrganisationDetailsWithId]] = {
+  def createOrganisation(pillar2Id: String, details: TestOrganisation): Future[Either[String, TestOrganisationWithId]] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)
     repository.findByPillar2Id(pillar2Id).flatMap {
       case Some(_) => Future.successful(Left(s"Organisation with pillar2Id: $pillar2Id already exists"))
@@ -39,10 +39,10 @@ class OrganisationService @Inject() (
     }
   }
 
-  def getOrganisation(pillar2Id: String): Future[Option[OrganisationDetailsWithId]] =
+  def getOrganisation(pillar2Id: String): Future[Option[TestOrganisationWithId]] =
     repository.findByPillar2Id(pillar2Id)
 
-  def updateOrganisation(pillar2Id: String, details: OrganisationDetails): Future[Either[String, OrganisationDetailsWithId]] = {
+  def updateOrganisation(pillar2Id: String, details: TestOrganisation): Future[Either[String, TestOrganisationWithId]] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)
     repository.findByPillar2Id(pillar2Id).flatMap {
       case None => Future.successful(Left(s"No organisation found with pillar2Id: $pillar2Id"))

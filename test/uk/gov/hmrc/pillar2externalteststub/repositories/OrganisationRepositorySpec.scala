@@ -32,7 +32,7 @@ import java.time.LocalDate
 class OrganisationRepositorySpec
     extends AnyWordSpec
     with Matchers
-    with DefaultPlayMongoRepositorySupport[OrganisationDetailsWithId]
+    with DefaultPlayMongoRepositorySupport[TestOrganisationWithId]
     with ScalaFutures
     with IntegrationPatience {
 
@@ -72,7 +72,7 @@ class OrganisationRepositorySpec
     dueDate = LocalDate.of(2024, 4, 6)
   )
 
-  private val organisationDetails = OrganisationDetails(
+  private val organisationDetails = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")

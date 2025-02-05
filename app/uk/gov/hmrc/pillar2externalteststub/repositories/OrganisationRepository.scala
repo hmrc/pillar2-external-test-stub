@@ -23,7 +23,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.{OrganisationDetails, OrganisationDetailsWithId}
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{TestOrganisation, TestOrganisationWithId}
 
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
@@ -34,18 +34,18 @@ class OrganisationRepository @Inject() (
   mongoComponent: MongoComponent,
   config:         AppConfig
 )(implicit ec:    ExecutionContext)
-    extends PlayMongoRepository[OrganisationDetailsWithId](
+    extends PlayMongoRepository[TestOrganisationWithId](
       collectionName = "organisation-details",
       mongoComponent = mongoComponent,
-      domainFormat = new Format[OrganisationDetailsWithId] {
-        def reads(json: JsValue): JsResult[OrganisationDetailsWithId] = for {
+      domainFormat = new Format[TestOrganisationWithId] {
+        def reads(json: JsValue): JsResult[TestOrganisationWithId] = for {
           pillar2Id <- (json \ "pillar2Id").validate[String]
-          details   <- (json \ "details").validate[OrganisationDetails](OrganisationDetails.mongoFormat)
-        } yield OrganisationDetailsWithId(pillar2Id, details)
+          details   <- (json \ "details").validate[TestOrganisation](TestOrganisation.mongoFormat)
+        } yield TestOrganisationWithId(pillar2Id, details)
 
-        def writes(o: OrganisationDetailsWithId): JsValue = Json.obj(
+        def writes(o: TestOrganisationWithId): JsValue = Json.obj(
           "pillar2Id" -> o.pillar2Id,
-          "details"   -> Json.toJson(o.details)(OrganisationDetails.mongoFormat)
+          "details"   -> Json.toJson(o.organisation)(TestOrganisation.mongoFormat)
         )
       },
       indexes = Seq(
@@ -64,19 +64,19 @@ class OrganisationRepository @Inject() (
 
   private def byPillar2Id(pillar2Id: String): Bson = Filters.equal("pillar2Id", pillar2Id)
 
-  def insert(details: OrganisationDetailsWithId): Future[Boolean] =
+  def insert(details: TestOrganisationWithId): Future[Boolean] =
     collection
       .insertOne(details)
       .toFuture()
       .map(_ => true)
       .recover { case _ => false }
 
-  def findByPillar2Id(pillar2Id: String): Future[Option[OrganisationDetailsWithId]] =
+  def findByPillar2Id(pillar2Id: String): Future[Option[TestOrganisationWithId]] =
     collection
       .find(byPillar2Id(pillar2Id))
       .headOption()
 
-  def update(details: OrganisationDetailsWithId): Future[Boolean] =
+  def update(details: TestOrganisationWithId): Future[Boolean] =
     collection
       .replaceOne(
         filter = byPillar2Id(details.pillar2Id),

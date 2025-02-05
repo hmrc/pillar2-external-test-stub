@@ -19,7 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.{OrganisationDetails, OrganisationDetailsRequest}
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{TestOrganisation, TestOrganisationRequest}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -39,11 +39,11 @@ class OrganisationController @Inject() (
       Future.successful(BadRequest(Json.obj("message" -> "Pillar2 ID is required")))
     } else {
       request.body
-        .validate[OrganisationDetailsRequest]
+        .validate[TestOrganisationRequest]
         .fold(
           invalid = errors => Future.successful(BadRequest(Json.obj("errors" -> JsError.toJson(errors)))),
           valid = requestDetails => {
-            val details = OrganisationDetails.fromRequest(requestDetails)
+            val details = TestOrganisation.fromRequest(requestDetails)
             organisationService.createOrganisation(pillar2Id, details).map {
               case Right(created) => Created(Json.toJson(created))
               case Left(error) if error.contains("already exists") =>
@@ -64,11 +64,11 @@ class OrganisationController @Inject() (
 
   def update(pillar2Id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body
-      .validate[OrganisationDetailsRequest]
+      .validate[TestOrganisationRequest]
       .fold(
         invalid = errors => Future.successful(BadRequest(Json.obj("errors" -> JsError.toJson(errors)))),
         valid = requestDetails => {
-          val details = OrganisationDetails.fromRequest(requestDetails)
+          val details = TestOrganisation.fromRequest(requestDetails)
           organisationService.updateOrganisation(pillar2Id, details).map {
             case Right(updated) => Ok(Json.toJson(updated))
             case Left(error) if error.contains("No organisation found") =>

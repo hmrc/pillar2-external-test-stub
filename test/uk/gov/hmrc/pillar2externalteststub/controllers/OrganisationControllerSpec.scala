@@ -50,7 +50,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     dueDate = LocalDate.of(2024, 4, 6)
   )
 
-  private val organisationDetails = OrganisationDetails(
+  private val organisationDetails = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
@@ -61,12 +61,12 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
   "create" should {
     "return 201 when organisation is created successfully" in {
-      when(mockService.createOrganisation(eqTo(pillar2Id), any[OrganisationDetails]))
+      when(mockService.createOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
         .thenReturn(Future.successful(Right(organisationWithId)))
 
       val result = controller.create(pillar2Id)(
         FakeRequest("POST", s"/pillar2/test/organisation/$pillar2Id")
-          .withBody(Json.toJson(OrganisationDetailsRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       status(result)        shouldBe Status.CREATED
       contentAsJson(result) shouldBe Json.toJson(organisationWithId)
@@ -83,31 +83,31 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     "return 400 when Pillar2 ID is empty" in {
       val result = controller.create("")(
         FakeRequest("POST", "/pillar2/test/organisation/")
-          .withBody(Json.toJson(OrganisationDetailsRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       status(result)        shouldBe Status.BAD_REQUEST
       contentAsJson(result) shouldBe Json.obj("message" -> "Pillar2 ID is required")
     }
 
     "return 409 when organisation already exists" in {
-      when(mockService.createOrganisation(eqTo(pillar2Id), any[OrganisationDetails]))
+      when(mockService.createOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
         .thenReturn(Future.successful(Left(s"Organisation with pillar2Id: $pillar2Id already exists")))
 
       val result = controller.create(pillar2Id)(
         FakeRequest("POST", s"/pillar2/test/organisation/$pillar2Id")
-          .withBody(Json.toJson(OrganisationDetailsRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       status(result)        shouldBe Status.CONFLICT
       contentAsJson(result) shouldBe Json.obj("message" -> s"Organisation with pillar2Id: $pillar2Id already exists")
     }
 
     "return 500 when service fails to create organisation" in {
-      when(mockService.createOrganisation(eqTo(pillar2Id), any[OrganisationDetails]))
+      when(mockService.createOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
         .thenReturn(Future.successful(Left("Failed to create organisation due to database error")))
 
       val result = controller.create(pillar2Id)(
         FakeRequest("POST", s"/pillar2/test/organisation/$pillar2Id")
-          .withBody(Json.toJson(OrganisationDetailsRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       status(result)        shouldBe Status.INTERNAL_SERVER_ERROR
       contentAsJson(result) shouldBe Json.obj("message" -> "Failed to create organisation due to database error")
@@ -135,12 +135,12 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
   "update" should {
     "return 200 when organisation is updated successfully" in {
-      when(mockService.updateOrganisation(eqTo(pillar2Id), any[OrganisationDetails]))
+      when(mockService.updateOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
         .thenReturn(Future.successful(Right(organisationWithId)))
 
       val result = controller.update(pillar2Id)(
         FakeRequest("PUT", s"/pillar2/test/organisation/$pillar2Id")
-          .withBody(Json.toJson(OrganisationDetailsRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       status(result)        shouldBe Status.OK
       contentAsJson(result) shouldBe Json.toJson(organisationWithId)
@@ -155,12 +155,12 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     }
 
     "return 500 when service fails to update organisation" in {
-      when(mockService.updateOrganisation(eqTo(pillar2Id), any[OrganisationDetails]))
+      when(mockService.updateOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
         .thenReturn(Future.successful(Left("Failed to update organisation")))
 
       val result = controller.update(pillar2Id)(
         FakeRequest("PUT", s"/pillar2/test/organisation/$pillar2Id")
-          .withBody(Json.toJson(OrganisationDetailsRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
     }
@@ -168,7 +168,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     "return 404 Not Found when organisation does not exist" in {
       val pillar2Id = "test123"
       val requestBody = Json.toJson(
-        OrganisationDetailsRequest(
+        TestOrganisationRequest(
           orgDetails = OrgDetails(
             domesticOnly = false,
             organisationName = "Test Org",
@@ -182,7 +182,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
         )
       )
 
-      when(mockService.updateOrganisation(eqTo(pillar2Id), any[OrganisationDetails]))
+      when(mockService.updateOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
         .thenReturn(Future.successful(Left(s"No organisation found with pillar2Id: $pillar2Id")))
 
       val request = FakeRequest("PUT", s"/pillar2/test/organisation/$pillar2Id")

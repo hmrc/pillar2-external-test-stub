@@ -94,14 +94,14 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
     )
 
     val fixedInstant = Instant.parse("2024-01-01T00:00:00Z")
-    val organisationDetails = OrganisationDetails(
+    val organisationDetails = TestOrganisation(
       orgDetails = orgDetails,
       accountingPeriod = accountingPeriod,
       lastUpdated = fixedInstant
     )
 
     "serialize to JSON correctly" in {
-      val json = Json.toJson(organisationDetails)(OrganisationDetails.mongoFormat)
+      val json = Json.toJson(organisationDetails)(TestOrganisation.mongoFormat)
       json.toString should include("Test Org")
       json.toString should include("2024-01-01")
       json.toString should include(""""$date":{"$numberLong":"1704067200000"}""")
@@ -128,16 +128,16 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
         }
       """)
 
-      json.validate[OrganisationDetails](OrganisationDetails.mongoFormat) shouldBe a[JsSuccess[_]]
-      val parsed = json.as[OrganisationDetails](OrganisationDetails.mongoFormat)
+      json.validate[TestOrganisation](TestOrganisation.mongoFormat) shouldBe a[JsSuccess[_]]
+      val parsed = json.as[TestOrganisation](TestOrganisation.mongoFormat)
       parsed.orgDetails.organisationName shouldBe "Test Org"
       parsed.lastUpdated                 shouldBe fixedInstant
     }
 
     "create OrganisationDetailsWithId correctly" in {
       val withId = organisationDetails.withPillar2Id("TEST123")
-      withId.pillar2Id shouldBe "TEST123"
-      withId.details   shouldBe organisationDetails
+      withId.pillar2Id    shouldBe "TEST123"
+      withId.organisation shouldBe organisationDetails
     }
   }
 }
