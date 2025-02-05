@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 
-import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
@@ -61,20 +61,38 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
   private val pillar2Id          = "TEST123"
   private val organisationWithId = organisationDetails.withPillar2Id(pillar2Id)
 
-  "createorganisation" should {
+  "createOrganisation" should {
     "return Right with organisation details when creation is successful" in {
-      when(mockRepository.insert(eqTo(organisationWithId))).thenReturn(Future.successful(true))
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(None))
+      when(mockRepository.insert(eqTo(organisationWithId)))
+        .thenReturn(Future.successful(true))
 
       val result = service.createOrganisation(pillar2Id, organisationDetails).futureValue
       result shouldBe Right(organisationWithId)
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).insert(organisationWithId)
     }
 
-    "return Left with error message when creation fails" in {
-      when(mockRepository.insert(eqTo(organisationWithId))).thenReturn(Future.successful(false))
+    "return Left when organisation already exists" in {
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(Some(organisationWithId)))
 
       val result = service.createOrganisation(pillar2Id, organisationDetails).futureValue
-      result shouldBe Left("Failed to create organisation")
+      result shouldBe Left(s"Organisation with pillar2Id: $pillar2Id already exists")
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
+      verify(mockRepository, never).insert(any[OrganisationDetailsWithId])
+    }
+
+    "return Left with error message when database operation fails" in {
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(None))
+      when(mockRepository.insert(eqTo(organisationWithId)))
+        .thenReturn(Future.successful(false))
+
+      val result = service.createOrganisation(pillar2Id, organisationDetails).futureValue
+      result shouldBe Left("Failed to create organisation due to database error")
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).insert(organisationWithId)
     }
   }
@@ -117,20 +135,38 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
     }
   }
 
-  "deleteorganisation" should {
-    "return true when deletion is successful" in {
-      when(mockRepository.delete(eqTo(pillar2Id))).thenReturn(Future.successful(true))
+  "deleteOrganisation" should {
+    "return Right when deletion is successful" in {
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(Some(organisationWithId)))
+      when(mockRepository.delete(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(true))
 
       val result = service.deleteOrganisation(pillar2Id).futureValue
-      result shouldBe true
+      result shouldBe Right(())
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).delete(pillar2Id)
     }
 
-    "return false when deletion fails" in {
-      when(mockRepository.delete(eqTo(pillar2Id))).thenReturn(Future.successful(false))
+    "return Left when organisation does not exist" in {
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(None))
 
       val result = service.deleteOrganisation(pillar2Id).futureValue
-      result shouldBe false
+      result shouldBe Left(s"No organisation found with pillar2Id: $pillar2Id")
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
+      verify(mockRepository, never).delete(any[String])
+    }
+
+    "return Left when database operation fails" in {
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(Some(organisationWithId)))
+      when(mockRepository.delete(eqTo(pillar2Id)))
+        .thenReturn(Future.successful(false))
+
+      val result = service.deleteOrganisation(pillar2Id).futureValue
+      result shouldBe Left("Failed to delete organisation due to database error")
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).delete(pillar2Id)
     }
   }

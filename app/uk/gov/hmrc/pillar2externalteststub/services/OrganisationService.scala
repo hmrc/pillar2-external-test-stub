@@ -29,9 +29,13 @@ class OrganisationService @Inject() (
 
   def createOrganisation(pillar2Id: String, details: OrganisationDetails): Future[Either[String, OrganisationDetailsWithId]] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)
-    repository.insert(organisationWithId).map {
-      case true  => Right(organisationWithId)
-      case false => Left("Failed to create organisation")
+    repository.findByPillar2Id(pillar2Id).flatMap {
+      case Some(_) => Future.successful(Left(s"Organisation with pillar2Id: $pillar2Id already exists"))
+      case None =>
+        repository.insert(organisationWithId).map {
+          case true  => Right(organisationWithId)
+          case false => Left("Failed to create organisation due to database error")
+        }
     }
   }
 
@@ -46,6 +50,13 @@ class OrganisationService @Inject() (
     }
   }
 
-  def deleteOrganisation(pillar2Id: String): Future[Boolean] =
-    repository.delete(pillar2Id)
+  def deleteOrganisation(pillar2Id: String): Future[Either[String, Unit]] =
+    repository.findByPillar2Id(pillar2Id).flatMap {
+      case None => Future.successful(Left(s"No organisation found with pillar2Id: $pillar2Id"))
+      case Some(_) =>
+        repository.delete(pillar2Id).map {
+          case true  => Right(())
+          case false => Left("Failed to delete organisation due to database error")
+        }
+    }
 }

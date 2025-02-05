@@ -46,7 +46,9 @@ class OrganisationController @Inject() (
             val details = OrganisationDetails.fromRequest(requestDetails)
             organisationService.createOrganisation(pillar2Id, details).map {
               case Right(created) => Created(Json.toJson(created))
-              case Left(error)    => InternalServerError(Json.obj("message" -> error))
+              case Left(error) if error.contains("already exists") =>
+                Conflict(Json.obj("message" -> error))
+              case Left(error) => InternalServerError(Json.obj("message" -> error))
             }
           }
         )
@@ -78,8 +80,10 @@ class OrganisationController @Inject() (
   def delete(pillar2Id: String): Action[AnyContent] = Action.async { implicit request =>
     logger.info(s"Deleting organisation with pillar2Id: $pillar2Id")
     organisationService.deleteOrganisation(pillar2Id).map {
-      case true  => NoContent
-      case false => InternalServerError(Json.obj("message" -> "Failed to delete organisation"))
+      case Right(_) => NoContent
+      case Left(error) if error.contains("No organisation found") =>
+        NotFound(Json.obj("message" -> error))
+      case Left(error) => InternalServerError(Json.obj("message" -> error))
     }
   }
 }

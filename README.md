@@ -100,10 +100,19 @@ Endpoints for managing test organisation data:
 
 | Method | Endpoint                            | Description                                    | Response Codes |
 |:-------|-------------------------------------|------------------------------------------------|---------------|
-| POST   | /pillar2/organisation/:pillar2Id    | Create a new organisation                      | 201, 400, 500 |
-| GET    | /pillar2/organisation/:pillar2Id    | Retrieve organisation details                  | 200, 404      |
+| POST   | /pillar2/organisation/:pillar2Id    | Create a new organisation                      | 201, 400, 409, 500 |
+| GET    | /pillar2/organisation/:pillar2Id    | Retrieve organisation details                  | 200, 404 |
 | PUT    | /pillar2/organisation/:pillar2Id    | Update existing organisation                   | 200, 400, 500 |
-| DELETE | /pillar2/organisation/:pillar2Id    | Delete organisation                            | 204, 500      |
+| DELETE | /pillar2/organisation/:pillar2Id    | Delete organisation                            | 204, 404, 500 |
+
+Response Status Codes:
+- 201: Organisation created successfully
+- 200: Request completed successfully
+- 204: Organisation deleted successfully
+- 400: Invalid request (missing/invalid fields)
+- 404: Organisation not found
+- 409: Organisation already exists
+- 500: Internal server error
 
 Example Request:
 ```bash
