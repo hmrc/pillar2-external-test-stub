@@ -100,10 +100,10 @@ Endpoints for managing test organisation data:
 
 | Method | Endpoint                            | Description                                    | Response Codes |
 |:-------|-------------------------------------|------------------------------------------------|---------------|
-| POST   | /pillar2/organisation/:pillar2Id    | Create a new organisation                      | 201, 400, 409, 500 |
-| GET    | /pillar2/organisation/:pillar2Id    | Retrieve organisation details                  | 200, 404 |
-| PUT    | /pillar2/organisation/:pillar2Id    | Update existing organisation                   | 200, 400, 500 |
-| DELETE | /pillar2/organisation/:pillar2Id    | Delete organisation                            | 204, 404, 500 |
+| POST   | /pillar2/test/organisation/:pillar2Id    | Create a new organisation                      | 201, 400, 409, 500 |
+| GET    | /pillar2/test/organisation/:pillar2Id    | Retrieve organisation details                  | 200, 404 |
+| PUT    | /pillar2/test/organisation/:pillar2Id    | Update existing organisation                   | 200, 400, 500 |
+| DELETE | /pillar2/test/organisation/:pillar2Id    | Delete organisation                            | 204, 404, 500 |
 
 Response Status Codes:
 - 201: Organisation created successfully
@@ -116,7 +116,7 @@ Response Status Codes:
 
 Example Request:
 ```bash
-curl -X POST "http://localhost:10055/pillar2/organisation/XEPLR1234567890" \
+curl -X POST "http://localhost:10055/pillar2/test/organisation/XEPLR1234567890" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json" \
 -d '{
@@ -128,7 +128,7 @@ curl -X POST "http://localhost:10055/pillar2/organisation/XEPLR1234567890" \
   "accountingPeriod": {
     "startDate": "2024-01-01",
     "endDate": "2024-12-31",
-    "duetDate": "2024-04-06"
+    "dueDate": "2024-04-06"
   }
 }'
 ```

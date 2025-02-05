@@ -31,7 +31,7 @@ case class OrgDetails(
 case class AccountingPeriod(
   startDate: LocalDate,
   endDate:   LocalDate,
-  duetDate:  LocalDate
+  dueDate:   LocalDate
 )
 
 // Request model without lastUpdated

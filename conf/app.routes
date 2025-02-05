@@ -8,7 +8,7 @@ PUT         /RESTAdapter/PLR/UKTaxReturn                     uk.gov.hmrc.pillar2
 POST        /RESTAdapter/PLR/below-threshold-notification    uk.gov.hmrc.pillar2externalteststub.controllers.BTNController.submitBTN
 
 # organisation routes
-POST        /pillar2/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.create(pillar2Id: String)
-GET         /pillar2/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.get(pillar2Id: String)
-PUT         /pillar2/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.update(pillar2Id: String)
-DELETE      /pillar2/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.delete(pillar2Id: String)
+POST        /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.create(pillar2Id: String)
+GET         /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.get(pillar2Id: String)
+PUT         /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.update(pillar2Id: String)
+DELETE      /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.delete(pillar2Id: String)

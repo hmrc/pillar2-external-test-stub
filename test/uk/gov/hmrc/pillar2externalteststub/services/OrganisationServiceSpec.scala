@@ -49,7 +49,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
   private val accountingPeriod = AccountingPeriod(
     startDate = LocalDate.of(2024, 1, 1),
     endDate = LocalDate.of(2024, 12, 31),
-    duetDate = LocalDate.of(2024, 4, 6)
+    dueDate = LocalDate.of(2024, 4, 6)
   )
 
   private val organisationDetails = OrganisationDetails(
