@@ -19,8 +19,8 @@ package uk.gov.hmrc.pillar2externalteststub.models.organisation
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import java.time.{Instant, LocalDate}
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDate}
 
 case class OrgDetails(
   domesticOnly:     Boolean,

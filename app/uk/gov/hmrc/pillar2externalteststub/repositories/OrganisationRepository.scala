@@ -19,10 +19,11 @@ package uk.gov.hmrc.pillar2externalteststub.repositories
 import org.bson.conversions.Bson
 import org.mongodb.scala.model.IndexModel
 import org.mongodb.scala.model._
+import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.{OrganisationDetails, OrganisationDetailsWithId}
-import play.api.libs.json._
 
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
@@ -30,7 +31,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class OrganisationRepository @Inject() (
-  mongoComponent: MongoComponent
+  mongoComponent: MongoComponent,
+  config:         AppConfig
 )(implicit ec:    ExecutionContext)
     extends PlayMongoRepository[OrganisationDetailsWithId](
       collectionName = "organisation-details",
@@ -55,7 +57,7 @@ class OrganisationRepository @Inject() (
           Indexes.ascending("details.lastUpdated"),
           IndexOptions()
             .name("lastUpdatedTTL")
-            .expireAfter(7, TimeUnit.DAYS)
+            .expireAfter(config.defaultDataExpireInDays, TimeUnit.DAYS)
         )
       )
     ) {

@@ -19,20 +19,29 @@ package uk.gov.hmrc.pillar2externalteststub.repositories
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import play.api.Configuration
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class organisationRepositorySpec
+class OrganisationRepositorySpec
     extends AnyWordSpec
     with Matchers
     with DefaultPlayMongoRepositorySupport[OrganisationDetailsWithId]
     with ScalaFutures
     with IntegrationPatience {
 
-  override lazy val repository = new OrganisationRepository(mongoComponent)
+  val config = new AppConfig(
+    Configuration.from(
+      Map(
+        "defaultDataExpireInDays" -> 28
+      )
+    )
+  )
+  override lazy val repository = new OrganisationRepository(mongoComponent, config)
 
   private val orgDetails = OrgDetails(
     domesticOnly = false,

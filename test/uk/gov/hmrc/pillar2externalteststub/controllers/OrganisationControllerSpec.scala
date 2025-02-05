@@ -32,7 +32,7 @@ import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class organisationControllerSpec extends AnyWordSpec with Matchers with MockitoSugar {
+class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoSugar {
 
   private val mockService = mock[OrganisationService]
   private val cc          = Helpers.stubControllerComponents()

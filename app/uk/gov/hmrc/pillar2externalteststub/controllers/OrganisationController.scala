@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import play.api.Logging
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.{OrganisationDetails, OrganisationDetailsRequest}
@@ -24,7 +25,6 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.Logging
 
 @Singleton
 class OrganisationController @Inject() (
