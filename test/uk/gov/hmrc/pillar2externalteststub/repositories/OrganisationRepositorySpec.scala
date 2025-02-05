@@ -20,12 +20,14 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
+import play.api.inject.bind
+import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 
 import java.time.LocalDate
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class OrganisationRepositorySpec
     extends AnyWordSpec
@@ -34,14 +36,29 @@ class OrganisationRepositorySpec
     with ScalaFutures
     with IntegrationPatience {
 
+  override protected val databaseName: String = "test-organisation-repository"
+
   val config = new AppConfig(
     Configuration.from(
       Map(
+        "appName"                 -> "pillar2-external-test-stub",
         "defaultDataExpireInDays" -> 28
       )
     )
   )
-  override lazy val repository = new OrganisationRepository(mongoComponent, config)
+
+  private val app = GuiceApplicationBuilder()
+    .configure(
+      "metrics.enabled"  -> false,
+      "encryptionToggle" -> "true"
+    )
+    .overrides(
+      bind[MongoComponent].toInstance(mongoComponent)
+    )
+    .build()
+
+  override protected val repository: OrganisationRepository =
+    app.injector.instanceOf[OrganisationRepository]
 
   private val orgDetails = OrgDetails(
     domesticOnly = false,
