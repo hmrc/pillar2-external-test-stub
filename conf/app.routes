@@ -1,6 +1,5 @@
 # microservice specific routes
 
-
 GET         /pillar2/subscription/:plrReference              uk.gov.hmrc.pillar2externalteststub.controllers.SubscriptionController.retrieveSubscription(plrReference: String)
 
 POST        /RESTAdapter/PLR/UKTaxReturn                     uk.gov.hmrc.pillar2externalteststub.controllers.SubmitUKTRController.submitUKTR
@@ -9,7 +8,7 @@ PUT         /RESTAdapter/PLR/UKTaxReturn                     uk.gov.hmrc.pillar2
 POST        /RESTAdapter/PLR/below-threshold-notification    uk.gov.hmrc.pillar2externalteststub.controllers.BTNController.submitBTN
 
 # organisation routes
-POST        /pillar2/organisation                           uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.create()
+POST        /pillar2/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.create(pillar2Id: String)
 GET         /pillar2/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.get(pillar2Id: String)
 PUT         /pillar2/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.update(pillar2Id: String)
 DELETE      /pillar2/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.delete(pillar2Id: String)

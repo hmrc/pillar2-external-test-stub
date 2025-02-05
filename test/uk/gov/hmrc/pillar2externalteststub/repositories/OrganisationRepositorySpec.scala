@@ -25,12 +25,12 @@ import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class organisationRepositorySpec 
-  extends AnyWordSpec 
-  with Matchers 
-  with DefaultPlayMongoRepositorySupport[OrganisationDetailsWithId] 
-  with ScalaFutures 
-  with IntegrationPatience {
+class organisationRepositorySpec
+    extends AnyWordSpec
+    with Matchers
+    with DefaultPlayMongoRepositorySupport[OrganisationDetailsWithId]
+    with ScalaFutures
+    with IntegrationPatience {
 
   override lazy val repository = new OrganisationRepository(mongoComponent)
 
@@ -104,7 +104,7 @@ class organisationRepositorySpec
   "delete" should {
     "successfully delete an existing organisation" in {
       repository.insert(organisationWithId).futureValue shouldBe true
-      repository.delete("TEST123").futureValue shouldBe true
+      repository.delete("TEST123").futureValue          shouldBe true
       repository.findByPillar2Id("TEST123").futureValue shouldBe None
     }
 
@@ -112,4 +112,4 @@ class organisationRepositorySpec
       repository.delete("NONEXISTENT").futureValue shouldBe true
     }
   }
-} 
+}

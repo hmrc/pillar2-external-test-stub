@@ -35,8 +35,8 @@ import scala.concurrent.Future
 class organisationControllerSpec extends AnyWordSpec with Matchers with MockitoSugar {
 
   private val mockService = mock[OrganisationService]
-  private val cc = Helpers.stubControllerComponents()
-  private val controller = new OrganisationController(cc, mockService)
+  private val cc          = Helpers.stubControllerComponents()
+  private val controller  = new OrganisationController(cc, mockService)
 
   private val orgDetails = OrgDetails(
     domesticOnly = false,
@@ -56,7 +56,7 @@ class organisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
   )
 
-  private val pillar2Id = "TEST123"
+  private val pillar2Id          = "TEST123"
   private val organisationWithId = organisationDetails.withPillar2Id(pillar2Id)
 
   "create" should {
@@ -64,20 +64,24 @@ class organisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
       when(mockService.createOrganisation(eqTo(pillar2Id), any[OrganisationDetails]))
         .thenReturn(Future.successful(Right(organisationWithId)))
 
-      val result = controller.create()(FakeRequest().withBody(Json.toJson(organisationDetails))
-        .withHeaders("X-Pillar2-ID" -> pillar2Id))
-      status(result) shouldBe Status.CREATED
+      val result = controller.create(pillar2Id)(
+        FakeRequest()
+          .withBody(Json.toJson(organisationDetails))
+      )
+      status(result)        shouldBe Status.CREATED
       contentAsJson(result) shouldBe Json.toJson(organisationWithId)
     }
 
     "return 400 when request body is invalid" in {
-      val result = controller.create()(FakeRequest().withBody(Json.obj())
-        .withHeaders("X-Pillar2-ID" -> pillar2Id))
+      val result = controller.create(pillar2Id)(
+        FakeRequest()
+          .withBody(Json.obj())
+      )
       status(result) shouldBe Status.BAD_REQUEST
     }
 
-    "return 400 when Pillar2 ID header is missing" in {
-      val result = controller.create()(FakeRequest().withBody(Json.toJson(organisationDetails)))
+    "return 400 when Pillar2 ID is empty" in {
+      val result = controller.create("")(FakeRequest().withBody(Json.toJson(organisationDetails)))
       status(result) shouldBe Status.BAD_REQUEST
     }
 
@@ -85,8 +89,10 @@ class organisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
       when(mockService.createOrganisation(eqTo(pillar2Id), any[OrganisationDetails]))
         .thenReturn(Future.successful(Left("Failed to create organisation")))
 
-      val result = controller.create()(FakeRequest().withBody(Json.toJson(organisationDetails))
-        .withHeaders("X-Pillar2-ID" -> pillar2Id))
+      val result = controller.create(pillar2Id)(
+        FakeRequest()
+          .withBody(Json.toJson(organisationDetails))
+      )
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
     }
   }
@@ -97,7 +103,7 @@ class organisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
         .thenReturn(Future.successful(Some(organisationWithId)))
 
       val result = controller.get(pillar2Id)(FakeRequest())
-      status(result) shouldBe Status.OK
+      status(result)        shouldBe Status.OK
       contentAsJson(result) shouldBe Json.toJson(organisationWithId)
     }
 
@@ -116,7 +122,7 @@ class organisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
         .thenReturn(Future.successful(Right(organisationWithId)))
 
       val result = controller.update(pillar2Id)(FakeRequest().withBody(Json.toJson(organisationDetails)))
-      status(result) shouldBe Status.OK
+      status(result)        shouldBe Status.OK
       contentAsJson(result) shouldBe Json.toJson(organisationWithId)
     }
 
@@ -151,4 +157,4 @@ class organisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
       status(result) shouldBe Status.INTERNAL_SERVER_ERROR
     }
   }
-} 
+}

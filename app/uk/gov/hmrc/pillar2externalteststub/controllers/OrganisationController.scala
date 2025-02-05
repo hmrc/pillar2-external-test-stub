@@ -16,33 +16,39 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.OrganisationDetails
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{OrganisationDetails, OrganisationDetailsRequest}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import play.api.Logging
 
 @Singleton
-class OrganisationController @Inject()(
-  cc: ControllerComponents,
+class OrganisationController @Inject() (
+  cc:                  ControllerComponents,
   organisationService: OrganisationService
-)(implicit ec: ExecutionContext)
-    extends BackendController(cc) {
+)(implicit ec:         ExecutionContext)
+    extends BackendController(cc)
+    with Logging {
 
-  def create(): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withPillar2Id { pillar2Id =>
+  def create(pillar2Id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    if (pillar2Id.trim.isEmpty) {
+      Future.successful(BadRequest(Json.obj("message" -> "Pillar2 ID is required")))
+    } else {
       request.body
-        .validate[OrganisationDetails]
+        .validate[OrganisationDetailsRequest]
         .fold(
-          invalid = _ => Future.successful(BadRequest("Invalid organisation details")),
-          valid = details =>
+          invalid = errors => Future.successful(BadRequest(Json.obj("errors" -> JsError.toJson(errors)))),
+          valid = requestDetails => {
+            val details = OrganisationDetails.fromRequest(requestDetails)
             organisationService.createOrganisation(pillar2Id, details).map {
               case Right(created) => Created(Json.toJson(created))
-              case Left(error)    => InternalServerError(error)
+              case Left(error)    => InternalServerError(Json.obj("message" -> error))
             }
+          }
         )
     }
   }
@@ -50,34 +56,30 @@ class OrganisationController @Inject()(
   def get(pillar2Id: String): Action[AnyContent] = Action.async { implicit request =>
     organisationService.getOrganisation(pillar2Id).map {
       case Some(org) => Ok(Json.toJson(org))
-      case None      => NotFound
+      case None      => NotFound(Json.obj("message" -> s"Organisation not found for pillar2Id: $pillar2Id"))
     }
   }
 
   def update(pillar2Id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body
-      .validate[OrganisationDetails]
+      .validate[OrganisationDetailsRequest]
       .fold(
-        invalid = _ => Future.successful(BadRequest("Invalid organisation details")),
-        valid = details =>
+        invalid = errors => Future.successful(BadRequest(Json.obj("errors" -> JsError.toJson(errors)))),
+        valid = requestDetails => {
+          val details = OrganisationDetails.fromRequest(requestDetails)
           organisationService.updateOrganisation(pillar2Id, details).map {
             case Right(updated) => Ok(Json.toJson(updated))
-            case Left(error)    => InternalServerError(error)
+            case Left(error)    => InternalServerError(Json.obj("message" -> error))
           }
+        }
       )
   }
 
   def delete(pillar2Id: String): Action[AnyContent] = Action.async { implicit request =>
+    logger.info(s"Deleting organisation with pillar2Id: $pillar2Id")
     organisationService.deleteOrganisation(pillar2Id).map {
       case true  => NoContent
-      case false => InternalServerError("Failed to delete organisation")
+      case false => InternalServerError(Json.obj("message" -> "Failed to delete organisation"))
     }
   }
-
-  private def withPillar2Id[A](f: String => Future[Result])(implicit request: Request[A]): Future[Result] = {
-    request.headers
-      .get("X-Pillar2-ID")
-      .map(f)
-      .getOrElse(Future.successful(BadRequest("Missing Pillar2 ID in headers")))
-  }
-} 
+}

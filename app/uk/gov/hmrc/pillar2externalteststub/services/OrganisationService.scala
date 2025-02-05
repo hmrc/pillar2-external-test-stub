@@ -23,14 +23,14 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class OrganisationService @Inject()(
-  repository: OrganisationRepository
+class OrganisationService @Inject() (
+  repository:  OrganisationRepository
 )(implicit ec: ExecutionContext) {
 
   def createOrganisation(pillar2Id: String, details: OrganisationDetails): Future[Either[String, OrganisationDetailsWithId]] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)
     repository.insert(organisationWithId).map {
-      case true => Right(organisationWithId)
+      case true  => Right(organisationWithId)
       case false => Left("Failed to create organisation")
     }
   }
@@ -41,11 +41,11 @@ class OrganisationService @Inject()(
   def updateOrganisation(pillar2Id: String, details: OrganisationDetails): Future[Either[String, OrganisationDetailsWithId]] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)
     repository.update(organisationWithId).map {
-      case true => Right(organisationWithId)
+      case true  => Right(organisationWithId)
       case false => Left("Failed to update organisation")
     }
   }
 
   def deleteOrganisation(pillar2Id: String): Future[Boolean] =
     repository.delete(pillar2Id)
-} 
+}

@@ -33,7 +33,7 @@ import scala.concurrent.Future
 class organisationServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with ScalaFutures with BeforeAndAfterEach {
 
   private val mockRepository = mock[OrganisationRepository]
-  private val service = new OrganisationService(mockRepository)
+  private val service        = new OrganisationService(mockRepository)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -58,7 +58,7 @@ class organisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
   )
 
-  private val pillar2Id = "TEST123"
+  private val pillar2Id          = "TEST123"
   private val organisationWithId = organisationDetails.withPillar2Id(pillar2Id)
 
   "createorganisation" should {
@@ -134,4 +134,4 @@ class organisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
       verify(mockRepository, times(1)).delete(pillar2Id)
     }
   }
-} 
+}

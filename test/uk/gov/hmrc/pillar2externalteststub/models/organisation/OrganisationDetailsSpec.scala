@@ -47,7 +47,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
         }
       """)
 
-      json.validate[OrgDetails] shouldBe a[JsSuccess[_]]
+      json.validate[OrgDetails]            shouldBe a[JsSuccess[_]]
       json.as[OrgDetails].organisationName shouldBe "Test Org"
     }
   }
@@ -75,7 +75,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
         }
       """)
 
-      json.validate[AccountingPeriod] shouldBe a[JsSuccess[_]]
+      json.validate[AccountingPeriod]     shouldBe a[JsSuccess[_]]
       json.as[AccountingPeriod].startDate shouldBe LocalDate.of(2024, 1, 1)
     }
   }
@@ -101,7 +101,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
     )
 
     "serialize to JSON correctly" in {
-      val json = Json.toJson(organisationDetails)
+      val json = Json.toJson(organisationDetails)(OrganisationDetails.mongoFormat)
       json.toString should include("Test Org")
       json.toString should include("2024-01-01")
       json.toString should include(""""$date":{"$numberLong":"1704067200000"}""")
@@ -128,16 +128,16 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
         }
       """)
 
-      json.validate[OrganisationDetails] shouldBe a[JsSuccess[_]]
-      val parsed = json.as[OrganisationDetails]
+      json.validate[OrganisationDetails](OrganisationDetails.mongoFormat) shouldBe a[JsSuccess[_]]
+      val parsed = json.as[OrganisationDetails](OrganisationDetails.mongoFormat)
       parsed.orgDetails.organisationName shouldBe "Test Org"
-      parsed.lastUpdated shouldBe fixedInstant
+      parsed.lastUpdated                 shouldBe fixedInstant
     }
 
     "create OrganisationDetailsWithId correctly" in {
       val withId = organisationDetails.withPillar2Id("TEST123")
       withId.pillar2Id shouldBe "TEST123"
-      withId.details shouldBe organisationDetails
+      withId.details   shouldBe organisationDetails
     }
   }
-} 
+}

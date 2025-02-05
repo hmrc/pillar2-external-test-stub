@@ -21,20 +21,31 @@ import org.mongodb.scala.model.IndexModel
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.OrganisationDetailsWithId
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{OrganisationDetails, OrganisationDetailsWithId}
+import play.api.libs.json._
 
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class OrganisationRepository @Inject()(
+class OrganisationRepository @Inject() (
   mongoComponent: MongoComponent
-)(implicit ec: ExecutionContext)
+)(implicit ec:    ExecutionContext)
     extends PlayMongoRepository[OrganisationDetailsWithId](
       collectionName = "organisation-details",
       mongoComponent = mongoComponent,
-      domainFormat = OrganisationDetailsWithId.format,
+      domainFormat = new Format[OrganisationDetailsWithId] {
+        def reads(json: JsValue): JsResult[OrganisationDetailsWithId] = for {
+          pillar2Id <- (json \ "pillar2Id").validate[String]
+          details   <- (json \ "details").validate[OrganisationDetails](OrganisationDetails.mongoFormat)
+        } yield OrganisationDetailsWithId(pillar2Id, details)
+
+        def writes(o: OrganisationDetailsWithId): JsValue = Json.obj(
+          "pillar2Id" -> o.pillar2Id,
+          "details"   -> Json.toJson(o.details)(OrganisationDetails.mongoFormat)
+        )
+      },
       indexes = Seq(
         IndexModel(
           Indexes.ascending("pillar2Id"),
@@ -80,4 +91,4 @@ class OrganisationRepository @Inject()(
       .toFuture()
       .map(_ => true)
       .recover { case _ => false }
-} 
+}
