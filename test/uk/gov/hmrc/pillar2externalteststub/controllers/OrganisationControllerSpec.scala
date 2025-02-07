@@ -46,8 +46,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
   private val accountingPeriod = AccountingPeriod(
     startDate = LocalDate.of(2024, 1, 1),
-    endDate = LocalDate.of(2024, 12, 31),
-    dueDate = LocalDate.of(2024, 4, 6)
+    endDate = LocalDate.of(2024, 12, 31)
   )
 
   private val organisationDetails = TestOrganisation(
@@ -176,8 +175,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
           ),
           accountingPeriod = AccountingPeriod(
             startDate = LocalDate.parse("2024-01-01"),
-            endDate = LocalDate.parse("2024-12-31"),
-            dueDate = LocalDate.parse("2024-12-31")
+            endDate = LocalDate.parse("2024-12-31")
           )
         )
       )

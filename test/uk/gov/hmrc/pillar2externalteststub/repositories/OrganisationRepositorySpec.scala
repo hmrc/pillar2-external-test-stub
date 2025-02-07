@@ -68,8 +68,7 @@ class OrganisationRepositorySpec
 
   private val accountingPeriod = AccountingPeriod(
     startDate = LocalDate.of(2024, 1, 1),
-    endDate = LocalDate.of(2024, 12, 31),
-    dueDate = LocalDate.of(2024, 4, 6)
+    endDate = LocalDate.of(2024, 12, 31)
   )
 
   private val organisationDetails = TestOrganisation(

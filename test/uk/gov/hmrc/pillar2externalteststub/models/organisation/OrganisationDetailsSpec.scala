@@ -56,22 +56,19 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
     "serialize to JSON correctly" in {
       val period = AccountingPeriod(
         startDate = LocalDate.of(2024, 1, 1),
-        endDate = LocalDate.of(2024, 12, 31),
-        dueDate = LocalDate.of(2024, 4, 6)
+        endDate = LocalDate.of(2024, 12, 31)
       )
 
       val json = Json.toJson(period)
       json.toString should include("2024-01-01")
       json.toString should include("2024-12-31")
-      json.toString should include("2024-04-06")
     }
 
     "deserialize from JSON correctly" in {
       val json = Json.parse("""
         {
           "startDate": "2024-01-01",
-          "endDate": "2024-12-31",
-          "dueDate": "2024-04-06"
+          "endDate": "2024-12-31"
         }
       """)
 
@@ -89,8 +86,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
 
     val accountingPeriod = AccountingPeriod(
       startDate = LocalDate.of(2024, 1, 1),
-      endDate = LocalDate.of(2024, 12, 31),
-      dueDate = LocalDate.of(2024, 4, 6)
+      endDate = LocalDate.of(2024, 12, 31)
     )
 
     val fixedInstant = Instant.parse("2024-01-01T00:00:00Z")
@@ -117,8 +113,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
           },
           "accountingPeriod": {
             "startDate": "2024-01-01",
-            "endDate": "2024-12-31",
-            "dueDate": "2024-04-06"
+            "endDate": "2024-12-31"
           },
           "lastUpdated": {
             "$date": {
