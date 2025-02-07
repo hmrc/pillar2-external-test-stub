@@ -30,8 +30,7 @@ case class OrgDetails(
 
 case class AccountingPeriod(
   startDate: LocalDate,
-  endDate:   LocalDate,
-  dueDate:   LocalDate
+  endDate:   LocalDate
 )
 
 // Request model without lastUpdated
@@ -51,8 +50,8 @@ case class TestOrganisation(
 }
 
 case class TestOrganisationWithId(
-  pillar2Id: String,
-  organisation:   TestOrganisation
+  pillar2Id:    String,
+  organisation: TestOrganisation
 )
 
 object OrgDetails {
@@ -70,7 +69,6 @@ object TestOrganisationRequest {
 object TestOrganisation {
   private val dateTimeFormatter = DateTimeFormatter.ISO_INSTANT
 
-  // Format for MongoDB storage
   private val mongoInstantFormat: Format[Instant] = new Format[Instant] {
     override def reads(json: JsValue): JsResult[Instant] = json match {
       case JsString(s) => JsSuccess(Instant.from(dateTimeFormatter.parse(s)))
