@@ -49,4 +49,4 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
         logger.error("Unhandled exception. Returning 500 statuscode", exception)
         Future.successful(Results.InternalServerError(Json.toJson(StubErrorResponse("500", "Internal Server Error"))))
     }
-} 
+}

@@ -17,37 +17,37 @@
 package uk.gov.hmrc.pillar2externalteststub.models.error
 
 sealed trait StubError extends Exception {
-  def code: String
+  def code:    String
   def message: String
   override def getMessage: String = message
 }
 
 case object InvalidJson extends StubError {
-  override val code: String = "INVALID_JSON"
+  override val code:    String = "INVALID_JSON"
   override val message: String = "Invalid JSON payload provided"
 }
 
 case object EmptyRequestBody extends StubError {
-  override val code: String = "EMPTY_REQUEST_BODY"
+  override val code:    String = "EMPTY_REQUEST_BODY"
   override val message: String = "Empty request body provided"
 }
 
 case class MissingHeader(headerName: String) extends StubError {
-  override val code: String = "MISSING_HEADER"
+  override val code:    String = "MISSING_HEADER"
   override val message: String = s"Required header '$headerName' is missing"
 }
 
 case class OrganisationAlreadyExists(pillar2Id: String) extends StubError {
-  override val code: String = "ORGANISATION_EXISTS"
+  override val code:    String = "ORGANISATION_EXISTS"
   override val message: String = s"Organisation with pillar2Id: $pillar2Id already exists"
 }
 
 case class OrganisationNotFound(pillar2Id: String) extends StubError {
-  override val code: String = "ORGANISATION_NOT_FOUND"
+  override val code:    String = "ORGANISATION_NOT_FOUND"
   override val message: String = s"No organisation found with pillar2Id: $pillar2Id"
 }
 
 case class DatabaseError(error: String) extends StubError {
-  override val code: String = "DATABASE_ERROR"
+  override val code:    String = "DATABASE_ERROR"
   override val message: String = s"Database operation failed: $error"
-} 
+}
