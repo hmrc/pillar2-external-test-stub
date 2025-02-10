@@ -38,7 +38,6 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
         val ret = e match {
           case e @ InvalidJson                  => Results.BadRequest(Json.toJson(StubErrorResponse(e.code, e.message)))
           case e @ EmptyRequestBody             => Results.BadRequest(Json.toJson(StubErrorResponse(e.code, e.message)))
-          case e @ MissingHeader(_)             => Results.BadRequest(Json.toJson(StubErrorResponse(e.code, e.message)))
           case e @ OrganisationAlreadyExists(_) => Results.Conflict(Json.toJson(StubErrorResponse(e.code, e.message)))
           case e @ OrganisationNotFound(_)      => Results.NotFound(Json.toJson(StubErrorResponse(e.code, e.message)))
           case e @ DatabaseError(_)             => Results.InternalServerError(Json.toJson(StubErrorResponse(e.code, e.message)))

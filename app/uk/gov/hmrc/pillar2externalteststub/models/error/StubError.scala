@@ -32,11 +32,6 @@ case object EmptyRequestBody extends StubError {
   override val message: String = "Empty request body provided"
 }
 
-case class MissingHeader(headerName: String) extends StubError {
-  override val code:    String = "MISSING_HEADER"
-  override val message: String = s"Required header '$headerName' is missing"
-}
-
 case class OrganisationAlreadyExists(pillar2Id: String) extends StubError {
   override val code:    String = "ORGANISATION_EXISTS"
   override val message: String = s"Organisation with pillar2Id: $pillar2Id already exists"
