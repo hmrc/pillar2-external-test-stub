@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 
+import uk.gov.hmrc.pillar2externalteststub.models.error.{OrganisationAlreadyExists, OrganisationNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.{TestOrganisation, TestOrganisationWithId}
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
 
@@ -27,40 +28,39 @@ class OrganisationService @Inject() (
   repository:  OrganisationRepository
 )(implicit ec: ExecutionContext) {
 
-  def createOrganisation(pillar2Id: String, details: TestOrganisation): Future[Either[String, TestOrganisationWithId]] = {
+  def createOrganisation(pillar2Id: String, details: TestOrganisation): Future[TestOrganisationWithId] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)
     repository.findByPillar2Id(pillar2Id).flatMap {
-      case Some(_) => Future.successful(Left(s"Organisation with pillar2Id: $pillar2Id already exists"))
+      case Some(_) =>
+        Future.failed(OrganisationAlreadyExists(pillar2Id))
       case None =>
-        repository.insert(organisationWithId).map {
-          case true  => Right(organisationWithId)
-          case false => Left("Failed to create organisation due to database error")
-        }
+        repository.insert(organisationWithId).map(_ => organisationWithId)
     }
   }
 
-  def getOrganisation(pillar2Id: String): Future[Option[TestOrganisationWithId]] =
-    repository.findByPillar2Id(pillar2Id)
+  def getOrganisation(pillar2Id: String): Future[TestOrganisationWithId] =
+    repository
+      .findByPillar2Id(pillar2Id)
+      .flatMap {
+        case Some(org) => Future.successful(org)
+        case None      => Future.failed(OrganisationNotFound(pillar2Id))
+      }
 
-  def updateOrganisation(pillar2Id: String, details: TestOrganisation): Future[Either[String, TestOrganisationWithId]] = {
-    val organisationWithId = details.withPillar2Id(pillar2Id)
+  def updateOrganisation(pillar2Id: String, organisation: TestOrganisation): Future[TestOrganisationWithId] = {
+    val organisationWithId = organisation.withPillar2Id(pillar2Id)
     repository.findByPillar2Id(pillar2Id).flatMap {
-      case None => Future.successful(Left(s"No organisation found with pillar2Id: $pillar2Id"))
+      case None =>
+        Future.failed(OrganisationNotFound(pillar2Id))
       case Some(_) =>
-        repository.update(organisationWithId).map {
-          case true  => Right(organisationWithId)
-          case false => Left("Failed to update organisation due to database error")
-        }
+        repository.update(organisationWithId).map(_ => organisationWithId)
     }
   }
 
-  def deleteOrganisation(pillar2Id: String): Future[Either[String, Unit]] =
+  def deleteOrganisation(pillar2Id: String): Future[Unit] =
     repository.findByPillar2Id(pillar2Id).flatMap {
-      case None => Future.successful(Left(s"No organisation found with pillar2Id: $pillar2Id"))
+      case None =>
+        Future.failed(OrganisationNotFound(pillar2Id))
       case Some(_) =>
-        repository.delete(pillar2Id).map {
-          case true  => Right(())
-          case false => Left("Failed to delete organisation due to database error")
-        }
+        repository.delete(pillar2Id).map(_ => ())
     }
 }

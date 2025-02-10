@@ -23,6 +23,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
+import uk.gov.hmrc.pillar2externalteststub.models.error._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
 
@@ -61,142 +62,160 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
   private val organisationWithId = organisationDetails.withPillar2Id(pillar2Id)
 
   "createOrganisation" should {
-    "return Right with organisation details when creation is successful" in {
+    "return organisation details when creation is successful" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(None))
       when(mockRepository.insert(eqTo(organisationWithId)))
         .thenReturn(Future.successful(true))
 
       val result = service.createOrganisation(pillar2Id, organisationDetails).futureValue
-      result shouldBe Right(organisationWithId)
+      result shouldBe organisationWithId
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).insert(organisationWithId)
     }
 
-    "return Left when organisation already exists" in {
+    "fail with OrganisationAlreadyExists when organisation exists" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(Some(organisationWithId)))
 
-      val result = service.createOrganisation(pillar2Id, organisationDetails).futureValue
-      result shouldBe Left(s"Organisation with pillar2Id: $pillar2Id already exists")
+      whenReady(service.createOrganisation(pillar2Id, organisationDetails).failed) { exception =>
+        exception                                                 shouldBe a[OrganisationAlreadyExists]
+        exception.asInstanceOf[OrganisationAlreadyExists].code    shouldBe "ORGANISATION_EXISTS"
+        exception.asInstanceOf[OrganisationAlreadyExists].message shouldBe s"Organisation with pillar2Id: $pillar2Id already exists"
+      }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, never).insert(any[TestOrganisationWithId])
     }
 
-    "return Left with error message when database operation fails" in {
+    "propagate DatabaseError from repository when database operation fails" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(None))
       when(mockRepository.insert(eqTo(organisationWithId)))
-        .thenReturn(Future.successful(false))
+        .thenReturn(Future.failed(DatabaseError("Failed to create organisation: Database connection failed")))
 
-      val result = service.createOrganisation(pillar2Id, organisationDetails).futureValue
-      result shouldBe Left("Failed to create organisation due to database error")
+      whenReady(service.createOrganisation(pillar2Id, organisationDetails).failed) { exception =>
+        exception                                     shouldBe a[DatabaseError]
+        exception.asInstanceOf[DatabaseError].code    shouldBe "DATABASE_ERROR"
+        exception.asInstanceOf[DatabaseError].message shouldBe "Database operation failed: Failed to create organisation: Database connection failed"
+      }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).insert(organisationWithId)
     }
   }
 
-  "getorganisation" should {
-    "return Some(organisation) when found" in {
+  "getOrganisation" should {
+    "return organisation when found" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(Some(organisationWithId)))
 
       val result = service.getOrganisation(pillar2Id).futureValue
-      result shouldBe Some(organisationWithId)
+      result shouldBe organisationWithId
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
     }
 
-    "return None when not found" in {
+    "fail with OrganisationNotFound when not found" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(None))
 
-      val result = service.getOrganisation(pillar2Id).futureValue
-      result shouldBe None
+      whenReady(service.getOrganisation(pillar2Id).failed) { exception =>
+        exception                                            shouldBe a[OrganisationNotFound]
+        exception.asInstanceOf[OrganisationNotFound].code    shouldBe "ORGANISATION_NOT_FOUND"
+        exception.asInstanceOf[OrganisationNotFound].message shouldBe s"No organisation found with pillar2Id: $pillar2Id"
+      }
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
+    }
+
+    "propagate DatabaseError from repository when database operation fails" in {
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
+        .thenReturn(Future.failed(DatabaseError("Failed to find organisation: Database connection failed")))
+
+      whenReady(service.getOrganisation(pillar2Id).failed) { exception =>
+        exception                                     shouldBe a[DatabaseError]
+        exception.asInstanceOf[DatabaseError].code    shouldBe "DATABASE_ERROR"
+        exception.asInstanceOf[DatabaseError].message shouldBe "Database operation failed: Failed to find organisation: Database connection failed"
+      }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
     }
   }
 
-  "updateorganisation" should {
-    "return Right with updated organisation when update is successful" in {
+  "updateOrganisation" should {
+    "return updated organisation when update is successful" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(Some(organisationWithId)))
       when(mockRepository.update(eqTo(organisationWithId)))
         .thenReturn(Future.successful(true))
 
       val result = service.updateOrganisation(pillar2Id, organisationDetails).futureValue
-      result shouldBe Right(organisationWithId)
+      result shouldBe organisationWithId
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).update(organisationWithId)
     }
 
-    "return Left with error message when update fails" in {
+    "propagate DatabaseError from repository when update fails" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(Some(organisationWithId)))
       when(mockRepository.update(eqTo(organisationWithId)))
-        .thenReturn(Future.successful(false))
+        .thenReturn(Future.failed(DatabaseError("Failed to update organisation: Database connection failed")))
 
-      val result = service.updateOrganisation(pillar2Id, organisationDetails).futureValue
-      result shouldBe Left("Failed to update organisation due to database error")
+      whenReady(service.updateOrganisation(pillar2Id, organisationDetails).failed) { exception =>
+        exception                                     shouldBe a[DatabaseError]
+        exception.asInstanceOf[DatabaseError].code    shouldBe "DATABASE_ERROR"
+        exception.asInstanceOf[DatabaseError].message shouldBe "Database operation failed: Failed to update organisation: Database connection failed"
+      }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).update(organisationWithId)
     }
 
-    "return Left with error message when organisation does not exist" in {
-      val pillar2Id = "test123"
-      val details = TestOrganisation(
-        orgDetails = OrgDetails(
-          domesticOnly = false,
-          organisationName = "Test Org",
-          registrationDate = LocalDate.parse("2024-01-01")
-        ),
-        accountingPeriod = AccountingPeriod(
-          startDate = LocalDate.parse("2024-01-01"),
-          endDate = LocalDate.parse("2024-12-31")
-        )
-      )
-
-      when(mockRepository.findByPillar2Id(pillar2Id))
+    "fail with OrganisationNotFound when organisation does not exist" in {
+      when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(None))
 
-      val result = service.updateOrganisation(pillar2Id, details).futureValue
-
-      result shouldBe Left(s"No organisation found with pillar2Id: $pillar2Id")
-      verify(mockRepository).findByPillar2Id(pillar2Id)
+      whenReady(service.updateOrganisation(pillar2Id, organisationDetails).failed) { exception =>
+        exception                                            shouldBe a[OrganisationNotFound]
+        exception.asInstanceOf[OrganisationNotFound].code    shouldBe "ORGANISATION_NOT_FOUND"
+        exception.asInstanceOf[OrganisationNotFound].message shouldBe s"No organisation found with pillar2Id: $pillar2Id"
+      }
+      verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, never).update(any[TestOrganisationWithId])
     }
   }
 
   "deleteOrganisation" should {
-    "return Right when deletion is successful" in {
+    "return unit when deletion is successful" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(Some(organisationWithId)))
       when(mockRepository.delete(eqTo(pillar2Id)))
         .thenReturn(Future.successful(true))
 
-      val result = service.deleteOrganisation(pillar2Id).futureValue
-      result shouldBe Right(())
+      service.deleteOrganisation(pillar2Id).futureValue shouldBe (())
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).delete(pillar2Id)
     }
 
-    "return Left when organisation does not exist" in {
+    "fail with OrganisationNotFound when organisation does not exist" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(None))
 
-      val result = service.deleteOrganisation(pillar2Id).futureValue
-      result shouldBe Left(s"No organisation found with pillar2Id: $pillar2Id")
+      whenReady(service.deleteOrganisation(pillar2Id).failed) { exception =>
+        exception                                            shouldBe a[OrganisationNotFound]
+        exception.asInstanceOf[OrganisationNotFound].code    shouldBe "ORGANISATION_NOT_FOUND"
+        exception.asInstanceOf[OrganisationNotFound].message shouldBe s"No organisation found with pillar2Id: $pillar2Id"
+      }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, never).delete(any[String])
     }
 
-    "return Left when database operation fails" in {
+    "propagate DatabaseError from repository when database operation fails" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
         .thenReturn(Future.successful(Some(organisationWithId)))
       when(mockRepository.delete(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(false))
+        .thenReturn(Future.failed(DatabaseError("Failed to delete organisation: Database connection failed")))
 
-      val result = service.deleteOrganisation(pillar2Id).futureValue
-      result shouldBe Left("Failed to delete organisation due to database error")
+      whenReady(service.deleteOrganisation(pillar2Id).failed) { exception =>
+        exception                                     shouldBe a[DatabaseError]
+        exception.asInstanceOf[DatabaseError].code    shouldBe "DATABASE_ERROR"
+        exception.asInstanceOf[DatabaseError].message shouldBe "Database operation failed: Failed to delete organisation: Database connection failed"
+      }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).delete(pillar2Id)
     }

@@ -23,6 +23,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.{TestOrganisation, TestOrganisationWithId}
 
 import java.util.concurrent.TimeUnit
@@ -35,17 +36,17 @@ class OrganisationRepository @Inject() (
   config:         AppConfig
 )(implicit ec:    ExecutionContext)
     extends PlayMongoRepository[TestOrganisationWithId](
-      collectionName = "organisation-details",
+      collectionName = "organisation",
       mongoComponent = mongoComponent,
       domainFormat = new Format[TestOrganisationWithId] {
         def reads(json: JsValue): JsResult[TestOrganisationWithId] = for {
-          pillar2Id <- (json \ "pillar2Id").validate[String]
-          details   <- (json \ "details").validate[TestOrganisation](TestOrganisation.mongoFormat)
-        } yield TestOrganisationWithId(pillar2Id, details)
+          pillar2Id    <- (json \ "pillar2Id").validate[String]
+          organisation <- (json \ "organisation").validate[TestOrganisation](TestOrganisation.mongoFormat)
+        } yield TestOrganisationWithId(pillar2Id, organisation)
 
         def writes(o: TestOrganisationWithId): JsValue = Json.obj(
-          "pillar2Id" -> o.pillar2Id,
-          "details"   -> Json.toJson(o.organisation)(TestOrganisation.mongoFormat)
+          "pillar2Id"    -> o.pillar2Id,
+          "organisation" -> Json.toJson(o.organisation)(TestOrganisation.mongoFormat)
         )
       },
       indexes = Seq(
@@ -54,7 +55,7 @@ class OrganisationRepository @Inject() (
           IndexOptions().name("pillar2IdIndex").unique(true)
         ),
         IndexModel(
-          Indexes.ascending("details.lastUpdated"),
+          Indexes.ascending("organisation.lastUpdated"),
           IndexOptions()
             .name("lastUpdatedTTL")
             .expireAfter(config.defaultDataExpireInDays, TimeUnit.DAYS)
@@ -69,12 +70,17 @@ class OrganisationRepository @Inject() (
       .insertOne(details)
       .toFuture()
       .map(_ => true)
-      .recover { case _ => false }
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to create organisation: ${e.getMessage}"))
+      }
 
   def findByPillar2Id(pillar2Id: String): Future[Option[TestOrganisationWithId]] =
     collection
       .find(byPillar2Id(pillar2Id))
       .headOption()
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to find organisation: ${e.getMessage}"))
+      }
 
   def update(details: TestOrganisationWithId): Future[Boolean] =
     collection
@@ -85,12 +91,16 @@ class OrganisationRepository @Inject() (
       )
       .toFuture()
       .map(_ => true)
-      .recover { case _ => false }
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to update organisation: ${e.getMessage}"))
+      }
 
   def delete(pillar2Id: String): Future[Boolean] =
     collection
       .deleteOne(byPillar2Id(pillar2Id))
       .toFuture()
       .map(_ => true)
-      .recover { case _ => false }
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to delete organisation: ${e.getMessage}"))
+      }
 }

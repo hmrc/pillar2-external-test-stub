@@ -25,6 +25,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 
 import java.time.LocalDate
@@ -71,13 +72,13 @@ class OrganisationRepositorySpec
     endDate = LocalDate.of(2024, 12, 31)
   )
 
-  private val organisationDetails = TestOrganisation(
+  private val organisation = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
   )
 
-  private val organisationWithId = organisationDetails.withPillar2Id("TEST123")
+  private val organisationWithId = organisation.withPillar2Id("TEST123")
 
   "insert" should {
     "successfully insert a new organisation" in {
@@ -90,7 +91,10 @@ class OrganisationRepositorySpec
 
     "fail to insert a duplicate pillar2Id" in {
       repository.insert(organisationWithId).futureValue shouldBe true
-      repository.insert(organisationWithId).futureValue shouldBe false
+
+      whenReady(repository.insert(organisationWithId).failed) { exception =>
+        exception shouldBe a[DatabaseError]
+      }
     }
   }
 
@@ -109,10 +113,10 @@ class OrganisationRepositorySpec
     "update an existing organisation" in {
       repository.insert(organisationWithId).futureValue shouldBe true
 
-      val updatedDetails = organisationDetails.copy(
+      val updatedOrganisation = organisation.copy(
         orgDetails = orgDetails.copy(organisationName = "Updated Org")
       )
-      val updatedWithId = updatedDetails.withPillar2Id("TEST123")
+      val updatedWithId = updatedOrganisation.withPillar2Id("TEST123")
 
       repository.update(updatedWithId).futureValue shouldBe true
 
