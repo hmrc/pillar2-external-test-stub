@@ -127,8 +127,7 @@ curl -X POST "http://localhost:10055/pillar2/test/organisation/XEPLR1234567890" 
   },
   "accountingPeriod": {
     "startDate": "2024-01-01",
-    "endDate": "2024-12-31",
-    "dueDate": "2024-04-06"
+    "endDate": "2024-12-31"
   }
 }'
 ```
