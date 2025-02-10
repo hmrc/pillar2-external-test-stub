@@ -43,7 +43,7 @@ class OrganisationController @Inject() (
       request.body
         .validate[TestOrganisationRequest]
         .fold(
-          invalid = _ => Future.failed(InvalidJson),
+          _ => Future.failed(InvalidJson),
           valid = requestDetails => {
             val details = TestOrganisation.fromRequest(requestDetails)
             organisationService.createOrganisation(pillar2Id, details).map { created =>
@@ -64,7 +64,7 @@ class OrganisationController @Inject() (
     request.body
       .validate[TestOrganisationRequest]
       .fold(
-        invalid = _ => Future.failed(InvalidJson),
+        _ => Future.failed(InvalidJson),
         valid = requestDetails => {
           val details = TestOrganisation.fromRequest(requestDetails)
           organisationService.updateOrganisation(pillar2Id, details).map { updated =>
