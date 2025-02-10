@@ -32,7 +32,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onClientError(dummyRequest, BAD_REQUEST, "Bad Request Message")
       status(result) shouldBe BAD_REQUEST
       val json = contentAsJson(result)
-      (json \ "code").as[String] shouldBe "400"
+      (json \ "code").as[String]    shouldBe "400"
       (json \ "message").as[String] shouldBe "Bad Request Message"
     }
 
@@ -40,7 +40,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, InvalidJson)
       status(result) shouldBe BAD_REQUEST
       val json = contentAsJson(result)
-      (json \ "code").as[String] shouldBe "INVALID_JSON"
+      (json \ "code").as[String]    shouldBe "INVALID_JSON"
       (json \ "message").as[String] shouldBe "Invalid JSON payload provided"
     }
 
@@ -48,7 +48,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, EmptyRequestBody)
       status(result) shouldBe BAD_REQUEST
       val json = contentAsJson(result)
-      (json \ "code").as[String] shouldBe "EMPTY_REQUEST_BODY"
+      (json \ "code").as[String]    shouldBe "EMPTY_REQUEST_BODY"
       (json \ "message").as[String] shouldBe "Empty request body provided"
     }
 
@@ -56,7 +56,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, OrganisationAlreadyExists("TEST123"))
       status(result) shouldBe CONFLICT
       val json = contentAsJson(result)
-      (json \ "code").as[String] shouldBe "ORGANISATION_EXISTS"
+      (json \ "code").as[String]    shouldBe "ORGANISATION_EXISTS"
       (json \ "message").as[String] shouldBe "Organisation with pillar2Id: TEST123 already exists"
     }
 
@@ -64,7 +64,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, OrganisationNotFound("TEST123"))
       status(result) shouldBe NOT_FOUND
       val json = contentAsJson(result)
-      (json \ "code").as[String] shouldBe "ORGANISATION_NOT_FOUND"
+      (json \ "code").as[String]    shouldBe "ORGANISATION_NOT_FOUND"
       (json \ "message").as[String] shouldBe "No organisation found with pillar2Id: TEST123"
     }
 
@@ -72,7 +72,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, DatabaseError("Connection failed"))
       status(result) shouldBe INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
-      (json \ "code").as[String] shouldBe "DATABASE_ERROR"
+      (json \ "code").as[String]    shouldBe "DATABASE_ERROR"
       (json \ "message").as[String] shouldBe "Database operation failed: Connection failed"
     }
 
@@ -80,8 +80,8 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, new RuntimeException("Unexpected error"))
       status(result) shouldBe INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
-      (json \ "code").as[String] shouldBe "500"
+      (json \ "code").as[String]    shouldBe "500"
       (json \ "message").as[String] shouldBe "Internal Server Error"
     }
   }
-} 
+}
