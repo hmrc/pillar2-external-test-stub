@@ -24,15 +24,17 @@ import org.scalatest.BeforeAndAfterEach
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
-import play.api.libs.ws.WSClient
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.StringContextOps
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
+import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext
-import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
-
 
 class OrganisationISpec
     extends AnyWordSpec
@@ -45,10 +47,11 @@ class OrganisationISpec
 
   override protected val databaseName: String = "test-organisation-integration"
 
-  private val wsClient = app.injector.instanceOf[WSClient]
+  private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl  = s"http://localhost:$port"
   override protected val repository = app.injector.instanceOf[OrganisationRepository]
-  implicit val ec: ExecutionContext   = app.injector.instanceOf[ExecutionContext]
+  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -78,38 +81,35 @@ class OrganisationISpec
   // For simplicity, we use a fixed pillar2Id.
   private val pillar2Id = "XEPLR1234567890"
 
-  // Common JSON headers for HTTP requests.
-  private def jsonHeaders = Seq("Content-Type" -> "application/json")
-
   // Helper method to extract organisation name from a JSON response.
   private def extractOrganisationName(json: JsValue): String =
     (json \ "organisation" \ "orgDetails" \ "organisationName").as[String]
 
   // Helper methods for CRUD operations.
-  private def createOrganisation(id: String, request: TestOrganisationRequest) =
-    wsClient
-      .url(s"$baseUrl/pillar2/test/organisation/$id")
-      .withHttpHeaders(jsonHeaders: _*)
-      .post(Json.toJson(request))
+  private def createOrganisation(id: String, request: TestOrganisationRequest): HttpResponse =
+    httpClient
+      .post(url"$baseUrl/pillar2/test/organisation/$id")
+      .withBody(Json.toJson(request))
+      .execute[HttpResponse]
       .futureValue
 
-  private def getOrganisation(id: String) =
-    wsClient
-      .url(s"$baseUrl/pillar2/test/organisation/$id")
-      .get()
+  private def getOrganisation(id: String): HttpResponse =
+    httpClient
+      .get(url"$baseUrl/pillar2/test/organisation/$id")
+      .execute[HttpResponse]
       .futureValue
 
-  private def updateOrganisation(id: String, request: TestOrganisationRequest) =
-    wsClient
-      .url(s"$baseUrl/pillar2/test/organisation/$id")
-      .withHttpHeaders(jsonHeaders: _*)
-      .put(Json.toJson(request))
+  private def updateOrganisation(id: String, request: TestOrganisationRequest): HttpResponse =
+    httpClient
+      .put(url"$baseUrl/pillar2/test/organisation/$id")
+      .withBody(Json.toJson(request))
+      .execute[HttpResponse]
       .futureValue
 
-  private def deleteOrganisation(id: String) =
-    wsClient
-      .url(s"$baseUrl/pillar2/test/organisation/$id")
-      .delete()
+  private def deleteOrganisation(id: String): HttpResponse =
+    httpClient
+      .delete(url"$baseUrl/pillar2/test/organisation/$id")
+      .execute[HttpResponse]
       .futureValue
 
   // Ensure the repository is clean before every test.
@@ -127,7 +127,7 @@ class OrganisationISpec
         // Create an organisation.
         val createResponse = createOrganisation(pillar2Id, testOrganisationRequest)
         createResponse.status shouldBe 201
-        extractOrganisationName(createResponse.json) shouldBe "Test Integration Org"
+        extractOrganisationName(Json.parse(createResponse.body)) shouldBe "Test Integration Org"
 
         // Verify the organisation exists in MongoDB.
         val storedOrg = repository.findByPillar2Id(pillar2Id).futureValue
@@ -137,7 +137,7 @@ class OrganisationISpec
         // Retrieve the organisation.
         val getResponse = getOrganisation(pillar2Id)
         getResponse.status shouldBe 200
-        extractOrganisationName(getResponse.json) shouldBe "Test Integration Org"
+        extractOrganisationName(Json.parse(getResponse.body)) shouldBe "Test Integration Org"
 
         // Update organisation (change organisation name).
         val updatedRequest = testOrganisationRequest.copy(
@@ -146,12 +146,12 @@ class OrganisationISpec
         // Update the organisation.
         val updateResponse = updateOrganisation(pillar2Id, updatedRequest)
         updateResponse.status shouldBe 200
-        extractOrganisationName(updateResponse.json) shouldBe "Updated Integration Org"
+        extractOrganisationName(Json.parse(updateResponse.body)) shouldBe "Updated Integration Org"
 
         // Retrieve the updated organisation.
         val getUpdatedResponse = getOrganisation(pillar2Id)
         getUpdatedResponse.status shouldBe 200
-        extractOrganisationName(getUpdatedResponse.json) shouldBe "Updated Integration Org"
+        extractOrganisationName(Json.parse(getUpdatedResponse.body)) shouldBe "Updated Integration Org"
 
         // Delete the organisation.
         val deleteResponse = deleteOrganisation(pillar2Id)
@@ -167,21 +167,21 @@ class OrganisationISpec
       "return 404 when retrieving a non-existent organisation" in {
         val response = getOrganisation("NONEXISTENT")
         response.status shouldBe 404
-        val error = response.json.as[StubErrorResponse]
+        val error = Json.parse(response.body).as[StubErrorResponse]
         error.code shouldBe "ORGANISATION_NOT_FOUND"
       }
 
       "return 404 when updating a non-existent organisation" in {
         val response = updateOrganisation("NONEXISTENT", testOrganisationRequest)
         response.status shouldBe 404
-        val error = response.json.as[StubErrorResponse]
+        val error = Json.parse(response.body).as[StubErrorResponse]
         error.code shouldBe "ORGANISATION_NOT_FOUND"
       }
 
       "return 404 when deleting a non-existent organisation" in {
         val response = deleteOrganisation("NONEXISTENT")
         response.status shouldBe 404
-        val error = response.json.as[StubErrorResponse]
+        val error = Json.parse(response.body).as[StubErrorResponse]
         error.code shouldBe "ORGANISATION_NOT_FOUND"
       }
     }
@@ -198,24 +198,24 @@ class OrganisationISpec
         duplicateResponse.status shouldBe 409
 
         // Verify duplicate error details.
-        val error = duplicateResponse.json.as[StubErrorResponse]
+        val error = Json.parse(duplicateResponse.body).as[StubErrorResponse]
         error.code shouldBe "ORGANISATION_EXISTS"
         error.message shouldBe s"Organisation with pillar2Id: $pillar2Id already exists"
       }
 
       "return 400 for invalid JSON payload on creation" in {
         // Create an invalid JSON payload.
-        val invalidJson: JsValue = Json.obj("invalid" -> "request")
+        val invalidJson = Json.obj("invalid" -> "request")
         // POST the invalid payload.
-        val response = wsClient
-          .url(s"$baseUrl/pillar2/test/organisation/$pillar2Id")
-          .withHttpHeaders(jsonHeaders: _*)
-          .post(invalidJson)
+        val response = httpClient
+          .post(url"$baseUrl/pillar2/test/organisation/$pillar2Id")
+          .withBody(invalidJson)
+          .execute[HttpResponse]
           .futureValue
 
         // Check the error response.
         response.status shouldBe 400
-        val error = response.json.as[StubErrorResponse]
+        val error = Json.parse(response.body).as[StubErrorResponse]
         error.code shouldBe "INVALID_JSON"
       }
     }
