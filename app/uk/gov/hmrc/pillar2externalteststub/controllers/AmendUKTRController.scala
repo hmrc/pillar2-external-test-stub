@@ -25,7 +25,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, SubscriptionNotFound, TaxObligationFulfilled}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, SubscriptionNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSimpleError.{InvalidJsonError, SAPError}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
@@ -51,9 +51,7 @@ class AmendUKTRController @Inject() (
         Future.successful(UnprocessableEntity(Json.toJson(MissingPLRReference)))
       case Some(plrReference) =>
         plrReference match {
-          case TaxObligationMetPlrId => Future.successful(UnprocessableEntity(Json.toJson(TaxObligationFulfilled)))
-          case ServerErrorPlrId      => Future.successful(InternalServerError(Json.toJson(SAPError)))
-          case BadRequestPlrId       => Future.successful(BadRequest(Json.toJson(InvalidJsonError())))
+          case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
           case _ =>
             retrieveSubscription(plrReference)._2 match {
               case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
