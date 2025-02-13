@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{any, argThat}
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
@@ -32,7 +32,7 @@ import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn, UKTRSubmission}
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
 import java.time._
@@ -62,7 +62,8 @@ class AmendUKTRControllerSpec
   override def beforeEach(): Unit = reset(mockRepository)
 
   "return OK with success response for a valid uktr amendment" in {
-    when(mockRepository.update(any[UKTRLiabilityReturn], any[String])).thenReturn(Future.successful(Right(true)))
+    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
+      .thenReturn(Future.successful(Right(true)))
 
     val request = createRequest(PlrId, Json.toJson(validRequestBody))
 
@@ -75,7 +76,8 @@ class AmendUKTRControllerSpec
   }
 
   "return UNPROCESSABLE_ENTITY when amendment to a liability return that does not exist" in {
-    when(mockRepository.update(any[UKTRLiabilityReturn], any[String])).thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
+    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
+      .thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
 
     val request = createRequest(PlrId, Json.toJson(validRequestBody))
 
@@ -87,7 +89,8 @@ class AmendUKTRControllerSpec
   }
 
   "return OK with success response for a valid NIL_RETURN amendment" in {
-    when(mockRepository.update(any[UKTRNilReturn], any[String])).thenReturn(Future.successful(Right(true)))
+    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
+      .thenReturn(Future.successful(Right(true)))
 
     val request = createRequest(PlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
@@ -99,7 +102,8 @@ class AmendUKTRControllerSpec
   }
 
   "return UNPROCESSABLE_ENTITY when amendment to a nil return that does not exist" in {
-    when(mockRepository.update(any[UKTRNilReturn], any[String])).thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
+    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
+      .thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
 
     val request = createRequest(PlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
