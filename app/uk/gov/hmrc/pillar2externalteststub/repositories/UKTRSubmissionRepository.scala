@@ -17,6 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import cats.implicits.toTraverseOps
+import org.mongodb.scala.bson.ObjectId
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Indexes.descending
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
@@ -29,7 +30,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.Request
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
 
 import java.time.Instant
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -42,10 +42,6 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       domainFormat = implicitly[Format[JsObject]],
       indexes = Seq(
         IndexModel(
-          Indexes.ascending("pillar2Id"),
-          IndexOptions().name("pillar2IdIndex").unique(false)
-        ),
-        IndexModel(
           Indexes.ascending("createdAt"),
           IndexOptions()
             .name("createdAtTTL")
@@ -56,7 +52,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
 
   def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] = {
     val document = Json.obj(
-      "_id"         -> UUID.randomUUID(),
+      "_id"         -> new ObjectId().toString,
       "pillar2Id"   -> pillar2Id,
       "isAmendment" -> isAmendment,
       "data"        -> Json.toJson(submission).as[JsObject],

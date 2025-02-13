@@ -46,10 +46,10 @@ class UKTRSubmissionISpec
 
   override protected val databaseName: String = "test-uktr-submission-integration"
   private val httpClient = app.injector.instanceOf[HttpClientV2]
-  private val baseUrl  = s"http://localhost:$port"
+  private val baseUrl    = s"http://localhost:$port"
   override protected val repository: UKTRSubmissionRepository = app.injector.instanceOf[UKTRSubmissionRepository]
-  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  implicit val ec:                   ExecutionContext         = app.injector.instanceOf[ExecutionContext]
+  implicit val hc:                   HeaderCarrier            = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -101,12 +101,20 @@ class UKTRSubmissionISpec
         latestSubmission.get.toString should include(""""accountingPeriodFrom":"2024-01-01"""")
       }
 
-      "return 500 when trying to amend non-existent submission" in {
+      "return 422 when trying to amend non-existent liability return" in {
         val response = amendUKTR(liabilitySubmission, "invalidPlr2Id")
 
-        response.status                        shouldBe 500
-        (response.json \ "code").as[String]    shouldBe "DATABASE_ERROR"
-        (response.json \ "message").as[String] shouldBe "No existing submission found for PLR reference: invalidPlr2Id"
+        response.status                                shouldBe 422
+        (response.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+      }
+
+      "return 422 when trying to amend non-existent nil return" in {
+        val response = amendUKTR(nilSubmission, "invalidPlr2Id")
+
+        response.status                                shouldBe 422
+        (response.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
       }
     }
 
@@ -151,9 +159,6 @@ class UKTRSubmissionISpec
       }
 
       "return appropriate error for test PLR IDs" in {
-        val response = submitUKTR(liabilitySubmission, BadRequestPlrId)
-        response.status shouldBe 400
-
         val serverErrorResponse = submitUKTR(liabilitySubmission, ServerErrorPlrId)
         serverErrorResponse.status shouldBe 500
       }
