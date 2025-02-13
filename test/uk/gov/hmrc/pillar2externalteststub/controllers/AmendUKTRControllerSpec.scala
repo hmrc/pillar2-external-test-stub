@@ -16,7 +16,11 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import org.scalatest.OptionValues
+import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -25,7 +29,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 
 import java.time._
 
-class AmendUKTRControllerSpec extends UKTRDataFixture {
+class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture {
 
   private def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)

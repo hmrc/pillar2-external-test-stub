@@ -96,7 +96,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
       whenReady(service.createOrganisation(pillar2Id, organisationDetails).failed) { exception =>
         exception                                     shouldBe a[DatabaseError]
         exception.asInstanceOf[DatabaseError].code    shouldBe "DATABASE_ERROR"
-        exception.asInstanceOf[DatabaseError].message shouldBe "Database operation failed: Failed to create organisation: Database connection failed"
+        exception.asInstanceOf[DatabaseError].message shouldBe "Failed to create organisation: Database connection failed"
       }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).insert(organisationWithId)
@@ -132,7 +132,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
       whenReady(service.getOrganisation(pillar2Id).failed) { exception =>
         exception                                     shouldBe a[DatabaseError]
         exception.asInstanceOf[DatabaseError].code    shouldBe "DATABASE_ERROR"
-        exception.asInstanceOf[DatabaseError].message shouldBe "Database operation failed: Failed to find organisation: Database connection failed"
+        exception.asInstanceOf[DatabaseError].message shouldBe "Failed to find organisation: Database connection failed"
       }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
     }
@@ -160,7 +160,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
       whenReady(service.updateOrganisation(pillar2Id, organisationDetails).failed) { exception =>
         exception                                     shouldBe a[DatabaseError]
         exception.asInstanceOf[DatabaseError].code    shouldBe "DATABASE_ERROR"
-        exception.asInstanceOf[DatabaseError].message shouldBe "Database operation failed: Failed to update organisation: Database connection failed"
+        exception.asInstanceOf[DatabaseError].message shouldBe "Failed to update organisation: Database connection failed"
       }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).update(organisationWithId)
@@ -214,7 +214,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
       whenReady(service.deleteOrganisation(pillar2Id).failed) { exception =>
         exception                                     shouldBe a[DatabaseError]
         exception.asInstanceOf[DatabaseError].code    shouldBe "DATABASE_ERROR"
-        exception.asInstanceOf[DatabaseError].message shouldBe "Database operation failed: Failed to delete organisation: Database connection failed"
+        exception.asInstanceOf[DatabaseError].message shouldBe "Failed to delete organisation: Database connection failed"
       }
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).delete(pillar2Id)

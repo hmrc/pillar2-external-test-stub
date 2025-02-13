@@ -25,9 +25,10 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, SubscriptionNotFound, TaxObligationFulfilled}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, SubscriptionNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSimpleError.{InvalidJsonError, SAPError}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.validation.syntax.ValidateOps
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -37,7 +38,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class SubmitUKTRController @Inject() (
   cc:          ControllerComponents,
-  authFilter:  AuthActionFilter
+  authFilter:  AuthActionFilter,
+  repository:  UKTRSubmissionRepository
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
@@ -49,9 +51,7 @@ class SubmitUKTRController @Inject() (
         Future.successful(UnprocessableEntity(Json.toJson(MissingPLRReference)))
       case Some(plrReference) =>
         plrReference match {
-          case UnprocessableEntityPlrId => Future.successful(UnprocessableEntity(Json.toJson(TaxObligationFulfilled)))
-          case ServerErrorPlrId         => Future.successful(InternalServerError(Json.toJson(SAPError)))
-          case BadRequestPlrId          => Future.successful(BadRequest(Json.toJson(InvalidJsonError())))
+          case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
           case _ =>
             retrieveSubscription(plrReference)._2 match {
               case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
@@ -66,12 +66,12 @@ class SubmitUKTRController @Inject() (
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
         Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => Future.successful(Created(Json.toJson(successfulUKTRResponse)))
+          case Right(_)     => repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(successfulUKTRResponse)))
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => Future.successful(Created(Json.toJson(successfulNilReturnResponse)))
+          case Right(_)     => repository.insert(nilReturnRequest, plrReference).map(_ => Created(Json.toJson(successfulNilReturnResponse)))
         }
       case JsError(errors) =>
         val errorMessage = errors

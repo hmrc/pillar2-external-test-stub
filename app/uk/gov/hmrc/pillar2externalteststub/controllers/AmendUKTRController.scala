@@ -28,6 +28,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successf
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, SubscriptionNotFound, TaxObligationFulfilled}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSimpleError.{InvalidJsonError, SAPError}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.validation.syntax.ValidateOps
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -37,7 +38,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class AmendUKTRController @Inject() (
   cc:          ControllerComponents,
-  authFilter:  AuthActionFilter
+  authFilter:  AuthActionFilter,
+  repository:  UKTRSubmissionRepository
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
@@ -66,12 +68,20 @@ class AmendUKTRController @Inject() (
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
         Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => Future.successful(Ok(Json.toJson(successfulUKTRResponse)))
+          case Right(_) =>
+            repository.update(uktrRequest, plrReference).map {
+              case Right(_)    => Ok(Json.toJson(successfulUKTRResponse))
+              case Left(error) => UnprocessableEntity(Json.toJson(error))
+            }
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => Future.successful(Ok(Json.toJson(successfulNilReturnResponse)))
+          case Right(_) =>
+            repository.update(nilReturnRequest, plrReference).map {
+              case Right(_)    => Ok(Json.toJson(successfulNilReturnResponse))
+              case Left(error) => UnprocessableEntity(Json.toJson(error))
+            }
         }
       case JsError(errors) =>
         val errorMessage = errors

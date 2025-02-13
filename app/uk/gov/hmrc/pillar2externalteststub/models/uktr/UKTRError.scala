@@ -74,6 +74,15 @@ object UKTRDetailedError {
         text = "Pillar 2 ID missing or invalid"
       )
     )
+
+  def RequestCouldNotBeProcessed: DetailedErrorResponse =
+    DetailedErrorResponse(
+      UKTRDetailedError(
+        processingDate = nowZonedDateTime,
+        code = REQUEST_COULD_NOT_BE_PROCESSED_003,
+        text = "Request could not be processed"
+      )
+    )
 }
 
 object UKTRErrorCodes {
