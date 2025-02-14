@@ -47,8 +47,8 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
         status(result) shouldBe FORBIDDEN
       }
 
-      "must return NOT_FOUND for plrReference 'XEPLR0123456404' with SUBSCRIPTION_NOT_FOUND" in {
-        val result = route(app, authorizedRequest("XEPLR0123456404")).value
+      "must return NOT_FOUND for plrReference 'XEPLR5555555554' with SUBSCRIPTION_NOT_FOUND" in {
+        val result = route(app, authorizedRequest("XEPLR5555555554")).value
         status(result)        shouldBe NOT_FOUND
         contentAsJson(result) shouldBe Json.toJson(NotFoundSubscription.response)
       }
@@ -65,22 +65,16 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
         contentAsJson(result) shouldBe Json.toJson(ServiceUnavailable503.response)
       }
 
-      "must return OK with detailed success response for domesticOnly=true for plrReference 'XEPLR5555555555'" in {
-        val result = route(app, authorizedRequest("XEPLR5555555555")).value
-        status(result)        shouldBe OK
-        contentAsJson(result) shouldBe Json.toJson(SubscriptionSuccessResponse.successfulDomesticOnlyResponse)
-      }
-
       "must return OK with detailed success response for domesticOnly=false for plrReference 'XEPLR1234567890'" in {
         val result = route(app, authorizedRequest("XEPLR1234567890")).value
         status(result)        shouldBe OK
         contentAsJson(result) shouldBe Json.toJson(SubscriptionSuccessResponse.successfulNonDomesticResponse)
       }
 
-      "must return NOT_FOUND for any other plrReference not explicitly handled" in {
+      "must return OK with detailed success response for domesticOnly=true for any other plrReference" in {
         val result = route(app, authorizedRequest("XEPLR9876543210")).value
-        status(result)        shouldBe NOT_FOUND
-        contentAsJson(result) shouldBe Json.toJson(NotFoundSubscription.response)
+        status(result)        shouldBe OK
+        contentAsJson(result) shouldBe Json.toJson(SubscriptionSuccessResponse.successfulDomesticOnlyResponse)
       }
     }
   }

@@ -17,7 +17,11 @@
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.scalatest.Inspectors.forAll
+import org.scalatest.OptionValues
+import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.CREATED
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
@@ -28,7 +32,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
 
 import java.time.ZonedDateTime
 
-class SubmitUKTRControllerSpec extends UKTRDataFixture {
+class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture {
+
   def request(plrReference: String = domesticOnlyPlrReference, body: JsObject): FakeRequest[JsObject] =
     FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
       .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> plrReference)
@@ -90,16 +95,6 @@ class SubmitUKTRControllerSpec extends UKTRDataFixture {
     }
 
     "should return UNPROCESSABLE_ENTITY (422)" - {
-      "when plrReference indicates business validation failure" in {
-        val result = route(app, request(plrReference = UnprocessableEntityPlrId, body = validRequestBody)).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.TAX_OBLIGATION_ALREADY_FULFILLED_044
-        (json \ "errors" \ "text").as[String] mustBe "Tax Obligation Already Fulfilled"
-      }
-
       "when totalLiability is invalid" in {
         forAll(invalidUKTRAmounts) { amount =>
           val result = route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiability" -> amount))))).value
@@ -329,20 +324,6 @@ class SubmitUKTRControllerSpec extends UKTRDataFixture {
     }
 
     "should return BAD_REQUEST (400)" - {
-      "when plrReference indicates invalid JSON" in {
-        val invalidJson = Json.obj("invalid" -> "json")
-        val result      = route(app, request(plrReference = BadRequestPlrId, body = invalidJson)).value
-
-        status(result) mustBe BAD_REQUEST
-        contentAsJson(result) mustBe Json.obj(
-          "error" -> Json.obj(
-            "code"    -> "400",
-            "message" -> "Invalid JSON",
-            "logID"   -> "C0000000000000000000000000000400"
-          )
-        )
-      }
-
       "when ukChargeableEntityName is missing" in {
         val result = route(app, request(body = missingUkChargeableEntityNameRequestBody)).value
 

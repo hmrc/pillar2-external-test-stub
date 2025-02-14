@@ -31,8 +31,8 @@ object SubscriptionHelper {
     plrReference match {
       case "XEPLR0123456500" => (InternalServerError, ServerError500.response)
       case "XEPLR0123456503" => (ServiceUnavailable, ServiceUnavailable503.response)
-      case "XEPLR5555555555" => (Ok, successfulDomesticOnlyResponse)
+      case "XEPLR5555555554" => (NotFound, NotFoundSubscription.response)
       case "XEPLR1234567890" => (Ok, successfulNonDomesticResponse)
-      case _                 => (NotFound, NotFoundSubscription.response)
+      case _                 => (Ok, successfulDomesticOnlyResponse)
     }
 }

@@ -44,5 +44,5 @@ case class OrganisationNotFound(pillar2Id: String) extends StubError {
 
 case class DatabaseError(error: String) extends StubError {
   override val code:    String = "DATABASE_ERROR"
-  override val message: String = s"Database operation failed: $error"
+  override val message: String = error
 }

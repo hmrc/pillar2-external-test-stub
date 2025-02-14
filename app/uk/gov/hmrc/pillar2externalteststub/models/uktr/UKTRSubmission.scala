@@ -37,12 +37,20 @@ trait UKTRSubmission {
 
 object UKTRSubmission {
 
-  implicit val uktrSubmissionReads: Reads[UKTRSubmission] = (json: JsValue) =>
-    if ((json \ "liabilities" \ "returnType").isEmpty) {
-      json.validate[UKTRLiabilityReturn]
-    } else {
-      json.validate[UKTRNilReturn]
+  implicit val formatUKTRSubmission: Format[UKTRSubmission] = new Format[UKTRSubmission] {
+    override def reads(json: JsValue): JsResult[UKTRSubmission] =
+      if ((json \ "liabilities" \ "returnType").isDefined) {
+        Json.fromJson[UKTRNilReturn](json)
+      } else {
+        Json.fromJson[UKTRLiabilityReturn](json)
+      }
+
+    override def writes(o: UKTRSubmission): JsValue = o match {
+      case nil:       UKTRNilReturn       => Json.toJson(nil)(Json.format[UKTRNilReturn])
+      case liability: UKTRLiabilityReturn => Json.toJson(liability)(Json.format[UKTRLiabilityReturn])
+      case _ => throw new IllegalStateException("Unknown UKTRSubmission type")
     }
+  }
 }
 
 case class UKTRSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
