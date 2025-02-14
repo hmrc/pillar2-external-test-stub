@@ -94,6 +94,88 @@ Response Codes and Conditions:
 | XEPLR0000000500 | 500 Internal Server Error | SAP system failure: ...                        |
 | Any other       | (validation-dependent)    | (validation-dependent)                         |
 
+### 5. Organisation Management
+
+Endpoints for managing test organisation data:
+
+| Method | Endpoint                            | Description                                    | Response Codes |
+|:-------|-------------------------------------|------------------------------------------------|---------------|
+| POST   | /pillar2/test/organisation/:pillar2Id    | Create a new organisation                      | 201, 400, 409, 500 |
+| GET    | /pillar2/test/organisation/:pillar2Id    | Retrieve organisation details                  | 200, 404 |
+| PUT    | /pillar2/test/organisation/:pillar2Id    | Update existing organisation                   | 200, 400, 404, 500 |
+| DELETE | /pillar2/test/organisation/:pillar2Id    | Delete organisation                            | 204, 404, 500 |
+
+#### Response Status Codes:
+- 201: Organisation created successfully
+- 200: Request completed successfully
+- 204: Organisation deleted successfully
+- 400: Invalid request (missing/invalid fields)
+- 404: Organisation not found
+- 409: Organisation already exists
+- 500: Internal server error
+
+#### Error Responses
+All error responses follow a standard format:
+```json
+{
+  "code": "ERROR_CODE",
+  "message": "Human readable error message"
+}
+```
+
+Error Codes:
+- `INVALID_JSON`: Invalid JSON payload provided
+- `EMPTY_REQUEST_BODY`: Empty request body provided
+- `ORGANISATION_EXISTS`: Organisation with given pillar2Id already exists
+- `ORGANISATION_NOT_FOUND`: No organisation found with given pillar2Id
+- `DATABASE_ERROR`: Database operation failed
+
+#### Example Requests
+
+##### Create Organisation
+```bash
+curl -X POST "http://localhost:10055/pillar2/test/organisation/XEPLR1234567890" \
+-H "Authorization: Bearer valid_token" \
+-H "Content-Type: application/json" \
+-d '{
+  "orgDetails": {
+    "domesticOnly": false,
+    "organisationName": "Test Organisation Ltd",
+    "registrationDate": "2024-01-01"
+  },
+  "accountingPeriod": {
+    "startDate": "2024-01-01",
+    "endDate": "2024-12-31"
+  }
+}'
+```
+
+Success Response (201 Created):
+```json
+{
+  "pillar2Id": "XEPLR1234567890",
+  "organisation": {
+    "orgDetails": {
+      "domesticOnly": false,
+      "organisationName": "Test Organisation Ltd",
+      "registrationDate": "2024-01-01"
+    },
+    "accountingPeriod": {
+      "startDate": "2024-01-01",
+      "endDate": "2024-12-31"
+    },
+    "lastUpdated": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+Error Response Example (409 Conflict):
+```json
+{
+  "code": "ORGANISATION_EXISTS",
+  "message": "Organisation with pillar2Id: XEPLR1234567890 already exists"
+}
+```
 
 ## Example Requests
 
@@ -139,17 +221,15 @@ curl -X POST "http://localhost:10055/RESTAdapter/PLR/UKTaxReturn" \
 }'
 ```
 
-
 ### Submit Below Threshold Notification (BTN) Request Example
 ```bash
 curl -X POST "http://localhost:10055/RESTAdapter/PLR/below-threshold-notification" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json" \
--H "X-Pillar2-Id: XEPLR0000000201" 
+-H "X-Pillar2-Id: XEPLR0000000201" \
 -d '{
   "accountingPeriodFrom": "2024-08-14",
   "accountingPeriodTo": "2024-12-14"
-  }
 }'
 ```
 
