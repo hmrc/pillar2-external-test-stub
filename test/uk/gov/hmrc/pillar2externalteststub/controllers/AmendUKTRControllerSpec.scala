@@ -75,6 +75,29 @@ class AmendUKTRControllerSpec
     (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
   }
 
+  "return UNPROCESSABLE_ENTITY when X-Pillar2-Id header is missing" in {
+    val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
+      .withHeaders("Content-Type" -> "application/json", authHeader)
+      .withBody(Json.toJson(validRequestBody))
+
+    val result = route(app, request).value
+    status(result) mustBe UNPROCESSABLE_ENTITY
+    val jsonResult = contentAsJson(result)
+    (jsonResult \ "errors" \ "code").as[String] mustEqual "002"
+    (jsonResult \ "errors" \ "text").as[String] mustEqual "Pillar 2 ID missing or invalid"
+  }
+
+  "return UNPROCESSABLE_ENTITY when subscription is not found for the given PLR reference" in {
+    val nonExistentPlrId = "XEPLR5555555554"
+    val request          = createRequest(nonExistentPlrId, Json.toJson(validRequestBody))
+
+    val result = route(app, request).value
+    status(result) mustBe UNPROCESSABLE_ENTITY
+    val jsonResult = contentAsJson(result)
+    (jsonResult \ "errors" \ "code").as[String] mustEqual "007"
+    (jsonResult \ "errors" \ "text").as[String] mustEqual "Unable to fetch subscription for pillar2 ID: XEPLR5555555554"
+  }
+
   "return UNPROCESSABLE_ENTITY when amendment to a liability return that does not exist" in {
     when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
       .thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
