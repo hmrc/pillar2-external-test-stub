@@ -17,7 +17,6 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.bson.conversions.Bson
-import org.mongodb.scala.model.IndexModel
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent

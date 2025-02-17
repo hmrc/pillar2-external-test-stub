@@ -73,7 +73,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
       (json \ "code").as[String]    shouldBe "DATABASE_ERROR"
-      (json \ "message").as[String] shouldBe "Database operation failed: Connection failed"
+      (json \ "message").as[String] shouldBe "Connection failed"
     }
 
     "handle unknown errors" in {

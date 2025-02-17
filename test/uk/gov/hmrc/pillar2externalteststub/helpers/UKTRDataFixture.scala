@@ -16,17 +16,16 @@
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
-import org.scalatest.OptionValues
-import org.scalatest.freespec.AnyFreeSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 
-trait UKTRDataFixture extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
+trait UKTRDataFixture {
 
   val authHeader:         (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
   val invalidUKTRAmounts: Seq[BigDecimal]  = Seq(-5, 1e+13, 10.999)
+
+  val pillar2Id = "TEST123"
 
   val validLiableEntity: JsObject = Json.obj(
     "ukChargeableEntityName" -> "New Company",
@@ -98,6 +97,10 @@ trait UKTRDataFixture extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite
         )
       )
   )
+
+  val liabilitySubmission: UKTRSubmission = Json.fromJson[UKTRSubmission](validRequestBody).get
+  val nilSubmission:       UKTRSubmission = Json.fromJson[UKTRSubmission](nilReturnBody(obligationMTT = false, electionUKGAAP = true)).get
+
   val missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody: JsObject = validRequestBody ++ Json.obj(
     "liabilities" -> validRequestBody
       .value("liabilities")
