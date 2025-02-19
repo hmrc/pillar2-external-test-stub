@@ -30,10 +30,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(
     Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
     Test / unmanagedSourceDirectories := (Test / baseDirectory)(base => Seq(base / "test", base / "test-common")).value,
-    Test / unmanagedResourceDirectories := Seq(baseDirectory.value / "test-resources"),
-    tpolecatExcludeOptions ++= Set(
-      ScalacOptions.warnNonUnitStatement
-    )
+    tpolecatExcludeOptions ++= Set(ScalacOptions.warnNonUnitStatement)
   )
   .settings(resolvers += Resolver.jcenterRepo)
 
