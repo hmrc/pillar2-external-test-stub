@@ -31,8 +31,10 @@ import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext
 
 class UKTRSubmissionISpec
@@ -41,7 +43,7 @@ class UKTRSubmissionISpec
     with ScalaFutures
     with IntegrationPatience
     with GuiceOneServerPerSuite
-    with DefaultPlayMongoRepositorySupport[JsObject]
+    with DefaultPlayMongoRepositorySupport[UKTRMongoSubmission]
     with UKTRDataFixture {
 
   override protected val databaseName: String = "test-uktr-submission-integration"
@@ -97,8 +99,8 @@ class UKTRSubmissionISpec
         val response         = amendUKTR(updatedBody, pillar2Id)
         val latestSubmission = repository.findByPillar2Id(pillar2Id).futureValue
 
-        response.status             shouldBe 200
-        latestSubmission.get.toString should include(""""accountingPeriodFrom":"2024-01-01"""")
+        response.status shouldBe 200
+        latestSubmission.get.data.accountingPeriodFrom shouldEqual LocalDate.of(2024, 1, 1)
       }
 
       "return 422 when trying to amend non-existent liability return" in {
