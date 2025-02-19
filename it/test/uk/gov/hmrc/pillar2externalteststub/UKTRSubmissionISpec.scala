@@ -30,10 +30,13 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{AccountingPeriod, OrgDetails, TestOrganisation, TestOrganisationWithId}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
-import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository, UKTRSubmissionRepository}
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class UKTRSubmissionISpec
     extends AnyWordSpec
@@ -78,6 +81,26 @@ class UKTRSubmissionISpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     repository.collection.drop()
+    // Create test organization
+    val orgRepository = app.injector.instanceOf[OrganisationRepository]
+    // Create index
+    Await.result(orgRepository.collection.createIndex(org.mongodb.scala.model.Indexes.ascending("pillar2Id")).toFuture(), 5.seconds)
+    val testOrg = TestOrganisationWithId(
+      pillar2Id = pillar2Id,
+      organisation = TestOrganisation(
+        orgDetails = OrgDetails(
+          domesticOnly = false,
+          organisationName = "Test Org",
+          registrationDate = liabilitySubmission.accountingPeriodFrom
+        ),
+        accountingPeriod = AccountingPeriod(
+          startDate = liabilitySubmission.accountingPeriodFrom,
+          endDate = liabilitySubmission.accountingPeriodTo
+        ),
+        lastUpdated = java.time.Instant.now()
+      )
+    )
+    orgRepository.insert(testOrg).futureValue shouldBe Right(true)
     ()
   }
 
@@ -88,17 +111,17 @@ class UKTRSubmissionISpec
         response.status shouldBe 201
 
         val submission = repository.findByPillar2Id(pillar2Id).futureValue
-        submission shouldBe defined
+        submission shouldBe Right(Some(Json.toJson(liabilitySubmission).as[JsObject]))
       }
 
       "successfully amend an existing liability return" in {
-        submitUKTR(liabilitySubmission, pillar2Id).status
+        submitUKTR(liabilitySubmission, pillar2Id).status shouldBe 201
         val updatedBody      = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ Json.obj("accountingPeriodFrom" -> "2024-01-01")).get
         val response         = amendUKTR(updatedBody, pillar2Id)
         val latestSubmission = repository.findByPillar2Id(pillar2Id).futureValue
 
-        response.status             shouldBe 200
-        latestSubmission.get.toString should include(""""accountingPeriodFrom":"2024-01-01"""")
+        response.status                                shouldBe 200
+        latestSubmission.map(_.get.toString) shouldBe Right(Some(Json.toJson(updatedBody).toString))
       }
 
       "return 422 when trying to amend non-existent liability return" in {
@@ -106,7 +129,7 @@ class UKTRSubmissionISpec
 
         response.status                                shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Organisation not found"
       }
 
       "return 422 when trying to amend non-existent nil return" in {
@@ -114,7 +137,7 @@ class UKTRSubmissionISpec
 
         response.status                                shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Organisation not found"
       }
     }
 
@@ -124,7 +147,7 @@ class UKTRSubmissionISpec
         response.status shouldBe 201
 
         val submission = repository.findByPillar2Id(pillar2Id).futureValue
-        submission shouldBe defined
+        submission shouldBe Right(Some(Json.toJson(nilSubmission).as[JsObject]))
       }
 
       "successfully amend an existing nil return" in {
@@ -161,6 +184,42 @@ class UKTRSubmissionISpec
       "return appropriate error for test PLR IDs" in {
         val serverErrorResponse = submitUKTR(liabilitySubmission, ServerErrorPlrId)
         serverErrorResponse.status shouldBe 500
+      }
+
+      "return 422 when organization not found" in {
+        val response = amendUKTR(liabilitySubmission, "NONEXISTENT")
+
+        response.status shouldBe 422
+        (response.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Organisation not found"
+      }
+
+      "return 422 when accounting period does not match" in {
+        submitUKTR(liabilitySubmission, pillar2Id).status shouldBe 201
+
+        val mismatchedSubmission = liabilitySubmission match {
+          case lr: UKTRLiabilityReturn => lr.copy(accountingPeriodFrom = lr.accountingPeriodFrom.plusYears(1))
+          case _ => fail("Expected UKTRLiabilityReturn")
+        }
+        val response = amendUKTR(mismatchedSubmission, pillar2Id)
+
+        response.status shouldBe 422
+        (response.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Accounting period does not match registered period"
+      }
+
+      "return 422 when MTT values in domestic-only groups" in {
+        submitUKTR(liabilitySubmission, "DOMESTIC123").status shouldBe 201
+
+        val submissionWithMTT = liabilitySubmission match {
+          case lr: UKTRLiabilityReturn => lr.copy(obligationMTT = true)
+          case _ => fail("Expected UKTRLiabilityReturn")
+        }
+        val response = amendUKTR(submissionWithMTT, "DOMESTIC123")
+
+        response.status shouldBe 422
+        (response.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Domestic only groups cannot have MTT values"
       }
     }
   }

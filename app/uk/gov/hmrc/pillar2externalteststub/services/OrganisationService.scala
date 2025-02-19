@@ -31,10 +31,14 @@ class OrganisationService @Inject() (
   def createOrganisation(pillar2Id: String, details: TestOrganisation): Future[TestOrganisationWithId] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)
     repository.findByPillar2Id(pillar2Id).flatMap {
-      case Some(_) =>
+      case Right(Some(_)) =>
         Future.failed(OrganisationAlreadyExists(pillar2Id))
-      case None =>
-        repository.insert(organisationWithId).map(_ => organisationWithId)
+      case Right(None) =>
+        repository.insert(organisationWithId).flatMap {
+          case Right(_)    => Future.successful(organisationWithId)
+          case Left(error) => Future.failed(error)
+        }
+      case Left(error) => Future.failed(error)
     }
   }
 
@@ -42,25 +46,34 @@ class OrganisationService @Inject() (
     repository
       .findByPillar2Id(pillar2Id)
       .flatMap {
-        case Some(org) => Future.successful(org)
-        case None      => Future.failed(OrganisationNotFound(pillar2Id))
+        case Right(Some(org)) => Future.successful(org)
+        case Right(None)      => Future.failed(OrganisationNotFound(pillar2Id))
+        case Left(error)      => Future.failed(error)
       }
 
   def updateOrganisation(pillar2Id: String, organisation: TestOrganisation): Future[TestOrganisationWithId] = {
     val organisationWithId = organisation.withPillar2Id(pillar2Id)
     repository.findByPillar2Id(pillar2Id).flatMap {
-      case None =>
+      case Right(None) =>
         Future.failed(OrganisationNotFound(pillar2Id))
-      case Some(_) =>
-        repository.update(organisationWithId).map(_ => organisationWithId)
+      case Right(Some(_)) =>
+        repository.update(organisationWithId).flatMap {
+          case Right(_)    => Future.successful(organisationWithId)
+          case Left(error) => Future.failed(error)
+        }
+      case Left(error) => Future.failed(error)
     }
   }
 
   def deleteOrganisation(pillar2Id: String): Future[Unit] =
     repository.findByPillar2Id(pillar2Id).flatMap {
-      case None =>
+      case Right(None) =>
         Future.failed(OrganisationNotFound(pillar2Id))
-      case Some(_) =>
-        repository.delete(pillar2Id).map(_ => ())
+      case Right(Some(_)) =>
+        repository.delete(pillar2Id).flatMap {
+          case Right(_)    => Future.successful(())
+          case Left(error) => Future.failed(error)
+        }
+      case Left(error) => Future.failed(error)
     }
 }

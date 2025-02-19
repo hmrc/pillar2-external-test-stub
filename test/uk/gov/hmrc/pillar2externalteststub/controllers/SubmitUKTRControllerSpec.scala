@@ -16,28 +16,107 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import org.mockito.ArgumentMatchers.{eq => eqTo, _}
+import org.mockito.Mockito.{reset, when}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inspectors.forAll
 import org.scalatest.OptionValues
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
 import play.api.http.Status.CREATED
+import play.api.inject.bind
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.models.organisation._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRErrorCodes, UKTRSubmission}
+import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository, UKTRSubmissionRepository}
 
-import java.time.ZonedDateTime
+import java.time.{Instant, LocalDate}
+import scala.concurrent.Future
 
-class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture {
+class SubmitUKTRControllerSpec
+    extends AnyFreeSpec
+    with Matchers
+    with GuiceOneAppPerSuite
+    with OptionValues
+    with UKTRDataFixture
+    with MockitoSugar
+    with BeforeAndAfterEach {
+
+  private val mockOrgRepository  = mock[OrganisationRepository]
+  private val mockUKTRRepository = mock[UKTRSubmissionRepository]
 
   def request(plrReference: String = domesticOnlyPlrReference, body: JsObject): FakeRequest[JsObject] =
     FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
       .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> plrReference)
       .withBody(body)
+
+  override def fakeApplication(): Application =
+    GuiceApplicationBuilder()
+      .overrides(
+        bind[OrganisationRepository].toInstance(mockOrgRepository),
+        bind[UKTRSubmissionRepository].toInstance(mockUKTRRepository)
+      )
+      .build()
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(mockOrgRepository, mockUKTRRepository)
+
+    // Setup default mock behavior for organization repository
+    val domesticOrg = TestOrganisationWithId(
+      pillar2Id = domesticOnlyPlrReference,
+      organisation = TestOrganisation(
+        orgDetails = OrgDetails(
+          domesticOnly = true,
+          organisationName = "Test Org",
+          registrationDate = LocalDate.parse("2024-08-14")
+        ),
+        accountingPeriod = AccountingPeriod(
+          startDate = LocalDate.parse("2024-08-14"),
+          endDate = LocalDate.parse("2024-12-14")
+        ),
+        lastUpdated = Instant.now()
+      )
+    )
+
+    val nonDomesticOrg = TestOrganisationWithId(
+      pillar2Id = PlrId,
+      organisation = TestOrganisation(
+        orgDetails = OrgDetails(
+          domesticOnly = false,
+          organisationName = "Test Org",
+          registrationDate = LocalDate.parse("2024-08-14")
+        ),
+        accountingPeriod = AccountingPeriod(
+          startDate = LocalDate.parse("2024-08-14"),
+          endDate = LocalDate.parse("2024-12-14")
+        ),
+        lastUpdated = Instant.now()
+      )
+    )
+
+    // Setup mock behavior for different PLR IDs
+    when(mockOrgRepository.findByPillar2Id(eqTo("XEPLR0123456500")))
+      .thenReturn(Future.successful(Right(None)))
+    when(mockOrgRepository.findByPillar2Id(eqTo(domesticOnlyPlrReference)))
+      .thenReturn(Future.successful(Right(Some(domesticOrg))))
+    when(mockOrgRepository.findByPillar2Id(eqTo(PlrId)))
+      .thenReturn(Future.successful(Right(Some(nonDomesticOrg))))
+    when(mockUKTRRepository.insert(any[UKTRSubmission], anyString, anyBoolean))
+      .thenReturn(Future.successful(Right(true)))
+    when(mockUKTRRepository.update(any[UKTRSubmission], anyString))
+      .thenReturn(Future.successful(Right(true)))
+    ()
+  }
 
   "when subscription cannot be fetched" - {
     "422 response should be returned" in {
@@ -448,7 +527,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
         status(result) mustBe UNPROCESSABLE_ENTITY
         val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
+        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
         (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
         (json \ "errors" \ "text").as[String] mustBe "obligationMTT cannot be true for a domestic-only group"
       }

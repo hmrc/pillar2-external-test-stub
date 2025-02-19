@@ -84,16 +84,6 @@ object TestOrganisation {
     )
   }
 
-  // Format for API responses
-  private val apiInstantFormat: Format[Instant] = new Format[Instant] {
-    override def reads(json: JsValue): JsResult[Instant] = json match {
-      case JsString(s) => JsSuccess(Instant.from(dateTimeFormatter.parse(s)))
-      case _           => JsError("Expected ISO instant format")
-    }
-
-    override def writes(instant: Instant): JsValue = JsString(dateTimeFormatter.format(instant))
-  }
-
   def fromRequest(request: TestOrganisationRequest): TestOrganisation =
     TestOrganisation(
       orgDetails = request.orgDetails,
@@ -117,22 +107,7 @@ object TestOrganisation {
 
   val mongoFormat: OFormat[TestOrganisation] = OFormat(mongoReads, mongoWrites)
 
-  // API format for responses
-  private val apiReads: Reads[TestOrganisation] =
-    (
-      (__ \ "orgDetails").read[OrgDetails] and
-        (__ \ "accountingPeriod").read[AccountingPeriod] and
-        (__ \ "lastUpdated").read[Instant](apiInstantFormat)
-    )(TestOrganisation.apply _)
-
-  private val apiWrites: OWrites[TestOrganisation] =
-    (
-      (__ \ "orgDetails").write[OrgDetails] and
-        (__ \ "accountingPeriod").write[AccountingPeriod] and
-        (__ \ "lastUpdated").write(apiInstantFormat)
-    )(unlift(TestOrganisation.unapply))
-
-  implicit val format: OFormat[TestOrganisation] = OFormat(apiReads, apiWrites)
+  implicit val format: OFormat[TestOrganisation] = mongoFormat
 }
 
 object TestOrganisationWithId {

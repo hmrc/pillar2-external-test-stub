@@ -25,10 +25,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
-import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 
 import java.time.LocalDate
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class OrganisationRepositorySpec
     extends AnyWordSpec
@@ -83,62 +85,87 @@ class OrganisationRepositorySpec
   "insert" should {
     "successfully insert a new organisation" in {
       val result = repository.insert(organisationWithId).futureValue
-      result shouldBe true
+      result shouldBe Right(true)
 
       val retrieved = repository.findByPillar2Id("TEST123").futureValue
-      retrieved shouldBe Some(organisationWithId)
+      retrieved shouldBe Right(Some(organisationWithId))
     }
 
     "fail to insert a duplicate pillar2Id" in {
-      repository.insert(organisationWithId).futureValue shouldBe true
+      repository.insert(organisationWithId).futureValue shouldBe Right(true)
 
-      whenReady(repository.insert(organisationWithId).failed) { exception =>
-        exception shouldBe a[DatabaseError]
+      val duplicateInsert = repository.insert(organisationWithId).futureValue
+      duplicateInsert.isLeft shouldBe true
+      duplicateInsert match {
+        case Left(error) => error.getMessage should include("Failed to create organisation")
+        case Right(_)    => fail("Expected failure when inserting duplicate organisation")
       }
     }
   }
 
   "findByPillar2Id" should {
     "return None when no organisation exists" in {
-      repository.findByPillar2Id("NONEXISTENT").futureValue shouldBe None
+      repository.findByPillar2Id("NONEXISTENT").futureValue shouldBe Right(None)
     }
 
     "return the organisation when it exists" in {
-      repository.insert(organisationWithId).futureValue shouldBe true
-      repository.findByPillar2Id("TEST123").futureValue shouldBe Some(organisationWithId)
+      repository.insert(organisationWithId).futureValue shouldBe Right(true)
+      val result = repository.findByPillar2Id("TEST123").futureValue
+      result shouldBe Right(Some(organisationWithId))
+    }
+
+    "handle database errors gracefully" in {
+      // Create a repository that will always fail
+      val failingRepository = new OrganisationRepository(mongoComponent, config) {
+        override def findByPillar2Id(
+          pillar2Id: String
+        ): Future[Either[uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError, Option[TestOrganisationWithId]]] =
+          Future.successful(
+            Left(uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError("Failed to find organisation: Simulated database error"))
+          )
+      }
+
+      whenReady(failingRepository.findByPillar2Id("TEST123"), timeout(5.seconds)) { result =>
+        result match {
+          case Left(error) =>
+            error.getMessage should include("Failed to find organisation")
+          case Right(_) =>
+            fail("Expected a failure")
+        }
+      }
     }
   }
 
   "update" should {
     "update an existing organisation" in {
-      repository.insert(organisationWithId).futureValue shouldBe true
+      repository.insert(organisationWithId).futureValue shouldBe Right(true)
 
       val updatedOrganisation = organisation.copy(
         orgDetails = orgDetails.copy(organisationName = "Updated Org")
       )
       val updatedWithId = updatedOrganisation.withPillar2Id("TEST123")
 
-      repository.update(updatedWithId).futureValue shouldBe true
+      repository.update(updatedWithId).futureValue shouldBe Right(true)
 
       val retrieved = repository.findByPillar2Id("TEST123").futureValue
-      retrieved shouldBe Some(updatedWithId)
+      retrieved shouldBe Right(Some(updatedWithId))
     }
 
     "insert a new organisation if it doesn't exist" in {
-      repository.update(organisationWithId).futureValue shouldBe true
-      repository.findByPillar2Id("TEST123").futureValue shouldBe Some(organisationWithId)
+      repository.update(organisationWithId).futureValue shouldBe Right(true)
+      repository.findByPillar2Id("TEST123").futureValue shouldBe Right(Some(organisationWithId))
     }
   }
 
   "delete" should {
     "successfully delete an existing organisation" in {
-      repository.insert(organisationWithId).futureValue shouldBe true
-      repository.delete("TEST123").futureValue          shouldBe true
-      repository.findByPillar2Id("TEST123").futureValue shouldBe None
+      repository.insert(organisationWithId).futureValue shouldBe Right(true)
+      repository.delete("TEST123").futureValue          shouldBe Right(true)
+      repository.findByPillar2Id("TEST123").futureValue shouldBe Right(None)
     }
 
     "return true when deleting a non-existent organisation" in {
-      repository.delete("NONEXISTENT").futureValue shouldBe true
+      repository.delete("NONEXISTENT").futureValue shouldBe Right(true)
     }
   }
 }

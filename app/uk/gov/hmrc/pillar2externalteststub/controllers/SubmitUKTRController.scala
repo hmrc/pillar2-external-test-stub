@@ -66,12 +66,20 @@ class SubmitUKTRController @Inject() (
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
         Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(successfulUKTRResponse)))
+          case Right(_) =>
+            repository.insert(uktrRequest, plrReference).map {
+              case Right(_)    => Created(Json.toJson(successfulUKTRResponse))
+              case Left(error) => UnprocessableEntity(Json.toJson(error))
+            }
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => repository.insert(nilReturnRequest, plrReference).map(_ => Created(Json.toJson(successfulNilReturnResponse)))
+          case Right(_) =>
+            repository.insert(nilReturnRequest, plrReference).map {
+              case Right(_)    => Created(Json.toJson(successfulNilReturnResponse))
+              case Left(error) => UnprocessableEntity(Json.toJson(error))
+            }
         }
       case JsError(errors) =>
         val errorMessage = errors

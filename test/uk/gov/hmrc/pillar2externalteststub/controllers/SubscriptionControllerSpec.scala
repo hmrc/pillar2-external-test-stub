@@ -25,11 +25,12 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.pillar2externalteststub.helpers.MongoCleanupSupport
 import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 
 import scala.concurrent.Future
 
-class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
+class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with MongoCleanupSupport {
 
   private def authorizedRequest(plrReference: String) =
     FakeRequest(GET, routes.SubscriptionController.retrieveSubscription(plrReference).url)
@@ -39,9 +40,7 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
     FakeRequest(GET, routes.SubscriptionController.retrieveSubscription(plrReference).url)
 
   "SubscriptionController" - {
-
     "retrieveSubscription" - {
-
       "must return FORBIDDEN response when 'Authorization' header is missing" in {
         val result: Future[Result] = route(app, unauthorizedRequest("XEPLR0123456400")).value
         status(result) shouldBe FORBIDDEN

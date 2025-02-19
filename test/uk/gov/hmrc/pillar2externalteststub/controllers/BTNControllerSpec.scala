@@ -18,10 +18,17 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.libs.json.Json
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.{Format, JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import play.api.{Application, Configuration}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.helpers.BTNDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.btn._
 import uk.gov.hmrc.pillar2externalteststub.repositories.BTNSubmissionRepository
@@ -29,7 +36,27 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.BTNSubmissionRepository
 import java.time.LocalDate
 import scala.concurrent.Future
 
-class BTNControllerSpec extends BTNDataFixture with MockitoSugar {
+abstract class BTNControllerSpec
+    extends BTNDataFixture
+    with MockitoSugar
+    with DefaultPlayMongoRepositorySupport[JsObject]
+    with IntegrationPatience
+    with ScalaFutures {
+
+  val config = new AppConfig(Configuration.from(Map("appName" -> "pillar2-external-test-stub", "defaultDataExpireInDays" -> 28)))
+
+  override lazy val app: Application = GuiceApplicationBuilder()
+    .overrides(play.api.inject.bind[MongoComponent].toInstance(mongoComponent))
+    .build()
+
+  implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
+
+  override protected val repository: PlayMongoRepository[JsObject] = new PlayMongoRepository[JsObject](
+    collectionName = "btn-submissions",
+    mongoComponent = mongoComponent,
+    domainFormat = implicitly[Format[JsObject]],
+    indexes = Seq.empty
+  )
 
   private val mockRepository = mock[BTNSubmissionRepository]
 

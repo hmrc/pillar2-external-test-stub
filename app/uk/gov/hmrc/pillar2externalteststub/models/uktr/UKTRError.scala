@@ -49,10 +49,18 @@ case class UKTRDetailedError(processingDate: String, code: String, text: String)
 object UKTRDetailedError {
   implicit val format: OFormat[UKTRDetailedError] = Json.format[UKTRDetailedError]
 
+  def InvalidSubmission(message: String): DetailedErrorResponse = DetailedErrorResponse(
+    UKTRDetailedError(
+      processingDate = nowZonedDateTime,
+      code = REQUEST_COULD_NOT_BE_PROCESSED_003,
+      text = message
+    )
+  )
+
   def TaxObligationFulfilled: DetailedErrorResponse = DetailedErrorResponse(
     UKTRDetailedError(
       processingDate = nowZonedDateTime,
-      code = TAX_OBLIGATION_ALREADY_FULFILLED_044,
+      code = REQUEST_COULD_NOT_BE_PROCESSED_003,
       text = "Tax Obligation Already Fulfilled"
     )
   )
