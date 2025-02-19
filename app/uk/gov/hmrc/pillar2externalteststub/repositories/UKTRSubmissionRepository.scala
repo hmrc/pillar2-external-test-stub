@@ -17,16 +17,16 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import cats.implicits.toTraverseOps
-import org.mongodb.scala.bson.ObjectId
+import org.bson.types.ObjectId
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Indexes.descending
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
-import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
 
 import java.time.Instant
@@ -36,27 +36,35 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
-    extends PlayMongoRepository[JsObject](
+    extends PlayMongoRepository[UKTRMongoSubmission](
       collectionName = "uktr-submissions",
       mongoComponent = mongoComponent,
-      domainFormat = implicitly[Format[JsObject]],
+      domainFormat = UKTRMongoSubmission.format,
       indexes = Seq(
         IndexModel(
-          Indexes.ascending("createdAt"),
+          Indexes.compoundIndex(
+            Indexes.ascending("pillar2Id"),
+            Indexes.descending("submittedAt")
+          ),
+          IndexOptions().name("pillar2IdIndex")
+        ),
+        IndexModel(
+          Indexes.ascending("submittedAt"),
           IndexOptions()
-            .name("createdAtTTL")
+            .name("submittedAtTTL")
             .expireAfter(config.defaultDataExpireInDays, TimeUnit.DAYS)
         )
-      )
+      ),
+      replaceIndexes = true
     ) {
 
   def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] = {
-    val document = Json.obj(
-      "_id"         -> new ObjectId().toString,
-      "pillar2Id"   -> pillar2Id,
-      "isAmendment" -> isAmendment,
-      "data"        -> Json.toJson(submission).as[JsObject],
-      "createdAt"   -> Json.obj("$date" -> Instant.now.toEpochMilli)
+    val document = UKTRMongoSubmission(
+      _id = new ObjectId(),
+      pillar2Id = pillar2Id,
+      isAmendment = isAmendment,
+      data = submission,
+      submittedAt = Instant.now()
     )
 
     collection
@@ -74,9 +82,9 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
         .traverse(_ => insert(submission, pillar2Id, isAmendment = true))
     )
 
-  def findByPillar2Id(pillar2Id: String): Future[Option[JsObject]] =
+  def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
     collection
       .find(equal("pillar2Id", pillar2Id))
-      .sort(descending("createdAt"))
+      .sort(descending("submittedAt"))
       .headOption()
 }
