@@ -39,6 +39,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockRepository)
+    println("Mock repository reset.")
   }
 
   private val orgDetails = OrgDetails(
@@ -63,20 +64,29 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
   "createOrganisation" should {
     "return organisation details when creation is successful" in {
+      println("Running test: return organisation details when creation is successful")
+      println("Setting up mock for findByPillar2Id to return None")
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(None)))
-      when(mockRepository.insert(eqTo(organisationWithId)))
-        .thenReturn(Future.successful(Right(true)))
+        .thenReturn(Future.successful(None))
+      println("Mock setup for findByPillar2Id to return None completed")
 
+      println("Setting up mock for insert to return true")
+      when(mockRepository.insert(any[TestOrganisationWithId]))
+        .thenReturn(Future.successful(true))
+      println("Mock setup for insert to return true completed")
+
+      println("Executing createOrganisation")
       val result = service.createOrganisation(pillar2Id, organisationDetails).futureValue
+      println(s"Result: $result")
       result shouldBe organisationWithId
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
       verify(mockRepository, times(1)).insert(organisationWithId)
     }
 
     "fail with OrganisationAlreadyExists when organisation exists" in {
+      println("Running test: fail with OrganisationAlreadyExists when organisation exists")
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(Some(organisationWithId))))
+        .thenReturn(Future.successful(Some(organisationWithId)))
 
       whenReady(service.createOrganisation(pillar2Id, organisationDetails).failed) { exception =>
         exception                                                 shouldBe a[OrganisationAlreadyExists]
@@ -89,8 +99,8 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "propagate DatabaseError from repository when database operation fails" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(None)))
-      when(mockRepository.insert(eqTo(organisationWithId)))
+        .thenReturn(Future.successful(None))
+      when(mockRepository.insert(any[TestOrganisationWithId]))
         .thenReturn(Future.failed(DatabaseError("Failed to create organisation: Database connection failed")))
 
       whenReady(service.createOrganisation(pillar2Id, organisationDetails).failed) { exception =>
@@ -106,7 +116,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
   "getOrganisation" should {
     "return organisation when found" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(Some(organisationWithId))))
+        .thenReturn(Future.successful(Some(organisationWithId)))
 
       val result = service.getOrganisation(pillar2Id).futureValue
       result shouldBe organisationWithId
@@ -115,7 +125,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "fail with OrganisationNotFound when not found" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(None)))
+        .thenReturn(Future.successful(None))
 
       whenReady(service.getOrganisation(pillar2Id).failed) { exception =>
         exception                                            shouldBe a[OrganisationNotFound]
@@ -141,9 +151,9 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
   "updateOrganisation" should {
     "return updated organisation when update is successful" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(Some(organisationWithId))))
-      when(mockRepository.update(eqTo(organisationWithId)))
-        .thenReturn(Future.successful(Right(true)))
+        .thenReturn(Future.successful(Some(organisationWithId)))
+      when(mockRepository.update(any[TestOrganisationWithId]))
+        .thenReturn(Future.successful(true))
 
       val result = service.updateOrganisation(pillar2Id, organisationDetails).futureValue
       result shouldBe organisationWithId
@@ -153,8 +163,8 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "propagate DatabaseError from repository when update fails" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(Some(organisationWithId))))
-      when(mockRepository.update(eqTo(organisationWithId)))
+        .thenReturn(Future.successful(Some(organisationWithId)))
+      when(mockRepository.update(any[TestOrganisationWithId]))
         .thenReturn(Future.failed(DatabaseError("Failed to update organisation: Database connection failed")))
 
       whenReady(service.updateOrganisation(pillar2Id, organisationDetails).failed) { exception =>
@@ -168,7 +178,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "fail with OrganisationNotFound when organisation does not exist" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(None)))
+        .thenReturn(Future.successful(None))
 
       whenReady(service.updateOrganisation(pillar2Id, organisationDetails).failed) { exception =>
         exception                                            shouldBe a[OrganisationNotFound]
@@ -183,9 +193,9 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
   "deleteOrganisation" should {
     "return unit when deletion is successful" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(Some(organisationWithId))))
+        .thenReturn(Future.successful(Some(organisationWithId)))
       when(mockRepository.delete(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(true)))
+        .thenReturn(Future.successful(true))
 
       service.deleteOrganisation(pillar2Id).futureValue shouldBe (())
       verify(mockRepository, times(1)).findByPillar2Id(pillar2Id)
@@ -194,7 +204,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "fail with OrganisationNotFound when organisation does not exist" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(None)))
+        .thenReturn(Future.successful(None))
 
       whenReady(service.deleteOrganisation(pillar2Id).failed) { exception =>
         exception                                            shouldBe a[OrganisationNotFound]
@@ -207,7 +217,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "propagate DatabaseError from repository when database operation fails" in {
       when(mockRepository.findByPillar2Id(eqTo(pillar2Id)))
-        .thenReturn(Future.successful(Right(Some(organisationWithId))))
+        .thenReturn(Future.successful(Some(organisationWithId)))
       when(mockRepository.delete(eqTo(pillar2Id)))
         .thenReturn(Future.failed(DatabaseError("Failed to delete organisation: Database connection failed")))
 

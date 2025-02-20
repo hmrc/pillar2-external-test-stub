@@ -37,8 +37,8 @@ trait UKTRDataFixture {
   )
 
   val validRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
+    "accountingPeriodFrom" -> "2024-01-01",
+    "accountingPeriodTo"   -> "2024-12-31",
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
     "liabilities" -> Json.obj(
@@ -55,8 +55,8 @@ trait UKTRDataFixture {
   )
 
   def nilReturnBody(obligationMTT: Boolean, electionUKGAAP: Boolean): JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
+    "accountingPeriodFrom" -> "2024-01-01",
+    "accountingPeriodTo"   -> "2024-12-31",
     "obligationMTT"        -> obligationMTT,
     "electionUKGAAP"       -> electionUKGAAP,
     "liabilities"          -> Json.obj("returnType" -> "NIL_RETURN")

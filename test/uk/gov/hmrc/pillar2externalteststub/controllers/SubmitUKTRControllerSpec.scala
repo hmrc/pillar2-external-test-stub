@@ -106,11 +106,11 @@ class SubmitUKTRControllerSpec
 
     // Setup mock behavior for different PLR IDs
     when(mockOrgRepository.findByPillar2Id(eqTo("XEPLR0123456500")))
-      .thenReturn(Future.successful(Right(None)))
+      .thenReturn(Future.successful(None))
     when(mockOrgRepository.findByPillar2Id(eqTo(domesticOnlyPlrReference)))
-      .thenReturn(Future.successful(Right(Some(domesticOrg))))
+      .thenReturn(Future.successful(Some(domesticOrg)))
     when(mockOrgRepository.findByPillar2Id(eqTo(PlrId)))
-      .thenReturn(Future.successful(Right(Some(nonDomesticOrg))))
+      .thenReturn(Future.successful(Some(nonDomesticOrg)))
     when(mockUKTRRepository.insert(any[UKTRSubmission], anyString, anyBoolean))
       .thenReturn(Future.successful(Right(true)))
     when(mockUKTRRepository.update(any[UKTRSubmission], anyString))

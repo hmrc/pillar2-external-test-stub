@@ -19,62 +19,50 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Logging
-import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository, UKTRSubmissionRepository}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 trait MongoCleanupSupport extends BeforeAndAfterEach with Logging { this: Suite with GuiceOneAppPerSuite =>
+
+  // Helper function to safely execute MongoDB operations with retries
+  private def safeMongoOp[T](operation: => Future[T], errorMsg: String, maxRetries: Int = 3)(implicit
+    ec:                                 scala.concurrent.ExecutionContext
+  ): T = {
+    def retry(remainingRetries: Int, delay: FiniteDuration = 500.milliseconds): T =
+      Try(Await.result(operation, 5.seconds)) match {
+        case Success(result) =>
+          logger.info(s"Successfully completed operation: $errorMsg")
+          result
+        case Failure(e) if remainingRetries > 0 =>
+          logger.warn(s"$errorMsg: ${e.getMessage}, retrying in ${delay.toMillis}ms... (${remainingRetries - 1} attempts remaining)")
+          Thread.sleep(delay.toMillis)
+          retry(remainingRetries - 1, delay * 2)
+        case Failure(e) =>
+          logger.error(s"$errorMsg after $maxRetries attempts: ${e.getMessage}")
+          throw new RuntimeException(s"Failed to complete MongoDB operation after $maxRetries attempts: ${e.getMessage}", e)
+      }
+    retry(maxRetries)
+  }
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
-    val uktrRepo = app.injector.instanceOf[UKTRSubmissionRepository]
-    val orgRepo = app.injector.instanceOf[OrganisationRepository]
-    
-    // Helper function to safely execute MongoDB operations
-    def safeMongoOp[T](operation: => scala.concurrent.Awaitable[T], errorMsg: String)(implicit ec: scala.concurrent.ExecutionContext): Unit = {
-      Try(Await.result(operation, 5.seconds)) match {
-        case Success(_) => ()
-        case Failure(e) => logger.warn(s"$errorMsg: ${e.getMessage}")
-      }
+
+    try {
+      logger.info("Starting database cleanup...")
+
+      // Drop the entire database to ensure a clean state
+      val database = app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent].database
+      safeMongoOp(database.drop().toFuture(), "Dropping test database")
+
+      logger.info("Database cleanup completed successfully")
+    } catch {
+      case e: Exception =>
+        val errorMsg = s"Failed to complete database cleanup: ${e.getMessage}"
+        logger.error(errorMsg, e)
+        throw new RuntimeException(errorMsg, e)
     }
-    
-    // Clean up UKTR submissions collection
-    safeMongoOp(
-      uktrRepo.collection.drop().toFuture(),
-      "Failed to drop UKTR submissions collection"
-    )
-    
-    safeMongoOp(
-      uktrRepo.collection.dropIndexes().toFuture(),
-      "Failed to drop UKTR indexes"
-    )
-    
-    // Clean up Organisation collection
-    safeMongoOp(
-      orgRepo.collection.drop().toFuture(),
-      "Failed to drop Organisation collection"
-    )
-    
-    safeMongoOp(
-      orgRepo.collection.dropIndexes().toFuture(),
-      "Failed to drop Organisation indexes"
-    )
-    
-    // Recreate collections and indexes
-    safeMongoOp(
-      uktrRepo.collection.createIndexes(uktrRepo.indexes).toFuture().map { indexNames =>
-        logger.info(s"Created UKTR indexes: ${indexNames.mkString(", ")}")
-      },
-      "Failed to create UKTR indexes"
-    )
-    
-    safeMongoOp(
-      orgRepo.collection.createIndexes(orgRepo.indexes).toFuture().map { indexNames =>
-        logger.info(s"Created Organisation indexes: ${indexNames.mkString(", ")}")
-      },
-      "Failed to create Organisation indexes"
-    )
   }
-} 
+}

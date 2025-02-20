@@ -24,8 +24,6 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper.nowZonedDateTime
-import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.InvalidSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
@@ -49,8 +47,7 @@ class UKTRSubmissionRepository @Inject() (
         IndexModel(
           Indexes.ascending("pillar2Id"),
           IndexOptions()
-            .name("pillar2IdIndex")
-            .unique(true)
+            .name("uktr_submissions_pillar2Id_idx")
             .sparse(true)
             .background(true)
         ),
@@ -88,7 +85,7 @@ class UKTRSubmissionRepository @Inject() (
       Left(
         DetailedErrorResponse(
           UKTRDetailedError(
-            processingDate = nowZonedDateTime,
+            processingDate = java.time.Instant.now().toString(),
             code = REQUEST_COULD_NOT_BE_PROCESSED_003,
             text = "Domestic only groups cannot have MTT values"
           )
@@ -101,7 +98,7 @@ class UKTRSubmissionRepository @Inject() (
 
   def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Either[DetailedErrorResponse, Boolean]] =
     organisationRepository.findByPillar2Id(pillar2Id).flatMap {
-      case Right(Some(org)) =>
+      case Some(org) =>
         validateSubmission(submission, org) match {
           case Right(_) =>
             if (isAmendment) {
@@ -122,10 +119,8 @@ class UKTRSubmissionRepository @Inject() (
             }
           case Left(error) => Future.successful(Left(error))
         }
-      case Right(None) =>
+      case None =>
         Future.successful(Left(InvalidSubmission("Organisation not found")))
-      case Left(dbError: DatabaseError) =>
-        Future.successful(Left(InvalidSubmission(dbError.getMessage)))
     }
 
   def findByPillar2Id(pillar2Id: String): Future[Either[DetailedErrorResponse, Option[JsObject]]] =
@@ -140,7 +135,7 @@ class UKTRSubmissionRepository @Inject() (
 
   def update(submission: UKTRSubmission, pillar2Id: String): Future[Either[DetailedErrorResponse, Boolean]] =
     organisationRepository.findByPillar2Id(pillar2Id).flatMap {
-      case Right(Some(org)) =>
+      case Some(org) =>
         validateSubmission(submission, org) match {
           case Right(_) =>
             collection.find(equal("pillar2Id", pillar2Id)).headOption().flatMap { existingDocOpt =>
@@ -162,10 +157,8 @@ class UKTRSubmissionRepository @Inject() (
             }
           case Left(error) => Future.successful(Left(error))
         }
-      case Right(None) =>
+      case None =>
         Future.successful(Left(InvalidSubmission("Organisation not found")))
-      case Left(dbError: DatabaseError) =>
-        Future.successful(Left(InvalidSubmission(dbError.getMessage)))
     }
 
   private def toDate(instant: java.time.Instant): java.util.Date = {

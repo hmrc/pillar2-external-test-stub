@@ -24,9 +24,11 @@ import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import play.api.{Application, Configuration}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.helpers.MongoCleanupSupport
 import uk.gov.hmrc.pillar2externalteststub.models.subscription._
+import play.api.inject.guice.GuiceApplicationBuilder
 
 import scala.concurrent.Future
 
@@ -38,6 +40,16 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
 
   private def unauthorizedRequest(plrReference: String) =
     FakeRequest(GET, routes.SubscriptionController.retrieveSubscription(plrReference).url)
+
+  override def fakeApplication(): Application =
+    GuiceApplicationBuilder()
+      .configure(
+        Configuration(
+          "mongodb.uri"     -> "mongodb://localhost:27017/test_subscription_controller",
+          "metrics.enabled" -> false
+        )
+      )
+      .build()
 
   "SubscriptionController" - {
     "retrieveSubscription" - {

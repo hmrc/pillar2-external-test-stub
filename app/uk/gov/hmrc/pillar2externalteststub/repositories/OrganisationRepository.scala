@@ -20,7 +20,6 @@ import org.bson.conversions.Bson
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
-import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 
 import java.util.concurrent.TimeUnit
@@ -52,25 +51,13 @@ class OrganisationRepository @Inject() (
 
   private def byPillar2Id(pillar2Id: String): Bson = Filters.equal("pillar2Id", pillar2Id)
 
-  def insert(details: TestOrganisationWithId): Future[Either[DatabaseError, Boolean]] =
-    collection
-      .insertOne(details)
-      .toFuture()
-      .map(_ => Right(true))
-      .recover { case e: Exception =>
-        Left(DatabaseError(s"Failed to create organisation: ${e.getMessage}"))
-      }
+  def insert(details: TestOrganisationWithId): Future[Boolean] =
+    collection.insertOne(details).toFuture().map(_ => true)
 
-  def findByPillar2Id(pillar2Id: String): Future[Either[DatabaseError, Option[TestOrganisationWithId]]] =
-    collection
-      .find(byPillar2Id(pillar2Id))
-      .headOption()
-      .map(Right(_))
-      .recover { case e: Exception =>
-        Left(DatabaseError(s"Failed to find organisation: ${e.getMessage}"))
-      }
+  def findByPillar2Id(pillar2Id: String): Future[Option[TestOrganisationWithId]] =
+    collection.find(byPillar2Id(pillar2Id)).headOption()
 
-  def update(details: TestOrganisationWithId): Future[Either[DatabaseError, Boolean]] =
+  def update(details: TestOrganisationWithId): Future[Boolean] =
     collection
       .replaceOne(
         filter = byPillar2Id(details.pillar2Id),
@@ -78,17 +65,14 @@ class OrganisationRepository @Inject() (
         options = ReplaceOptions().upsert(true)
       )
       .toFuture()
-      .map(_ => Right(true))
-      .recover { case e: Exception =>
-        Left(DatabaseError(s"Failed to update organisation: ${e.getMessage}"))
-      }
+      .map(result => result.getMatchedCount > 0 || result.getUpsertedId != null)
 
-  def delete(pillar2Id: String): Future[Either[DatabaseError, Boolean]] =
+  def delete(pillar2Id: String): Future[Boolean] =
     collection
       .deleteOne(byPillar2Id(pillar2Id))
       .toFuture()
-      .map(_ => Right(true))
+      .map(_ => true)
       .recover { case e: Exception =>
-        Left(DatabaseError(s"Failed to delete organisation: ${e.getMessage}"))
+        throw new Exception(s"Failed to delete organisation: ${e.getMessage}")
       }
 }

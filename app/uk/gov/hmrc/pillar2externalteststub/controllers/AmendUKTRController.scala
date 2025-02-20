@@ -46,20 +46,32 @@ class AmendUKTRController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def amendUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
-    request.headers.get("X-Pillar2-Id") match {
-      case None =>
-        logger.warn("X-Pillar2-Id header is missing")
-        Future.successful(UnprocessableEntity(Json.toJson(MissingPLRReference)))
-      case Some(plrReference) =>
-        plrReference match {
-          case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
-          case _ =>
-            retrieveSubscription(plrReference)._2 match {
-              case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
-              case _ => Future.successful(UnprocessableEntity(Json.toJson(SubscriptionNotFound(plrReference))))
-            }
+  def amendUKTR: Action[AnyContent] = (Action andThen authFilter).async { implicit request =>
+    def processJsonRequest(jsValue: JsValue) =
+      request.headers.get("X-Pillar2-Id") match {
+        case None =>
+          logger.warn("X-Pillar2-Id header is missing")
+          Future.successful(UnprocessableEntity(Json.toJson(MissingPLRReference)))
+        case Some(plrReference) =>
+          plrReference match {
+            case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
+            case _ =>
+              retrieveSubscription(plrReference)._2 match {
+                case _: SubscriptionSuccessResponse => validateRequest(plrReference, request.map(_ => jsValue))
+                case _ => Future.successful(UnprocessableEntity(Json.toJson(SubscriptionNotFound(plrReference))))
+              }
+          }
+      }
+
+    request.contentType match {
+      case Some("application/json") =>
+        request.body.asJson match {
+          case Some(json) => processJsonRequest(json)
+          case None       => Future.successful(BadRequest(Json.toJson(InvalidJsonError("Invalid JSON"))))
         }
+      case _ =>
+        logger.warn("Invalid or missing Content-Type header")
+        Future.successful(UnsupportedMediaType)
     }
   }
 
