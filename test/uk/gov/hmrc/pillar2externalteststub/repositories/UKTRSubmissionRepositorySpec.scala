@@ -49,23 +49,23 @@ class UKTRSubmissionRepositorySpec
   "UKTRSubmissionRepository" when {
     "handling valid submissions" should {
       "successfully insert a liability return" in {
-        repository.insert(liabilitySubmission, pillar2Id).futureValue shouldBe true
+        repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
       }
 
       "successfully insert a nil return" in {
-        repository.insert(nilSubmission, pillar2Id).futureValue shouldBe true
+        repository.insert(nilSubmission, validPlrId).futureValue shouldBe true
       }
 
       "successfully handle amendments" in {
-        repository.insert(liabilitySubmission, pillar2Id).futureValue
+        repository.insert(liabilitySubmission, validPlrId).futureValue
 
-        repository.update(nilSubmission, pillar2Id).futureValue.isRight shouldBe true
+        repository.update(nilSubmission, validPlrId).futureValue.isRight shouldBe true
       }
     }
 
     "handling invalid submissions" should {
       "fail when attempting to update non-existent submission" in {
-        val result: Either[DetailedErrorResponse, Boolean] = repository.update(liabilitySubmission, pillar2Id).futureValue
+        val result: Either[DetailedErrorResponse, Boolean] = repository.update(liabilitySubmission, validPlrId).futureValue
 
         result.isLeft shouldBe true
       }

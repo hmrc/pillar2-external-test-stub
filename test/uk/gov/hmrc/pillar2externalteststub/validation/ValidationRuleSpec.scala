@@ -29,7 +29,6 @@ class ValidationRuleSpec extends AnyWordSpec with Matchers {
         else invalid(MandatoryFieldMissing("test"))
       }
 
-      // Test valid case
       val validResult = rule.validate("test")
       validResult.isValid mustBe true
       validResult.toEither match {
@@ -37,7 +36,6 @@ class ValidationRuleSpec extends AnyWordSpec with Matchers {
         case Left(_)      => fail("Expected validation to succeed")
       }
 
-      // Test invalid case
       val invalidResult = rule.validate("")
       invalidResult.isInvalid mustBe true
       invalidResult.toEither match {
@@ -92,7 +90,6 @@ class ValidationRuleSpec extends AnyWordSpec with Matchers {
 
       val validator = ValidationRule.compose(nonEmptyRule, maxLengthRule)(FailFast)
 
-      // Test empty string - should only get the first error
       val emptyResult = validator.validate("")
       emptyResult.isInvalid mustBe true
       emptyResult.toEither match {
@@ -102,7 +99,6 @@ class ValidationRuleSpec extends AnyWordSpec with Matchers {
         case Right(_) => fail("Expected validation to fail")
       }
 
-      // Test too long string - should only get the max length error
       val tooLongResult = validator.validate("toolong")
       tooLongResult.isInvalid mustBe true
       tooLongResult.toEither match {

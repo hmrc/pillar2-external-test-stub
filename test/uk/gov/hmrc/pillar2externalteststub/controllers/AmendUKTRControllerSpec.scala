@@ -29,8 +29,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn, UKTRSubmission}
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
@@ -65,7 +65,7 @@ class AmendUKTRControllerSpec
     when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
       .thenReturn(Future.successful(Right(true)))
 
-    val request = createRequest(PlrId, Json.toJson(validRequestBody))
+    val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
     val result = route(app, request).value
     status(result) mustBe OK
@@ -102,7 +102,7 @@ class AmendUKTRControllerSpec
     when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
       .thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
 
-    val request = createRequest(PlrId, Json.toJson(validRequestBody))
+    val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
     val result = route(app, request).value
     status(result) mustBe UNPROCESSABLE_ENTITY
@@ -115,7 +115,7 @@ class AmendUKTRControllerSpec
     when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
       .thenReturn(Future.successful(Right(true)))
 
-    val request = createRequest(PlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
+    val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
     val result = route(app, request).value
     status(result) mustBe OK
@@ -128,7 +128,7 @@ class AmendUKTRControllerSpec
     when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
       .thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
 
-    val request = createRequest(PlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
+    val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
     val result = route(app, request).value
     status(result) mustBe UNPROCESSABLE_ENTITY
@@ -149,7 +149,7 @@ class AmendUKTRControllerSpec
 
   "return BAD_REQUEST for invalid JSON structure" in {
     val invalidJson = Json.obj("invalidField" -> "value")
-    val request     = createRequest(PlrId, invalidJson)
+    val request     = createRequest(validPlrId, invalidJson)
 
     val result = route(app, request).value
     status(result) mustBe BAD_REQUEST
@@ -158,7 +158,7 @@ class AmendUKTRControllerSpec
   "return BAD_REQUEST for non-JSON data" in {
     val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
       .withHeaders("Content-Type" -> "application/json", authHeader)
-      .withHeaders("X-Pillar2-Id" -> PlrId)
+      .withHeaders("X-Pillar2-Id" -> validPlrId)
       .withBody("non-json body")
 
     val result = route(app, request).value
@@ -168,7 +168,7 @@ class AmendUKTRControllerSpec
   "return UNPROCESSABLE_ENTITY if liableEntities array is empty" in {
     val emptyLiabilityData = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr())))
 
-    val request = createRequest(PlrId, Json.toJson(emptyLiabilityData))
+    val request = createRequest(validPlrId, Json.toJson(emptyLiabilityData))
 
     val result = route(app, request).value
     status(result) mustBe UNPROCESSABLE_ENTITY

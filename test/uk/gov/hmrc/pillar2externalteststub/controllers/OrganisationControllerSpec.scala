@@ -27,17 +27,15 @@ import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
-import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
-import java.time.LocalDate
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
-class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoSugar {
+class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with TestOrgDataFixture {
 
   implicit class AwaitFuture(fut: Future[Result]) {
     def shouldFailWith(expected: Throwable): Assertion = {
@@ -46,37 +44,16 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     }
   }
 
-  private val mockService = mock[OrganisationService]
-  private val cc          = Helpers.stubControllerComponents()
-  private val controller  = new OrganisationController(cc, mockService)
-
-  private val orgDetails = OrgDetails(
-    domesticOnly = false,
-    organisationName = "Test Org",
-    registrationDate = LocalDate.of(2024, 1, 1)
-  )
-
-  private val accountingPeriod = AccountingPeriod(
-    startDate = LocalDate.of(2024, 1, 1),
-    endDate = LocalDate.of(2024, 12, 31)
-  )
-
-  private val organisationDetails = TestOrganisation(
-    orgDetails = orgDetails,
-    accountingPeriod = accountingPeriod,
-    lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
-  )
-
-  private val pillar2Id          = "TEST123"
-  private val organisationWithId = organisationDetails.withPillar2Id(pillar2Id)
+  private val cc         = Helpers.stubControllerComponents()
+  private val controller = new OrganisationController(cc, mockOrgService)
 
   "create" should {
     "return 201 when organisation is created successfully" in {
-      when(mockService.createOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
+      when(mockOrgService.createOrganisation(eqTo(validPlrId), any[TestOrganisation]))
         .thenReturn(Future.successful(organisationWithId))
 
-      val result = controller.create(pillar2Id)(
-        FakeRequest("POST", s"/pillar2/test/organisation/$pillar2Id")
+      val result = controller.create(validPlrId)(
+        FakeRequest("POST", s"/pillar2/test/organisation/$validPlrId")
           .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       status(result)        shouldBe Status.CREATED
@@ -84,8 +61,8 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     }
 
     "return 400 when request body is invalid" in {
-      val result = controller.create(pillar2Id)(
-        FakeRequest("POST", s"/pillar2/test/organisation/$pillar2Id")
+      val result = controller.create(validPlrId)(
+        FakeRequest("POST", s"/pillar2/test/organisation/$validPlrId")
           .withBody(Json.obj())
       )
       result shouldFailWith InvalidJson
@@ -100,22 +77,22 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     }
 
     "return 409 when organisation already exists" in {
-      when(mockService.createOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
-        .thenReturn(Future.failed(OrganisationAlreadyExists(pillar2Id)))
+      when(mockOrgService.createOrganisation(eqTo(validPlrId), any[TestOrganisation]))
+        .thenReturn(Future.failed(OrganisationAlreadyExists(validPlrId)))
 
-      val result = controller.create(pillar2Id)(
-        FakeRequest("POST", s"/pillar2/test/organisation/$pillar2Id")
+      val result = controller.create(validPlrId)(
+        FakeRequest("POST", s"/pillar2/test/organisation/$validPlrId")
           .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
-      result shouldFailWith OrganisationAlreadyExists(pillar2Id)
+      result shouldFailWith OrganisationAlreadyExists(validPlrId)
     }
 
     "return 500 when database operation fails" in {
-      when(mockService.createOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
+      when(mockOrgService.createOrganisation(eqTo(validPlrId), any[TestOrganisation]))
         .thenReturn(Future.failed(DatabaseError("Failed to create organisation: Database connection failed")))
 
-      val result = controller.create(pillar2Id)(
-        FakeRequest("POST", s"/pillar2/test/organisation/$pillar2Id")
+      val result = controller.create(validPlrId)(
+        FakeRequest("POST", s"/pillar2/test/organisation/$validPlrId")
           .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       result shouldFailWith DatabaseError("Failed to create organisation: Database connection failed")
@@ -124,38 +101,38 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
   "get" should {
     "return 200 with organisation when found" in {
-      when(mockService.getOrganisation(pillar2Id))
+      when(mockOrgService.getOrganisation(validPlrId))
         .thenReturn(Future.successful(organisationWithId))
 
-      val result = controller.get(pillar2Id)(FakeRequest("GET", s"/pillar2/test/organisation/$pillar2Id"))
+      val result = controller.get(validPlrId)(FakeRequest("GET", s"/pillar2/test/organisation/$validPlrId"))
       status(result)        shouldBe Status.OK
       contentAsJson(result) shouldBe Json.toJson(organisationWithId)
     }
 
     "return 404 when organisation is not found" in {
-      when(mockService.getOrganisation(pillar2Id))
-        .thenReturn(Future.failed(OrganisationNotFound(pillar2Id)))
+      when(mockOrgService.getOrganisation(validPlrId))
+        .thenReturn(Future.failed(OrganisationNotFound(validPlrId)))
 
-      val result = controller.get(pillar2Id)(FakeRequest("GET", s"/pillar2/test/organisation/$pillar2Id"))
-      result shouldFailWith OrganisationNotFound(pillar2Id)
+      val result = controller.get(validPlrId)(FakeRequest("GET", s"/pillar2/test/organisation/$validPlrId"))
+      result shouldFailWith OrganisationNotFound(validPlrId)
     }
 
     "return 500 when database operation fails" in {
-      when(mockService.getOrganisation(pillar2Id))
+      when(mockOrgService.getOrganisation(validPlrId))
         .thenReturn(Future.failed(DatabaseError("Failed to find organisation: Database connection failed")))
 
-      val result = controller.get(pillar2Id)(FakeRequest("GET", s"/pillar2/test/organisation/$pillar2Id"))
+      val result = controller.get(validPlrId)(FakeRequest("GET", s"/pillar2/test/organisation/$validPlrId"))
       result shouldFailWith DatabaseError("Failed to find organisation: Database connection failed")
     }
   }
 
   "update" should {
     "return 200 when organisation is updated successfully" in {
-      when(mockService.updateOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
+      when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
         .thenReturn(Future.successful(organisationWithId))
 
-      val result = controller.update(pillar2Id)(
-        FakeRequest("PUT", s"/pillar2/test/organisation/$pillar2Id")
+      val result = controller.update(validPlrId)(
+        FakeRequest("PUT", s"/pillar2/test/organisation/$validPlrId")
           .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       status(result)        shouldBe Status.OK
@@ -163,30 +140,30 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     }
 
     "return 400 when request body is invalid" in {
-      val result = controller.update(pillar2Id)(
-        FakeRequest("PUT", s"/pillar2/test/organisation/$pillar2Id")
+      val result = controller.update(validPlrId)(
+        FakeRequest("PUT", s"/pillar2/test/organisation/$validPlrId")
           .withBody(Json.obj())
       )
       result shouldFailWith InvalidJson
     }
 
     "return 404 when organisation does not exist" in {
-      when(mockService.updateOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
-        .thenReturn(Future.failed(OrganisationNotFound(pillar2Id)))
+      when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
+        .thenReturn(Future.failed(OrganisationNotFound(validPlrId)))
 
-      val result = controller.update(pillar2Id)(
-        FakeRequest("PUT", s"/pillar2/test/organisation/$pillar2Id")
+      val result = controller.update(validPlrId)(
+        FakeRequest("PUT", s"/pillar2/test/organisation/$validPlrId")
           .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
-      result shouldFailWith OrganisationNotFound(pillar2Id)
+      result shouldFailWith OrganisationNotFound(validPlrId)
     }
 
     "return 500 when database operation fails" in {
-      when(mockService.updateOrganisation(eqTo(pillar2Id), any[TestOrganisation]))
+      when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
         .thenReturn(Future.failed(DatabaseError("Failed to update organisation: Database connection failed")))
 
-      val result = controller.update(pillar2Id)(
-        FakeRequest("PUT", s"/pillar2/test/organisation/$pillar2Id")
+      val result = controller.update(validPlrId)(
+        FakeRequest("PUT", s"/pillar2/test/organisation/$validPlrId")
           .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
       )
       result shouldFailWith DatabaseError("Failed to update organisation: Database connection failed")
@@ -195,26 +172,26 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
   "delete" should {
     "return 204 when organisation is deleted successfully" in {
-      when(mockService.deleteOrganisation(pillar2Id))
+      when(mockOrgService.deleteOrganisation(validPlrId))
         .thenReturn(Future.successful(()))
 
-      val result = controller.delete(pillar2Id)(FakeRequest("DELETE", s"/pillar2/test/organisation/$pillar2Id"))
+      val result = controller.delete(validPlrId)(FakeRequest("DELETE", s"/pillar2/test/organisation/$validPlrId"))
       status(result) shouldBe Status.NO_CONTENT
     }
 
     "return 404 when organisation is not found" in {
-      when(mockService.deleteOrganisation(pillar2Id))
-        .thenReturn(Future.failed(OrganisationNotFound(pillar2Id)))
+      when(mockOrgService.deleteOrganisation(validPlrId))
+        .thenReturn(Future.failed(OrganisationNotFound(validPlrId)))
 
-      val result = controller.delete(pillar2Id)(FakeRequest("DELETE", s"/pillar2/test/organisation/$pillar2Id"))
-      result shouldFailWith OrganisationNotFound(pillar2Id)
+      val result = controller.delete(validPlrId)(FakeRequest("DELETE", s"/pillar2/test/organisation/$validPlrId"))
+      result shouldFailWith OrganisationNotFound(validPlrId)
     }
 
     "return 500 when database operation fails" in {
-      when(mockService.deleteOrganisation(pillar2Id))
+      when(mockOrgService.deleteOrganisation(validPlrId))
         .thenReturn(Future.failed(DatabaseError("Failed to delete organisation: Database connection failed")))
 
-      val result = controller.delete(pillar2Id)(FakeRequest("DELETE", s"/pillar2/test/organisation/$pillar2Id"))
+      val result = controller.delete(validPlrId)(FakeRequest("DELETE", s"/pillar2/test/organisation/$validPlrId"))
       result shouldFailWith DatabaseError("Failed to delete organisation: Database connection failed")
     }
   }

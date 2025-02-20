@@ -26,15 +26,15 @@ import play.api.http.Status.CREATED
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
 
 import java.time.ZonedDateTime
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture {
 
-  def request(plrReference: String = domesticOnlyPlrReference, body: JsObject): FakeRequest[JsObject] =
+  def request(plrReference: String = validPlrId, body: JsObject): FakeRequest[JsObject] =
     FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
       .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> plrReference)
       .withBody(body)
@@ -47,7 +47,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     }
   }
 
-  "when pillar2Id is missing" - {
+  "when validPlrId is missing" - {
     "a 422 should be returned" in {
       val missingPlrIdRequest = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
         .withHeaders("Content-Type" -> "application/json", authHeader)
@@ -404,7 +404,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = false" in {
         val result =
-          route(app, request(plrReference = PlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
+          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
 
         status(result) mustBe CREATED
         val json = contentAsJson(result)
@@ -423,7 +423,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "when submitting a non-domestic Nil Return with obligationMTT = false" in {
         val result =
-          route(app, request(plrReference = PlrId, body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
+          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
 
         status(result) mustBe CREATED
         val json = contentAsJson(result)
@@ -433,7 +433,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "when submitting a non-domestic Nil Return with obligationMTT = true" in {
         val result =
-          route(app, request(plrReference = PlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
+          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
 
         status(result) mustBe CREATED
         val json = contentAsJson(result)
@@ -455,7 +455,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = true" in {
         val result =
-          route(app, request(plrReference = PlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = true))).value
+          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = true))).value
 
         status(result) mustBe UNPROCESSABLE_ENTITY
         val json = contentAsJson(result)

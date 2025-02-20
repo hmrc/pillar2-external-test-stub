@@ -89,7 +89,7 @@ class OrganisationRepositorySpec
       retrieved shouldBe Some(organisationWithId)
     }
 
-    "fail to insert a duplicate pillar2Id" in {
+    "fail to insert a duplicate validPlrId" in {
       repository.insert(organisationWithId).futureValue shouldBe true
 
       whenReady(repository.insert(organisationWithId).failed) { exception =>
