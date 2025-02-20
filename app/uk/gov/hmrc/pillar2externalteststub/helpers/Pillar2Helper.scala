@@ -17,14 +17,12 @@
 package uk.gov.hmrc.pillar2externalteststub.helpers
 import java.time.temporal.ChronoUnit
 import java.time.{ZoneOffset, ZonedDateTime}
+import scala.util.matching.Regex
 
-object UKTRHelper {
-  val PlrId                    = "XEPLR1234567890"
-  val domesticOnlyPlrReference = "XEPLR5555555555"
-  val TaxObligationMetPlrId    = "XEPLR4220000044"
-  val UnprocessableEntityPlrId = "XEPLR4220000000"
-  val BadRequestPlrId          = "XEPLR4000000000"
-  val ServerErrorPlrId         = "XEPLR5000000000"
+object Pillar2Helper {
+
+  val pillar2Regex: Regex = "^[A-Z0-9]{1,15}$".r
+  val ServerErrorPlrId = "XEPLR5000000000"
 
   def nowZonedDateTime: String = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString
 }

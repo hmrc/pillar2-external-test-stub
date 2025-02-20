@@ -27,7 +27,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-//import java.util.concurrent.TimeUnit
 
 @Singleton
 class BTNSubmissionRepository @Inject() (

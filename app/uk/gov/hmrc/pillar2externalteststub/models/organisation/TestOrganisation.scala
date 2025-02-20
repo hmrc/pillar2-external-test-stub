@@ -33,13 +33,11 @@ case class AccountingPeriod(
   endDate:   LocalDate
 )
 
-// Request model without lastUpdated
 case class TestOrganisationRequest(
   orgDetails:       OrgDetails,
   accountingPeriod: AccountingPeriod
 )
 
-// Response/Storage model with lastUpdated
 case class TestOrganisation(
   orgDetails:       OrgDetails,
   accountingPeriod: AccountingPeriod,
@@ -84,7 +82,6 @@ object TestOrganisation {
     )
   }
 
-  // Format for API responses
   private val apiInstantFormat: Format[Instant] = new Format[Instant] {
     override def reads(json: JsValue): JsResult[Instant] = json match {
       case JsString(s) => JsSuccess(Instant.from(dateTimeFormatter.parse(s)))
@@ -100,7 +97,6 @@ object TestOrganisation {
       accountingPeriod = request.accountingPeriod
     )
 
-  // MongoDB format for storage
   private val mongoReads: Reads[TestOrganisation] =
     (
       (__ \ "orgDetails").read[OrgDetails] and
@@ -117,7 +113,6 @@ object TestOrganisation {
 
   val mongoFormat: OFormat[TestOrganisation] = OFormat(mongoReads, mongoWrites)
 
-  // API format for responses
   private val apiReads: Reads[TestOrganisation] =
     (
       (__ \ "orgDetails").read[OrgDetails] and
