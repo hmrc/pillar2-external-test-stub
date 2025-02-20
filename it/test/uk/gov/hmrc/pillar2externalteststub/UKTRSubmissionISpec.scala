@@ -29,7 +29,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
@@ -86,18 +86,18 @@ class UKTRSubmissionISpec
   "UKTR endpoints" should {
     "handle liability returns" should {
       "successfully submit a new liability return" in {
-        val response = submitUKTR(liabilitySubmission, pillar2Id)
+        val response = submitUKTR(liabilitySubmission, validPlrId)
         response.status shouldBe 201
 
-        val submission = repository.findByPillar2Id(pillar2Id).futureValue
+        val submission = repository.findByPillar2Id(validPlrId).futureValue
         submission shouldBe defined
       }
 
       "successfully amend an existing liability return" in {
-        submitUKTR(liabilitySubmission, pillar2Id).status
+        submitUKTR(liabilitySubmission, validPlrId).status
         val updatedBody      = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ Json.obj("accountingPeriodFrom" -> "2024-01-01")).get
-        val response         = amendUKTR(updatedBody, pillar2Id)
-        val latestSubmission = repository.findByPillar2Id(pillar2Id).futureValue
+        val response         = amendUKTR(updatedBody, validPlrId)
+        val latestSubmission = repository.findByPillar2Id(validPlrId).futureValue
 
         response.status shouldBe 200
         latestSubmission.get.data.accountingPeriodFrom shouldEqual LocalDate.of(2024, 1, 1)
@@ -122,17 +122,17 @@ class UKTRSubmissionISpec
 
     "handle nil returns" should {
       "successfully submit a new nil return" in {
-        val response = submitUKTR(nilSubmission, pillar2Id)
+        val response = submitUKTR(nilSubmission, validPlrId)
         response.status shouldBe 201
 
-        val submission = repository.findByPillar2Id(pillar2Id).futureValue
+        val submission = repository.findByPillar2Id(validPlrId).futureValue
         submission shouldBe defined
       }
 
       "successfully amend an existing nil return" in {
-        submitUKTR(nilSubmission, pillar2Id).status shouldBe 201
+        submitUKTR(nilSubmission, validPlrId).status shouldBe 201
 
-        val response = amendUKTR(nilSubmission, pillar2Id)
+        val response = amendUKTR(nilSubmission, validPlrId)
         response.status shouldBe 200
       }
     }
@@ -142,7 +142,7 @@ class UKTRSubmissionISpec
         val response = httpClient
           .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
           .withBody(Json.obj("invalid" -> "data"))
-          .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+          .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> validPlrId)
           .execute[HttpResponse]
           .futureValue
 
