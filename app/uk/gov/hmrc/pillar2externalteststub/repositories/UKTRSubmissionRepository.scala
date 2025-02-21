@@ -39,6 +39,7 @@ class UKTRSubmissionRepository @Inject() (
   config:         AppConfig,
   mongoComponent: MongoComponent
 )(implicit ec:    ExecutionContext)
+
     extends PlayMongoRepository[UKTRMongoSubmission](
       collectionName = "uktr-submissions",
       mongoComponent = mongoComponent,
@@ -50,6 +51,7 @@ class UKTRSubmissionRepository @Inject() (
             Indexes.descending("submittedAt")
           ),
           IndexOptions().name("pillar2IdIndex").unique(true)
+
         ),
         IndexModel(
           Indexes.ascending("submittedAt"),

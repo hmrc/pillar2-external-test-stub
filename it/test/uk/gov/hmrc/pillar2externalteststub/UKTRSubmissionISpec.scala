@@ -32,11 +32,13 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.{AccountingPeriod, OrgDetails, TestOrganisation, TestOrganisationWithId}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+
 import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository, UKTRSubmissionRepository}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import play.api.http.Status.{CREATED, UNPROCESSABLE_ENTITY}
 
 import scala.concurrent.{ExecutionContext, Future}
+
 
 class UKTRSubmissionISpec
     extends AnyWordSpec
@@ -182,6 +184,7 @@ class UKTRSubmissionISpec
         response.futureValue.status shouldBe 200
         latestSubmission shouldBe defined
         latestSubmission.get.data shouldBe updatedBody
+
       }
 
       "return 422 when trying to amend non-existent liability return" in {
