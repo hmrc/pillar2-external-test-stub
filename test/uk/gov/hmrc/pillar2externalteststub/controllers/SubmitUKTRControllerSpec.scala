@@ -16,23 +16,62 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.OptionValues
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterEach
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.CREATED
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
+import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
 import java.time.ZonedDateTime
+import java.time.LocalDate
+import scala.concurrent.Future
 
-class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture {
+class SubmitUKTRControllerSpec
+    extends AnyFreeSpec
+    with Matchers
+    with GuiceOneAppPerSuite
+    with OptionValues
+    with UKTRDataFixture
+    with MockitoSugar
+    with BeforeAndAfterEach {
+
+  private val mockRepository = mock[UKTRSubmissionRepository]
+
+  override def fakeApplication(): Application =
+    GuiceApplicationBuilder()
+      .overrides(inject.bind[UKTRSubmissionRepository].toInstance(mockRepository))
+      .build()
+
+  override def beforeEach(): Unit = {
+    reset(mockRepository)
+    // Default behavior for successful submissions
+    setupDefaultMockBehavior()
+  }
+
+  private def setupDefaultMockBehavior(): Unit = {
+    val _ = when(mockRepository.insert(any[UKTRSubmission], any[String], any[Boolean])).thenReturn(Future.successful(true))
+    val _ = when(mockRepository.findDuplicateSubmission(any[String], any[LocalDate], any[LocalDate])).thenReturn(Future.successful(false))
+  }
+
+  private def setupDuplicateSubmissionBehavior(): Unit = {
+    val _ = when(mockRepository.findDuplicateSubmission(any[String], any[LocalDate], any[LocalDate])).thenReturn(Future.successful(true))
+  }
 
   def request(plrReference: String = validPlrId, body: JsObject): FakeRequest[JsObject] =
     FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
@@ -516,6 +555,40 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
         status(result) mustBe BAD_REQUEST
       }
+    }
+  }
+
+  "when submitting a duplicate UKTR" - {
+    "should return 422 with error code 044 for duplicate liability return" in {
+      // First submission
+      val result1 = route(app, request(body = validRequestBody)).value
+      status(result1) mustBe CREATED
+
+      // Setup mock for duplicate submission
+      setupDuplicateSubmissionBehavior()
+
+      // Duplicate submission
+      val result2 = route(app, request(body = validRequestBody)).value
+      status(result2) mustBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result2)
+      (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.DUPLICATE_SUBMISSION_044
+      (json \ "errors" \ "text").as[String] mustBe "A submission already exists for this accounting period"
+    }
+
+    "should return 422 with error code 044 for duplicate nil return" in {
+      // First submission
+      val result1 = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
+      status(result1) mustBe CREATED
+
+      // Setup mock for duplicate submission
+      setupDuplicateSubmissionBehavior()
+
+      // Duplicate submission
+      val result2 = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
+      status(result2) mustBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result2)
+      (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.DUPLICATE_SUBMISSION_044
+      (json \ "errors" \ "text").as[String] mustBe "A submission already exists for this accounting period"
     }
   }
 }
