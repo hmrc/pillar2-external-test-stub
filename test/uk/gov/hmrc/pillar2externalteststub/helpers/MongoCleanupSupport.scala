@@ -20,8 +20,8 @@ import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Logging
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 trait MongoCleanupSupport extends BeforeAndAfterEach with Logging { this: Suite with GuiceOneAppPerSuite =>

@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
-import play.api.mvc.{Result, Results}
-import play.api.libs.json._
 import cats.data.NonEmptyChain
+import play.api.libs.json._
+import play.api.mvc.{Result, Results}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
-import scala.concurrent.Future
+
 import java.time.LocalDate
+import scala.concurrent.Future
 
 trait UKTRSubmission {
   val accountingPeriodFrom: LocalDate

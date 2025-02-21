@@ -20,6 +20,7 @@ import org.scalatest.OptionValues
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
@@ -28,7 +29,6 @@ import play.api.{Application, Configuration}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.helpers.MongoCleanupSupport
 import uk.gov.hmrc.pillar2externalteststub.models.subscription._
-import play.api.inject.guice.GuiceApplicationBuilder
 
 import scala.concurrent.Future
 

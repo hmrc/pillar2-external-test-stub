@@ -18,8 +18,8 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo
 
 import org.bson.types.ObjectId
 import play.api.libs.json._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.mongo.play.json.formats.{MongoFormats, MongoJavatimeFormats}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 
 import java.time.Instant
 
