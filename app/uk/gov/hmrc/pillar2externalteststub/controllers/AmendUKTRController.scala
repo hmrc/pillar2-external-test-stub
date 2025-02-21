@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,91 +46,71 @@ class AmendUKTRController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def amendUKTR: Action[AnyContent] = (Action andThen authFilter).async { implicit request =>
-    def processJsonRequest(jsValue: JsValue) =
-      request.headers.get("X-Pillar2-Id") match {
-        case None =>
-          logger.warn("X-Pillar2-Id header is missing")
-          Future.successful(UnprocessableEntity(Json.toJson(MissingPLRReference)))
-        case Some(plrReference) =>
-          plrReference match {
-            case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
-            case _ =>
-              retrieveSubscription(plrReference)._2 match {
-                case _: SubscriptionSuccessResponse => validateRequest(plrReference, request.map(_ => jsValue))
-                case _ => Future.successful(UnprocessableEntity(Json.toJson(SubscriptionNotFound(plrReference))))
-              }
-          }
-      }
-
-    request.contentType match {
-      case Some("application/json") =>
-        request.body.asJson match {
-          case Some(json) => processJsonRequest(json)
-          case None       => Future.successful(BadRequest(Json.toJson(InvalidJsonError("Invalid JSON"))))
+  def amendUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
+    request.headers.get("X-Pillar2-Id") match {
+      case None =>
+        logger.warn("X-Pillar2-Id header is missing")
+        Future.successful(UnprocessableEntity(Json.toJson(MissingPLRReference)))
+      case Some(plrReference) =>
+        plrReference match {
+          case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
+          case _ =>
+            retrieveSubscription(plrReference)._2 match {
+              case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
+              case _ => Future.successful(UnprocessableEntity(Json.toJson(SubscriptionNotFound(plrReference))))
+            }
         }
-      case _ =>
-        logger.warn("Invalid or missing Content-Type header")
-        Future.successful(UnsupportedMediaType)
     }
   }
 
-  def validateRequest(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] =
+  private def validateRequest(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] =
     request.body.validate[UKTRSubmission] match {
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
-        uktrRequest.validate(plrReference).toEither match {
+        Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
           case Right(_) =>
-            Option(repository.findByPillar2Id(plrReference))
-              .getOrElse(Future.successful(None))
-              .flatMap { _ =>
-                repository
-                  .update(uktrRequest, plrReference)
-                  .map {
-                    case Right(_)    => Ok(Json.toJson(successfulUKTRResponse))
-                    case Left(error) => UnprocessableEntity(Json.toJson(error))
-                  }
-                  .recover { case e: DatabaseError =>
-                    UnprocessableEntity(
-                      Json.toJson(
-                        DetailedErrorResponse(
-                          UKTRDetailedError(
-                            processingDate = nowZonedDateTime,
-                            code = REQUEST_COULD_NOT_BE_PROCESSED_003,
-                            text = e.getMessage
-                          )
-                        )
+            repository
+              .update(uktrRequest, plrReference)
+              .map {
+                case Right(_)    => Ok(Json.toJson(successfulUKTRResponse))
+                case Left(error) => UnprocessableEntity(Json.toJson(error))
+              }
+              .recover { case e: DatabaseError =>
+                UnprocessableEntity(
+                  Json.toJson(
+                    DetailedErrorResponse(
+                      UKTRDetailedError(
+                        processingDate = nowZonedDateTime,
+                        code = REQUEST_COULD_NOT_BE_PROCESSED_003,
+                        text = e.getMessage
                       )
                     )
-                  }
+                  )
+                )
               }
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
-        nilReturnRequest.validate(plrReference).toEither match {
+        Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
           case Right(_) =>
-            Option(repository.findByPillar2Id(plrReference))
-              .getOrElse(Future.successful(None))
-              .flatMap { _ =>
-                repository
-                  .update(nilReturnRequest, plrReference)
-                  .map {
-                    case Right(_)    => Ok(Json.toJson(successfulNilReturnResponse))
-                    case Left(error) => UnprocessableEntity(Json.toJson(error))
-                  }
-                  .recover { case e: DatabaseError =>
-                    UnprocessableEntity(
-                      Json.toJson(
-                        DetailedErrorResponse(
-                          UKTRDetailedError(
-                            processingDate = nowZonedDateTime,
-                            code = REQUEST_COULD_NOT_BE_PROCESSED_003,
-                            text = e.getMessage
-                          )
-                        )
+            repository
+              .update(nilReturnRequest, plrReference)
+              .map {
+                case Right(_)    => Ok(Json.toJson(successfulNilReturnResponse))
+                case Left(error) => UnprocessableEntity(Json.toJson(error))
+              }
+              .recover { case e: DatabaseError =>
+                UnprocessableEntity(
+                  Json.toJson(
+                    DetailedErrorResponse(
+                      UKTRDetailedError(
+                        processingDate = nowZonedDateTime,
+                        code = REQUEST_COULD_NOT_BE_PROCESSED_003,
+                        text = e.getMessage
                       )
                     )
-                  }
+                  )
+                )
               }
         }
       case JsError(errors) =>

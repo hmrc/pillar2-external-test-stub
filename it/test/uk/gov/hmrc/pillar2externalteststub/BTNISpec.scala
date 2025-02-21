@@ -62,14 +62,14 @@ class BTNISpec
       )
       .build()
 
-  // Test data
+  
   private val validPillar2Id = "XMPLR0000000000"
   private val validRequest = BTNRequest(
     accountingPeriodFrom = LocalDate.of(2024, 1, 1),
     accountingPeriodTo = LocalDate.of(2024, 12, 31)
   )
 
-  // Helper method for submitting BTN
+ 
   private def submitBTN(pillar2Id: String, request: BTNRequest): HttpResponse = {
     val headers = Seq(
       "Content-Type" -> "application/json",
@@ -85,14 +85,12 @@ class BTNISpec
       .futureValue
   }
 
-  // Ensure the repository is clean and indexes are created before each test
   override def beforeEach(): Unit = {
     super.beforeEach()
     prepareDatabase()
   }
 
   override protected def prepareDatabase(): Unit = {
-    // Drop the collection and recreate it with indexes
     repository.collection.drop().toFuture().futureValue
     repository.collection.createIndexes(repository.indexes).toFuture().futureValue
     ()
@@ -100,11 +98,9 @@ class BTNISpec
 
   "BTN submission endpoint" should {
     "successfully save and retrieve BTN submissions" in {
-      // Submit a BTN
       val response = submitBTN(validPillar2Id, validRequest)
       response.status shouldBe 201
 
-      // Verify the submission was saved in MongoDB
       val submissions = repository.findByPillar2Id(validPillar2Id).futureValue
       submissions.size shouldBe 1
       val submission = submissions.head
@@ -114,17 +110,15 @@ class BTNISpec
     }
 
     "allow multiple submissions for the same Pillar2 ID with different accounting periods" in {
-      // First submission
+
       submitBTN(validPillar2Id, validRequest).status shouldBe 201
 
-      // Second submission with different accounting period
       val secondRequest = validRequest.copy(
         accountingPeriodFrom = LocalDate.of(2025, 1, 1),
         accountingPeriodTo = LocalDate.of(2025, 12, 31)
       )
       submitBTN(validPillar2Id, secondRequest).status shouldBe 201
 
-      // Verify both submissions are saved
       val submissions = repository.findByPillar2Id(validPillar2Id).futureValue
       submissions.size shouldBe 2
       submissions.map(_.accountingPeriodFrom) should contain theSameElementsAs Seq(
@@ -134,7 +128,7 @@ class BTNISpec
     }
 
     "handle invalid requests appropriately" in {
-      // Test missing Pillar2 ID header
+    
       val headers = Seq(
         "Content-Type" -> "application/json",
         "Authorization" -> "Bearer token"
@@ -150,8 +144,6 @@ class BTNISpec
       responseWithoutId.status shouldBe 422
       val json = Json.parse(responseWithoutId.body)
       (json \ "errors" \ "code").as[String] shouldBe "002"
-
-      // Verify nothing was saved in MongoDB
       repository.findByPillar2Id(validPillar2Id).futureValue shouldBe empty
     }
 
@@ -162,8 +154,6 @@ class BTNISpec
       response.status shouldBe 500
       val json = Json.parse(response.body)
       (json \ "error" \ "code").as[String] shouldBe "500"
-
-      // Verify nothing was saved in MongoDB
       repository.findByPillar2Id(errorPillar2Id).futureValue shouldBe empty
     }
   }

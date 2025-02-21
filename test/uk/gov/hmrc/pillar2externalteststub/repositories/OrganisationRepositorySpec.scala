@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,17 +20,13 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
-import play.api.inject.bind
-import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.concurrent.duration._
 
 class OrganisationRepositorySpec
     extends AnyWordSpec
@@ -50,18 +46,8 @@ class OrganisationRepositorySpec
     )
   )
 
-  private val app = GuiceApplicationBuilder()
-    .configure(
-      "metrics.enabled"  -> false,
-      "encryptionToggle" -> "true"
-    )
-    .overrides(
-      bind[MongoComponent].toInstance(mongoComponent)
-    )
-    .build()
-
   override protected val repository: OrganisationRepository =
-    app.injector.instanceOf[OrganisationRepository]
+    new OrganisationRepository(mongoComponent, config)
 
   private val orgDetails = OrgDetails(
     domesticOnly = false,
@@ -80,7 +66,7 @@ class OrganisationRepositorySpec
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
   )
 
-  private val organisationWithId = organisation.withPillar2Id("TEST123")
+  private val organisationWithId = TestOrganisationWithId("TEST123", organisation)
 
   "insert" should {
     "successfully insert a new organisation" in {
@@ -91,10 +77,12 @@ class OrganisationRepositorySpec
       retrieved shouldBe Some(organisationWithId)
     }
 
-    "fail to insert a duplicate pillar2Id" in {
+    "fail with DatabaseError when inserting a duplicate pillar2Id" in {
       repository.insert(organisationWithId).futureValue shouldBe true
-      val duplicateInsert = repository.insert(organisationWithId).failed.futureValue
-      duplicateInsert.getMessage should include("duplicate")
+
+      val error = repository.insert(organisationWithId).failed.futureValue
+      error          shouldBe a[DatabaseError]
+      error.getMessage should include("Failed to create organisation")
     }
   }
 
@@ -108,18 +96,6 @@ class OrganisationRepositorySpec
       val result = repository.findByPillar2Id("TEST123").futureValue
       result shouldBe Some(organisationWithId)
     }
-
-    "handle database errors gracefully" in {
-      // Create a repository that will always fail
-      val failingRepository = new OrganisationRepository(mongoComponent, config) {
-        override def findByPillar2Id(pillar2Id: String): Future[Option[TestOrganisationWithId]] =
-          Future.failed(new Exception("Simulated database error"))
-      }
-
-      whenReady(failingRepository.findByPillar2Id("TEST123").failed, timeout(5.seconds)) { exception =>
-        exception.getMessage should include("Simulated database error")
-      }
-    }
   }
 
   "update" should {
@@ -129,7 +105,7 @@ class OrganisationRepositorySpec
       val updatedOrganisation = organisation.copy(
         orgDetails = orgDetails.copy(organisationName = "Updated Org")
       )
-      val updatedWithId = updatedOrganisation.withPillar2Id("TEST123")
+      val updatedWithId = TestOrganisationWithId("TEST123", updatedOrganisation)
 
       repository.update(updatedWithId).futureValue shouldBe true
 

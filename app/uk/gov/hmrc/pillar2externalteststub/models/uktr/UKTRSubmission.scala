@@ -16,16 +16,12 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
-import cats.data.NonEmptyChain
-import cats.implicits.toFoldableOps
+import play.api.mvc.{Result, Results}
 import play.api.libs.json._
-import play.api.mvc.Result
-import play.api.mvc.Results.UnprocessableEntity
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper.nowZonedDateTime
+import cats.data.NonEmptyChain
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
-
-import java.time.LocalDate
 import scala.concurrent.Future
+import java.time.LocalDate
 
 trait UKTRSubmission {
   val accountingPeriodFrom: LocalDate
@@ -56,18 +52,38 @@ object UKTRSubmission {
 case class UKTRSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
 
 object UKTRErrorTransformer {
-  def from422ToJson(errors: NonEmptyChain[ValidationError]): Future[Result] =
-    Future.successful(
-      UnprocessableEntity(
-        Json.obj(
-          "errors" -> errors.toList.headOption.map(error =>
-            Json.obj(
-              "processingDate" -> nowZonedDateTime,
-              "code"           -> error.errorCode,
-              "text"           -> error.errorMessage
-            )
-          )
+  def from422ToJson(error: UKTRSubmissionError): Future[Result] = {
+    val errorMessage = Results.UnprocessableEntity(
+      Json.obj(
+        "errors" -> Json.obj(
+          "processingDate" -> java.time.LocalDateTime.now().toString,
+          "code"           -> error.errorCode,
+          "text"           -> error.errorMessage
         )
       )
     )
+    Future.successful(errorMessage)
+  }
+
+  def from422ToJson(errors: NonEmptyChain[ValidationError]): Future[Result] = {
+    val error = errors.head match {
+      case UKTRSubmissionError(code, _, msg) =>
+        Json.obj(
+          "errors" -> Json.obj(
+            "processingDate" -> java.time.LocalDateTime.now().toString,
+            "code"           -> code,
+            "text"           -> msg
+          )
+        )
+      case error =>
+        Json.obj(
+          "errors" -> Json.obj(
+            "processingDate" -> java.time.LocalDateTime.now().toString,
+            "code"           -> "003",
+            "text"           -> error.errorMessage
+          )
+        )
+    }
+    Future.successful(Results.UnprocessableEntity(error))
+  }
 }

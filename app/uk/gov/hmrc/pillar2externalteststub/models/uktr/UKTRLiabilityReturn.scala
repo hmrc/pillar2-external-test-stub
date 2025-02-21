@@ -196,8 +196,21 @@ object UKTRLiabilityReturn {
       )
   }
 
+  private val accountingPeriodRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+    if (data.accountingPeriodTo.isAfter(data.accountingPeriodFrom)) valid[UKTRLiabilityReturn](data)
+    else
+      invalid(
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+          "accountingPeriod",
+          "Accounting period end date must be after start date"
+        )
+      )
+  }
+
   implicit def uktrSubmissionValidator(plrReference: String): ValidationRule[UKTRLiabilityReturn] =
     ValidationRule.compose(
+      accountingPeriodRule,
       obligationMTTRule(plrReference),
       electionUKGAAPRule(plrReference),
       totalLiabilityRule,

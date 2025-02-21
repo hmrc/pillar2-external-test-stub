@@ -60,8 +60,21 @@ object UKTRNilReturn {
     }
   }
 
-  implicit def uktrNilReturnValidator(plrReference: String): ValidationRule[UKTRNilReturn] =
+  private val accountingPeriodRule: ValidationRule[UKTRNilReturn] = ValidationRule { data =>
+    if (data.accountingPeriodTo.isAfter(data.accountingPeriodFrom)) valid[UKTRNilReturn](data)
+    else
+      invalid(
+        UKTRSubmissionError(
+          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+          "accountingPeriod",
+          "Accounting period end date must be after start date"
+        )
+      )
+  }
+
+  implicit def uktrSubmissionValidator(plrReference: String): ValidationRule[UKTRNilReturn] =
     ValidationRule.compose(
+      accountingPeriodRule,
       obligationMTTRule(plrReference),
       electionUKGAAPRule(plrReference)
     )(FailFast)

@@ -31,7 +31,6 @@ trait BTNDataFixture extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite 
 
   val authHeader: (String, String) = HeaderNames.AUTHORIZATION -> "Bearer token"
 
-  // Common test data
   val validPlrId       = "XMPLR0000000000"
   val serverErrorPlrId = "XEPLR0000000500"
 
@@ -42,7 +41,6 @@ trait BTNDataFixture extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite 
 
   val validRequestBody: JsValue = Json.toJson(validRequest)
 
-  // Helper methods for creating requests
   def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/RESTAdapter/PLR/below-threshold-notification")
       .withHeaders(

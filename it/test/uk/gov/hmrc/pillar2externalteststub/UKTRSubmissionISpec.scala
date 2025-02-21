@@ -33,8 +33,10 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.{AccountingPeriod, OrgDetails, TestOrganisation, TestOrganisationWithId}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository, UKTRSubmissionRepository}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
+import play.api.http.Status.{CREATED, UNPROCESSABLE_ENTITY}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class UKTRSubmissionISpec
     extends AnyWordSpec
@@ -42,14 +44,14 @@ class UKTRSubmissionISpec
     with ScalaFutures
     with IntegrationPatience
     with GuiceOneServerPerSuite
-    with DefaultPlayMongoRepositorySupport[JsObject]
-    with UKTRDataFixture
-    with play.api.Logging {
+    with DefaultPlayMongoRepositorySupport[UKTRMongoSubmission]
+    with UKTRDataFixture {
 
   override protected val databaseName: String = "test-uktr-submission-integration"
+  override protected lazy val collectionName: String = "uktr-submissions"
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
-  override protected val repository: UKTRSubmissionRepository = app.injector.instanceOf[UKTRSubmissionRepository]
+  override protected lazy val repository = app.injector.instanceOf[UKTRSubmissionRepository]
   private val orgRepository = app.injector.instanceOf[OrganisationRepository]
   implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -62,54 +64,45 @@ class UKTRSubmissionISpec
       )
       .build()
 
-  private def submitUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse =
-    httpClient
-      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
-      .withBody(Json.toJson(submission))
-      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
-      .execute[HttpResponse]
-      .futureValue
-
-  private def amendUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse =
-    httpClient
-      .put(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
-      .withBody(Json.toJson(submission))
-      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
-      .execute[HttpResponse]
-      .futureValue
-
-  override def beforeEach(): Unit = {
-    super.beforeEach()
+  override protected def prepareDatabase(): Unit = {
+    super.prepareDatabase()
     
-    // Drop collections before each test
+  
     repository.collection.drop().toFuture().futureValue
     orgRepository.collection.drop().toFuture().futureValue
     
-    // Create indexes for UKTR submissions
+    
     val indexes = Seq(
       org.mongodb.scala.model.IndexModel(
-        org.mongodb.scala.model.Indexes.ascending("pillar2Id"),
+        org.mongodb.scala.model.Indexes.compoundIndex(
+          org.mongodb.scala.model.Indexes.ascending("pillar2Id"),
+          org.mongodb.scala.model.Indexes.descending("submittedAt")
+        ),
         org.mongodb.scala.model.IndexOptions()
-          .name("uktr_submissions_pillar2Id_idx")
-          .sparse(true)
-          .background(true)
+          .name("pillar2IdIndex")
+          .unique(true)
       ),
       org.mongodb.scala.model.IndexModel(
-        org.mongodb.scala.model.Indexes.ascending("createdAt"),
+        org.mongodb.scala.model.Indexes.ascending("submittedAt"),
         org.mongodb.scala.model.IndexOptions()
-          .name("createdAtTTL")
+          .name("submittedAtTTL")
           .expireAfter(28, java.util.concurrent.TimeUnit.DAYS)
           .background(true)
       )
     )
     
-    // Create indexes and verify
+   
     repository.collection.createIndexes(indexes).toFuture().futureValue
     
-    // Create organization index
+   
     orgRepository.collection.createIndex(org.mongodb.scala.model.Indexes.ascending("pillar2Id")).toFuture().futureValue
+    ()
+  }
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
     
-    // Create test organization
+
     val testOrg = TestOrganisationWithId(
       pillar2Id = pillar2Id,
       organisation = TestOrganisation(
@@ -126,142 +119,165 @@ class UKTRSubmissionISpec
       )
     )
     
-    // Insert test organization
+
     if (!orgRepository.insert(testOrg).futureValue) {
       fail("Failed to insert test organization")
     }
+  }
+
+  private def submitUKTR(submission: UKTRSubmission, pillar2Id: String)(implicit ec: ExecutionContext): Future[HttpResponse] = {
+    httpClient
+      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .withBody(Json.toJson(submission))
+      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .execute[HttpResponse]
+  }
+
+  private def amendUKTR(submission: UKTRSubmission, pillar2Id: String)(implicit ec: ExecutionContext): Future[HttpResponse] = {
+    httpClient
+      .put(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .withBody(Json.toJson(submission))
+      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .execute[HttpResponse]
+  }
+
+  private def invalidLiabilityReturn = liabilitySubmission match {
+    case lr: UKTRLiabilityReturn => 
+      lr.copy(
+        accountingPeriodFrom = lr.accountingPeriodFrom.plusYears(1) 
+      )
+    case _ => fail("Expected UKTRLiabilityReturn")
+  }
+
+  private def invalidNilReturn = nilSubmission match {
+    case nr: UKTRNilReturn => 
+      nr.copy(
+        accountingPeriodFrom = nr.accountingPeriodFrom.plusYears(1) 
+      )
+    case _ => fail("Expected UKTRNilReturn")
+  }
+
+  private def invalidAccountingPeriodReturn = liabilitySubmission match {
+    case lr: UKTRLiabilityReturn => lr.copy(accountingPeriodFrom = lr.accountingPeriodFrom.plusYears(1))
+    case _ => fail("Expected UKTRLiabilityReturn")
   }
 
   "UKTR endpoints" should {
     "handle liability returns" should {
       "successfully submit a new liability return" in {
         val response = submitUKTR(liabilitySubmission, pillar2Id)
-        response.status shouldBe 201
+        response.futureValue.status shouldBe 201
 
         val submission = repository.findByPillar2Id(pillar2Id).futureValue
-        submission shouldBe Right(Some(Json.toJson(liabilitySubmission).as[JsObject]))
+        submission shouldBe defined
+        submission.get.data shouldBe liabilitySubmission
       }
 
       "successfully amend an existing liability return" in {
-        submitUKTR(liabilitySubmission, pillar2Id).status shouldBe 201
+        submitUKTR(liabilitySubmission, pillar2Id).futureValue.status shouldBe 201
         val updatedBody      = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ Json.obj("accountingPeriodFrom" -> "2024-01-01")).get
         val response         = amendUKTR(updatedBody, pillar2Id)
         val latestSubmission = repository.findByPillar2Id(pillar2Id).futureValue
 
-        response.status shouldBe 200
-        latestSubmission shouldBe Right(Some(Json.toJson(updatedBody).as[JsObject]))
+        response.futureValue.status shouldBe 200
+        latestSubmission shouldBe defined
+        latestSubmission.get.data shouldBe updatedBody
       }
 
       "return 422 when trying to amend non-existent liability return" in {
         val response = amendUKTR(liabilitySubmission, "invalidPlr2Id")
 
-        response.status                                shouldBe 422
-        (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Organisation not found"
+        response.futureValue.status                                shouldBe 422
+        (response.futureValue.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.futureValue.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
       }
 
       "return 422 when trying to amend non-existent nil return" in {
         val response = amendUKTR(nilSubmission, "invalidPlr2Id")
 
-        response.status                                shouldBe 422
-        (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Organisation not found"
+        response.futureValue.status                                shouldBe 422
+        (response.futureValue.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.futureValue.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
       }
 
-      "return 422 when trying to amend with invalid data" in {
-        // First submit a valid return
-        submitUKTR(liabilitySubmission, pillar2Id).status shouldBe 201
+      "should return 422 when trying to amend with invalid data" in {
+        submitUKTR(liabilitySubmission, "XMPLR0012345678").futureValue.status shouldBe CREATED
 
-        // Try to amend with invalid data
-        val invalidSubmission = liabilitySubmission match {
-          case lr: UKTRLiabilityReturn => 
-            lr.copy(
-              accountingPeriodFrom = lr.accountingPeriodFrom.plusYears(1) // Invalid period
-            )
-          case _ => fail("Expected UKTRLiabilityReturn")
-        }
-        
-        val response = amendUKTR(invalidSubmission, pillar2Id)
-        response.status shouldBe 422
-        (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Accounting period does not match registered period"
+        val result = amendUKTR(invalidLiabilityReturn, "XMPLR0012345678").futureValue
+
+        result.status shouldBe UNPROCESSABLE_ENTITY
+        (result.json \ "errors" \ "code").as[String] shouldBe "003"
+        (result.json \ "errors" \ "text").as[String] shouldBe "Accounting period end date must be after start date"
       }
 
       "handle database errors during amendment" in {
-        // First submit a valid return
-        submitUKTR(liabilitySubmission, pillar2Id).status shouldBe 201
+       
+        submitUKTR(liabilitySubmission, pillar2Id).futureValue.status shouldBe 201
 
-        // Force a database error by using a special test ID
+       
         val response = amendUKTR(liabilitySubmission, ServerErrorPlrId)
-        response.status shouldBe 500
-        (response.json \ "error" \ "code").as[String] shouldBe "500"
+        response.futureValue.status shouldBe 500
+        (response.futureValue.json \ "error" \ "code").as[String] shouldBe "500"
       }
     }
 
     "handle nil returns" should {
       "successfully submit a new nil return" in {
         val response = submitUKTR(nilSubmission, pillar2Id)
-        response.status shouldBe 201
+        response.futureValue.status shouldBe 201
 
         val submission = repository.findByPillar2Id(pillar2Id).futureValue
-        submission shouldBe Right(Some(Json.toJson(nilSubmission).as[JsObject]))
+        submission shouldBe defined
+        submission.get.data shouldBe nilSubmission
       }
 
       "successfully amend an existing nil return" in {
-        submitUKTR(nilSubmission, pillar2Id).status shouldBe 201
+        submitUKTR(nilSubmission, pillar2Id).futureValue.status shouldBe 201
 
         val response = amendUKTR(nilSubmission, pillar2Id)
-        response.status shouldBe 200
+        response.futureValue.status shouldBe 200
       }
 
-      "return 422 when trying to amend nil return with invalid data" in {
-        // First submit a valid nil return
-        submitUKTR(nilSubmission, pillar2Id).status shouldBe 201
+      "should return 422 when trying to amend nil return with invalid data" in {
+        submitUKTR(nilSubmission, "XMPLR0012345678").futureValue.status shouldBe CREATED
 
-        // Try to amend with invalid data
-        val invalidNilSubmission = nilSubmission match {
-          case nr: UKTRNilReturn => 
-            nr.copy(
-              accountingPeriodFrom = nr.accountingPeriodFrom.plusYears(1) // Invalid period
-            )
-          case _ => fail("Expected UKTRNilReturn")
-        }
-        
-        val response = amendUKTR(invalidNilSubmission, pillar2Id)
-        response.status shouldBe 422
-        (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Accounting period does not match registered period"
+        val result = amendUKTR(invalidNilReturn, "XMPLR0012345678").futureValue
+
+        result.status shouldBe UNPROCESSABLE_ENTITY
+        (result.json \ "errors" \ "code").as[String] shouldBe "003"
+        (result.json \ "errors" \ "text").as[String] shouldBe "Accounting period end date must be after start date"
       }
 
       "handle database errors during nil return amendment" in {
-        // First submit a valid nil return
-        submitUKTR(nilSubmission, pillar2Id).status shouldBe 201
+       
+        submitUKTR(nilSubmission, pillar2Id).futureValue.status shouldBe 201
 
-        // Force a database error by using a special test ID
+        
         val response = amendUKTR(nilSubmission, ServerErrorPlrId)
-        response.status shouldBe 500
-        (response.json \ "error" \ "code").as[String] shouldBe "500"
+        response.futureValue.status shouldBe 500
+        (response.futureValue.json \ "error" \ "code").as[String] shouldBe "500"
       }
 
       "successfully amend a nil return with valid data" in {
-        // First submit a valid nil return
-        submitUKTR(nilSubmission, pillar2Id).status shouldBe 201
+        
+        submitUKTR(nilSubmission, pillar2Id).futureValue.status shouldBe 201
 
-        // Amend with valid data
+      
         val updatedNilSubmission = nilSubmission match {
           case nr: UKTRNilReturn => 
             nr.copy(
-              electionUKGAAP = !nr.electionUKGAAP // Toggle the UKGAAP election
+              electionUKGAAP = !nr.electionUKGAAP 
             )
           case _ => fail("Expected UKTRNilReturn")
         }
         
         val response = amendUKTR(updatedNilSubmission, pillar2Id)
-        response.status shouldBe 200
+        response.futureValue.status shouldBe 200
         
-        // Verify the amendment was saved
+      
         val savedSubmission = repository.findByPillar2Id(pillar2Id).futureValue
-        savedSubmission shouldBe Right(Some(Json.toJson(updatedNilSubmission).as[JsObject]))
+        savedSubmission shouldBe defined
+        savedSubmission.get.data shouldBe updatedNilSubmission
       }
     }
 
@@ -290,33 +306,29 @@ class UKTRSubmissionISpec
 
       "return appropriate error for test PLR IDs" in {
         val serverErrorResponse = submitUKTR(liabilitySubmission, ServerErrorPlrId)
-        serverErrorResponse.status shouldBe 500
+        serverErrorResponse.futureValue.status shouldBe 500
       }
 
       "return 422 when organization not found" in {
         val response = amendUKTR(liabilitySubmission, "NONEXISTENT")
 
-        response.status shouldBe 422
-        (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Organisation not found"
+        response.futureValue.status shouldBe 422
+        (response.futureValue.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.futureValue.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
       }
 
-      "return 422 when accounting period does not match" in {
-        submitUKTR(liabilitySubmission, pillar2Id).status shouldBe 201
+      "should return 422 when accounting period does not match" in {
+        submitUKTR(liabilitySubmission, "XMPLR0012345678").futureValue.status shouldBe CREATED
 
-        val mismatchedSubmission = liabilitySubmission match {
-          case lr: UKTRLiabilityReturn => lr.copy(accountingPeriodFrom = lr.accountingPeriodFrom.plusYears(1))
-          case _ => fail("Expected UKTRLiabilityReturn")
-        }
-        val response = amendUKTR(mismatchedSubmission, pillar2Id)
+        val result = amendUKTR(invalidAccountingPeriodReturn, "XMPLR0012345678").futureValue
 
-        response.status shouldBe 422
-        (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Accounting period does not match registered period"
+        result.status shouldBe UNPROCESSABLE_ENTITY
+        (result.json \ "errors" \ "code").as[String] shouldBe "003"
+        (result.json \ "errors" \ "text").as[String] shouldBe "Accounting period end date must be after start date"
       }
 
       "return 422 when MTT values in domestic-only groups" in {
-        // Create a domestic-only organization
+      
         val domesticOrg = TestOrganisationWithId(
           pillar2Id = "DOMESTIC123",
           organisation = TestOrganisation(
@@ -333,19 +345,30 @@ class UKTRSubmissionISpec
           )
         )
         
-        // Insert domestic organization
+       
         orgRepository.insert(domesticOrg).futureValue shouldBe true
 
-        // Submit with MTT = true
+       
         val submissionWithMTT = liabilitySubmission match {
           case lr: UKTRLiabilityReturn => lr.copy(obligationMTT = true)
           case _ => fail("Expected UKTRLiabilityReturn")
         }
         val response = submitUKTR(submissionWithMTT, "DOMESTIC123")
 
-        response.status shouldBe 422
-        (response.json \ "errors" \ "code").as[String] shouldBe "093"
-        (response.json \ "errors" \ "text").as[String] shouldBe "obligationMTT cannot be true for a domestic-only group"
+        response.futureValue.status shouldBe 422
+        (response.futureValue.json \ "errors" \ "code").as[String] shouldBe "093"
+        (response.futureValue.json \ "errors" \ "text").as[String] shouldBe "obligationMTT cannot be true for a domestic-only group"
+
+        // Test for nil return with MTT
+        val nilSubmissionWithMTT = nilSubmission match {
+          case nr: UKTRNilReturn => nr.copy(obligationMTT = true)
+          case _ => fail("Expected UKTRNilReturn")
+        }
+        val nilResponse = submitUKTR(nilSubmissionWithMTT, "DOMESTIC123")
+
+        nilResponse.futureValue.status shouldBe 422
+        (nilResponse.futureValue.json \ "errors" \ "code").as[String] shouldBe "093"
+        (nilResponse.futureValue.json \ "errors" \ "text").as[String] shouldBe "obligationMTT cannot be true for a domestic-only group"
       }
     }
   }

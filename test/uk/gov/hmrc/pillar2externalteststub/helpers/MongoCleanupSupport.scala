@@ -26,7 +26,6 @@ import scala.util.{Failure, Success, Try}
 
 trait MongoCleanupSupport extends BeforeAndAfterEach with Logging { this: Suite with GuiceOneAppPerSuite =>
 
-  // Helper function to safely execute MongoDB operations with retries
   private def safeMongoOp[T](operation: => Future[T], errorMsg: String, maxRetries: Int = 3)(implicit
     ec:                                 scala.concurrent.ExecutionContext
   ): T = {
@@ -53,7 +52,6 @@ trait MongoCleanupSupport extends BeforeAndAfterEach with Logging { this: Suite 
     try {
       logger.info("Starting database cleanup...")
 
-      // Drop the entire database to ensure a clean state
       val database = app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent].database
       safeMongoOp(database.drop().toFuture(), "Dropping test database")
 

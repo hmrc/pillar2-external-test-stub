@@ -36,6 +36,10 @@ class HealthEndpointIntegrationSpec
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
+      .configure(
+        "mongodb.uri" -> s"mongodb://localhost:27017/test-health-endpoint-integration",
+        "metrics.enabled" -> false
+      )
       .build()
 
   "service health endpoint" should {

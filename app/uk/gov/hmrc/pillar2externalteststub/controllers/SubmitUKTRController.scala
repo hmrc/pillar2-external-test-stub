@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
+import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
@@ -67,19 +68,27 @@ class SubmitUKTRController @Inject() (
         Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
           case Right(_) =>
-            repository.insert(uktrRequest, plrReference).map {
-              case Right(_)    => Created(Json.toJson(successfulUKTRResponse))
-              case Left(error) => UnprocessableEntity(Json.toJson(error))
-            }
+            repository
+              .insert(uktrRequest, plrReference)
+              .map { _ =>
+                Created(Json.toJson(successfulUKTRResponse))
+              }
+              .recover { case _: DatabaseError =>
+                UnprocessableEntity(Json.toJson(UKTRDetailedError.RequestCouldNotBeProcessed))
+              }
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
           case Right(_) =>
-            repository.insert(nilReturnRequest, plrReference).map {
-              case Right(_)    => Created(Json.toJson(successfulNilReturnResponse))
-              case Left(error) => UnprocessableEntity(Json.toJson(error))
-            }
+            repository
+              .insert(nilReturnRequest, plrReference)
+              .map { _ =>
+                Created(Json.toJson(successfulNilReturnResponse))
+              }
+              .recover { case _: DatabaseError =>
+                UnprocessableEntity(Json.toJson(UKTRDetailedError.RequestCouldNotBeProcessed))
+              }
         }
       case JsError(errors) =>
         val errorMessage = errors

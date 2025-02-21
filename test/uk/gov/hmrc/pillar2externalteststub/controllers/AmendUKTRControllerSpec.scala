@@ -31,7 +31,6 @@ import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper._
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn}
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
@@ -61,7 +60,16 @@ class AmendUKTRControllerSpec
       .overrides(inject.bind[UKTRSubmissionRepository].toInstance(mockRepository))
       .build()
 
-  override def beforeEach(): Unit = reset(mockRepository)
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(mockRepository)
+    // Setup default mock behavior
+    when(mockRepository.update(any[UKTRLiabilityReturn], any[String]))
+      .thenReturn(Future.successful(Right(true)))
+    when(mockRepository.update(any[UKTRNilReturn], any[String]))
+      .thenReturn(Future.successful(Right(true)))
+    ()
+  }
 
   "AmendUKTRController" - {
     "successful scenarios" - {
@@ -152,26 +160,28 @@ class AmendUKTRControllerSpec
     "database errors" - {
       "should return UNPROCESSABLE_ENTITY for liability return database errors" in {
         when(mockRepository.update(any[UKTRLiabilityReturn], any[String]))
-          .thenReturn(Future.failed(DatabaseError(RequestCouldNotBeProcessed.errors.text)))
+          .thenReturn(Future.failed(DatabaseError("Request could not be processed")))
 
         val request = createRequest(PlrId, Json.toJson(validRequestBody))
 
         val result = route(app, request).value
         status(result) shouldBe UNPROCESSABLE_ENTITY
         val jsonResult = contentAsJson(result)
+        (jsonResult \ "errors" \ "processingDate").asOpt[String].isDefined shouldBe true
         (jsonResult \ "errors" \ "code").as[String] shouldEqual "003"
         (jsonResult \ "errors" \ "text").as[String] shouldEqual "Request could not be processed"
       }
 
       "should return UNPROCESSABLE_ENTITY for nil return database errors" in {
         when(mockRepository.update(any[UKTRNilReturn], any[String]))
-          .thenReturn(Future.failed(DatabaseError(RequestCouldNotBeProcessed.errors.text)))
+          .thenReturn(Future.failed(DatabaseError("Request could not be processed")))
 
         val request = createRequest(PlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
         val result = route(app, request).value
         status(result) shouldBe UNPROCESSABLE_ENTITY
         val jsonResult = contentAsJson(result)
+        (jsonResult \ "errors" \ "processingDate").asOpt[String].isDefined shouldBe true
         (jsonResult \ "errors" \ "code").as[String] shouldEqual "003"
         (jsonResult \ "errors" \ "text").as[String] shouldEqual "Request could not be processed"
       }
@@ -191,20 +201,21 @@ class AmendUKTRControllerSpec
       "should handle missing Content-Type header" in {
         val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
           .withHeaders(authHeader, "X-Pillar2-Id" -> PlrId)
-          .withBody("test body")
+          .withBody(Json.toJson(validRequestBody).toString.getBytes)
 
         val result = route(app, request).value
-        status(result) shouldBe UNSUPPORTED_MEDIA_TYPE
+        status(result)        shouldBe BAD_REQUEST
+        contentAsString(result) should include("Expecting text/json or application/json body")
       }
 
       "should handle invalid Content-Type header" in {
         val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
-          .withHeaders(authHeader, "X-Pillar2-Id" -> PlrId)
-          .withHeaders("Content-Type" -> "text/plain")
-          .withBody("test body")
+          .withHeaders("Content-Type" -> "text/plain", authHeader, "X-Pillar2-Id" -> PlrId)
+          .withBody(Json.toJson(validRequestBody))
 
         val result = route(app, request).value
-        status(result) shouldBe UNSUPPORTED_MEDIA_TYPE
+        status(result)        shouldBe BAD_REQUEST
+        contentAsString(result) should include("Expecting text/json or application/json body")
       }
     }
   }

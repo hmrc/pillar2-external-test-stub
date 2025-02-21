@@ -33,13 +33,11 @@ case class AccountingPeriod(
   endDate:   LocalDate
 )
 
-// Request model without lastUpdated
 case class TestOrganisationRequest(
   orgDetails:       OrgDetails,
   accountingPeriod: AccountingPeriod
 )
 
-// Response/Storage model with lastUpdated
 case class TestOrganisation(
   orgDetails:       OrgDetails,
   accountingPeriod: AccountingPeriod,
@@ -90,7 +88,6 @@ object TestOrganisation {
       accountingPeriod = request.accountingPeriod
     )
 
-  // MongoDB format for storage
   private val mongoReads: Reads[TestOrganisation] =
     (
       (__ \ "orgDetails").read[OrgDetails] and

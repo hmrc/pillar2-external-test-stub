@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,12 @@ package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.bson.conversions.Bson
 import org.mongodb.scala.model._
+import play.api.libs.json._
+import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
+import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{TestOrganisation, TestOrganisationWithId}
 
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
@@ -28,13 +31,23 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class OrganisationRepository @Inject() (
-  mongoComponent: uk.gov.hmrc.mongo.MongoComponent,
-  appConfig:      AppConfig
+  mongoComponent: MongoComponent,
+  config:         AppConfig
 )(implicit ec:    ExecutionContext)
     extends PlayMongoRepository[TestOrganisationWithId](
       collectionName = "organisation",
       mongoComponent = mongoComponent,
-      domainFormat = TestOrganisationWithId.format,
+      domainFormat = new Format[TestOrganisationWithId] {
+        def reads(json: JsValue): JsResult[TestOrganisationWithId] = for {
+          pillar2Id    <- (json \ "pillar2Id").validate[String]
+          organisation <- (json \ "organisation").validate[TestOrganisation](TestOrganisation.mongoFormat)
+        } yield TestOrganisationWithId(pillar2Id, organisation)
+
+        def writes(o: TestOrganisationWithId): JsValue = Json.obj(
+          "pillar2Id"    -> o.pillar2Id,
+          "organisation" -> Json.toJson(o.organisation)(TestOrganisation.mongoFormat)
+        )
+      },
       indexes = Seq(
         IndexModel(
           Indexes.ascending("pillar2Id"),
@@ -44,7 +57,7 @@ class OrganisationRepository @Inject() (
           Indexes.ascending("organisation.lastUpdated"),
           IndexOptions()
             .name("lastUpdatedTTL")
-            .expireAfter(appConfig.defaultDataExpireInDays, TimeUnit.DAYS)
+            .expireAfter(config.defaultDataExpireInDays, TimeUnit.DAYS)
         )
       )
     ) {
@@ -52,10 +65,21 @@ class OrganisationRepository @Inject() (
   private def byPillar2Id(pillar2Id: String): Bson = Filters.equal("pillar2Id", pillar2Id)
 
   def insert(details: TestOrganisationWithId): Future[Boolean] =
-    collection.insertOne(details).toFuture().map(_ => true)
+    collection
+      .insertOne(details)
+      .toFuture()
+      .map(_ => true)
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to create organisation: ${e.getMessage}"))
+      }
 
   def findByPillar2Id(pillar2Id: String): Future[Option[TestOrganisationWithId]] =
-    collection.find(byPillar2Id(pillar2Id)).headOption()
+    collection
+      .find(byPillar2Id(pillar2Id))
+      .headOption()
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to find organisation: ${e.getMessage}"))
+      }
 
   def update(details: TestOrganisationWithId): Future[Boolean] =
     collection
@@ -65,14 +89,17 @@ class OrganisationRepository @Inject() (
         options = ReplaceOptions().upsert(true)
       )
       .toFuture()
-      .map(result => result.getMatchedCount > 0 || result.getUpsertedId != null)
+      .map(_ => true)
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to update organisation: ${e.getMessage}"))
+      }
 
   def delete(pillar2Id: String): Future[Boolean] =
     collection
       .deleteOne(byPillar2Id(pillar2Id))
       .toFuture()
       .map(_ => true)
-      .recover { case e: Exception =>
-        throw new Exception(s"Failed to delete organisation: ${e.getMessage}")
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to delete organisation: ${e.getMessage}"))
       }
 }

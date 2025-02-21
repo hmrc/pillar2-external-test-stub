@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,7 +71,6 @@ class SubmitUKTRControllerSpec
     super.beforeEach()
     reset(mockOrgRepository, mockUKTRRepository)
 
-    // Setup default mock behavior for organization repository
     val domesticOrg = TestOrganisationWithId(
       pillar2Id = domesticOnlyPlrReference,
       organisation = TestOrganisation(
@@ -104,7 +103,6 @@ class SubmitUKTRControllerSpec
       )
     )
 
-    // Setup mock behavior for different PLR IDs
     when(mockOrgRepository.findByPillar2Id(eqTo("XEPLR0123456500")))
       .thenReturn(Future.successful(None))
     when(mockOrgRepository.findByPillar2Id(eqTo(domesticOnlyPlrReference)))
@@ -112,7 +110,7 @@ class SubmitUKTRControllerSpec
     when(mockOrgRepository.findByPillar2Id(eqTo(PlrId)))
       .thenReturn(Future.successful(Some(nonDomesticOrg)))
     when(mockUKTRRepository.insert(any[UKTRSubmission], anyString, anyBoolean))
-      .thenReturn(Future.successful(Right(true)))
+      .thenReturn(Future.successful(true))
     when(mockUKTRRepository.update(any[UKTRSubmission], anyString))
       .thenReturn(Future.successful(Right(true)))
     ()
