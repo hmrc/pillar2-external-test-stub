@@ -21,10 +21,10 @@ import play.api.libs.json._
 case class UPEDetails(
   customerIdentification1: String,
   customerIdentification2: String,
-  organisationName: String,
-  registrationDate: String,
-  domesticOnly: Boolean,
-  filingMember: Boolean
+  organisationName:        String,
+  registrationDate:        String,
+  domesticOnly:            Boolean,
+  filingMember:            Boolean
 )
 
 object UPEDetails {
@@ -35,8 +35,8 @@ case class AddressDetails(
   addressLine1: String,
   addressLine2: Option[String],
   addressLine3: Option[String],
-  postCode: Option[String],
-  countryCode: String
+  postCode:     Option[String],
+  countryCode:  String
 )
 
 object AddressDetails {
@@ -44,8 +44,8 @@ object AddressDetails {
 }
 
 case class ContactDetails(
-  name: String,
-  telephone: Option[String],
+  name:         String,
+  telephone:    Option[String],
   emailAddress: String
 )
 
@@ -56,10 +56,10 @@ object ContactDetails {
 case class FilingMemberDetails(
   customerIdentification1: String,
   customerIdentification2: String,
-  organisationName: String,
-  registrationDate: String,
-  domesticOnly: Boolean,
-  filingMember: Boolean
+  organisationName:        String,
+  registrationDate:        String,
+  domesticOnly:            Boolean,
+  filingMember:            Boolean
 )
 
 object FilingMemberDetails {
@@ -68,7 +68,7 @@ object FilingMemberDetails {
 
 case class AccountingPeriod(
   startDate: String,
-  endDate: String
+  endDate:   String
 )
 
 object AccountingPeriod {
@@ -76,9 +76,9 @@ object AccountingPeriod {
 }
 
 case class AccountStatus(
-  status: String,
+  status:          String,
   statusStartDate: String,
-  statusEndDate: Option[String]
+  statusEndDate:   Option[String]
 )
 
 object AccountStatus {
@@ -86,14 +86,14 @@ object AccountStatus {
 }
 
 case class SubscriptionMongo(
-  plrReference: String,
-  upeDetails: UPEDetails,
-  addressDetails: AddressDetails,
-  contactDetails: ContactDetails,
+  plrReference:            String,
+  upeDetails:              UPEDetails,
+  addressDetails:          AddressDetails,
+  contactDetails:          ContactDetails,
   secondaryContactDetails: Option[ContactDetails],
-  filingMemberDetails: FilingMemberDetails,
-  accountingPeriod: AccountingPeriod,
-  accountStatus: AccountStatus
+  filingMemberDetails:     FilingMemberDetails,
+  accountingPeriod:        AccountingPeriod,
+  accountStatus:           AccountStatus
 )
 
 object SubscriptionMongo {
@@ -101,16 +101,16 @@ object SubscriptionMongo {
 }
 
 case class Subscription(
-  plrReference: String,
-  upeDetails: UPEDetails,
-  addressDetails: AddressDetails,
-  contactDetails: ContactDetails,
+  plrReference:            String,
+  upeDetails:              UPEDetails,
+  addressDetails:          AddressDetails,
+  contactDetails:          ContactDetails,
   secondaryContactDetails: Option[ContactDetails],
-  filingMemberDetails: FilingMemberDetails,
-  accountingPeriod: AccountingPeriod,
-  accountStatus: AccountStatus
+  filingMemberDetails:     FilingMemberDetails,
+  accountingPeriod:        AccountingPeriod,
+  accountStatus:           AccountStatus
 )
 
 object Subscription {
   implicit val format: OFormat[Subscription] = Json.format[Subscription]
-} 
+}

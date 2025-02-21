@@ -19,6 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 
 trait UKTRDataFixture extends Pillar2DataFixture {
 
@@ -459,6 +460,48 @@ trait UKTRDataFixture extends Pillar2DataFixture {
     "electionUKGAAP"       -> false,
     "liabilities" -> Json.obj(
       "returnType" -> ""
+    )
+  )
+
+  val validSubscription: Subscription = Subscription(
+    plrReference = validPlrId,
+    upeDetails = UPEDetails(
+      customerIdentification1 = "12345678",
+      customerIdentification2 = "12345678",
+      organisationName = "Test Organisation",
+      registrationDate = "2024-01-01",
+      domesticOnly = true,
+      filingMember = true
+    ),
+    addressDetails = AddressDetails(
+      addressLine1 = "1 Test Street",
+      addressLine2 = Some("Test Area"),
+      addressLine3 = Some("Test Town"),
+      postCode = Some("TE1 1ST"),
+      countryCode = "GB"
+    ),
+    contactDetails = ContactDetails(
+      name = "Test Contact",
+      telephone = Some("01234567890"),
+      emailAddress = "test@example.com"
+    ),
+    secondaryContactDetails = None,
+    filingMemberDetails = FilingMemberDetails(
+      customerIdentification1 = "12345678",
+      customerIdentification2 = "12345678",
+      organisationName = "Test Filing Member",
+      registrationDate = "2024-01-01",
+      domesticOnly = true,
+      filingMember = true
+    ),
+    accountingPeriod = AccountingPeriod(
+      startDate = "2024-01-01",
+      endDate = "2024-12-31"
+    ),
+    accountStatus = AccountStatus(
+      status = "Active",
+      statusStartDate = "2024-01-01",
+      statusEndDate = None
     )
   )
 }

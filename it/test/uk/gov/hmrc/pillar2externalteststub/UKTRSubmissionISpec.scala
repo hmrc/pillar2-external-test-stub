@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub
 
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -27,11 +28,9 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.SessionKeys.authToken
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
-import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
 import java.time.LocalDate
@@ -43,20 +42,19 @@ class UKTRSubmissionISpec
     with ScalaFutures
     with IntegrationPatience
     with GuiceOneServerPerSuite
-    with DefaultPlayMongoRepositorySupport[UKTRMongoSubmission]
+    with BeforeAndAfterEach
     with UKTRDataFixture {
 
-  override protected val databaseName: String = "test-uktr-submission-integration"
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
-  override protected val repository: UKTRSubmissionRepository = app.injector.instanceOf[UKTRSubmissionRepository]
-  implicit val ec:                   ExecutionContext         = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier            = HeaderCarrier()
+  private val repository = app.injector.instanceOf[UKTRSubmissionRepository]
+  implicit val ec:       ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  implicit val hc:       HeaderCarrier    = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .configure(
-        "mongodb.uri"     -> s"mongodb://localhost:27017/$databaseName",
+        "mongodb.uri"     -> "mongodb://localhost:27017/test-uktr-submission-integration",
         "metrics.enabled" -> false
       )
       .build()
@@ -78,8 +76,8 @@ class UKTRSubmissionISpec
       .futureValue
 
   override def beforeEach(): Unit = {
-    super.beforeEach()
-    repository.collection.drop()
+    repository.uktrRepo.collection.drop().toFuture().futureValue
+    repository.subscriptionRepo.collection.drop().toFuture().futureValue
     ()
   }
 
