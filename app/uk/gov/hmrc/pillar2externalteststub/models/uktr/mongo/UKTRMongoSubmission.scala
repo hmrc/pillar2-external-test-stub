@@ -24,15 +24,15 @@ import uk.gov.hmrc.mongo.play.json.formats.{MongoFormats, MongoJavatimeFormats}
 import java.time.Instant
 
 case class UKTRMongoSubmission(
-  _id: ObjectId,
-  pillar2Id: String,
+  _id:         ObjectId,
+  pillar2Id:   String,
   isAmendment: Boolean,
-  data: UKTRSubmission,
+  data:        UKTRSubmission,
   submittedAt: Instant
 )
 
 object UKTRMongoSubmission {
-  implicit val objectIdFormat: Format[ObjectId] = MongoFormats.objectIdFormat
-  implicit val instantFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
-  implicit val format: OFormat[UKTRMongoSubmission] = Json.format[UKTRMongoSubmission]
-} 
+  implicit val objectIdFormat: Format[ObjectId]             = MongoFormats.objectIdFormat
+  implicit val instantFormat:  Format[Instant]              = MongoJavatimeFormats.instantFormat
+  implicit val format:         OFormat[UKTRMongoSubmission] = Json.format[UKTRMongoSubmission]
+}
