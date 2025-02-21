@@ -48,14 +48,14 @@ class AmendUKTRController @Inject() (
     request.headers.get("X-Pillar2-Id") match {
       case None =>
         logger.warn("X-Pillar2-Id header is missing")
-        Future.successful(UnprocessableEntity(Json.toJson(MissingPLRReference)))
+        Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference))))
       case Some(plrReference) =>
         plrReference match {
           case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
           case _ =>
             retrieveSubscription(plrReference)._2 match {
               case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
-              case _ => Future.successful(UnprocessableEntity(Json.toJson(SubscriptionNotFound(plrReference))))
+              case _ => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(SubscriptionNotFound(plrReference)))))
             }
         }
     }
@@ -68,8 +68,9 @@ class AmendUKTRController @Inject() (
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
           case Right(_) =>
             repository.update(uktrRequest, plrReference).map {
-              case Right(_)    => Ok(Json.toJson(successfulUKTRResponse))
-              case Left(error) => UnprocessableEntity(Json.toJson(error))
+              case Left(error)  => UnprocessableEntity(Json.toJson(error))
+              case Right(true)  => Ok(Json.toJson(successfulUKTRResponse))
+              case Right(false) => InternalServerError(Json.toJson(SAPError))
             }
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
@@ -77,8 +78,9 @@ class AmendUKTRController @Inject() (
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
           case Right(_) =>
             repository.update(nilReturnRequest, plrReference).map {
-              case Right(_)    => Ok(Json.toJson(successfulNilReturnResponse))
-              case Left(error) => UnprocessableEntity(Json.toJson(error))
+              case Left(error)  => UnprocessableEntity(Json.toJson(error))
+              case Right(true)  => Ok(Json.toJson(successfulNilReturnResponse))
+              case Right(false) => InternalServerError(Json.toJson(SAPError))
             }
         }
       case JsError(errors) =>

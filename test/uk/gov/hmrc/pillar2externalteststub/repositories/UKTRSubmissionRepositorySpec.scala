@@ -16,28 +16,34 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
-import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.BeforeAndAfterEach
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, Configuration}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import uk.gov.hmrc.mongo.test.MongoSupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.DetailedErrorResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 
 import scala.concurrent.ExecutionContext
+import org.scalatest.time.{Millis, Seconds, Span}
 
 class UKTRSubmissionRepositorySpec
     extends AnyWordSpec
     with Matchers
-    with DefaultPlayMongoRepositorySupport[UKTRMongoSubmission]
-    with IntegrationPatience
     with ScalaFutures
+    with MongoSupport
+    with BeforeAndAfterEach
     with UKTRDataFixture {
+
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(
+    timeout = Span(5, Seconds),
+    interval = Span(100, Millis)
+  )
 
   val config = new AppConfig(Configuration.from(Map("appName" -> "pillar2-external-test-stub", "defaultDataExpireInDays" -> 28)))
   val app: Application = GuiceApplicationBuilder()
@@ -45,6 +51,16 @@ class UKTRSubmissionRepositorySpec
     .build()
   val repository: UKTRSubmissionRepository =
     new UKTRSubmissionRepository(config, mongoComponent)(app.injector.instanceOf[ExecutionContext])
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    prepareDatabase()
+  }
+
+  override protected def prepareDatabase(): Unit = {
+    repository.uktrRepo.collection.drop().toFuture().futureValue
+    repository.subscriptionRepo.collection.drop().toFuture().futureValue
+  }
 
   "UKTRSubmissionRepository" when {
     "handling valid submissions" should {
@@ -68,6 +84,20 @@ class UKTRSubmissionRepositorySpec
         val result: Either[DetailedErrorResponse, Boolean] = repository.update(liabilitySubmission, validPlrId).futureValue
 
         result.isLeft shouldBe true
+      }
+    }
+
+    "handling subscriptions" should {
+      "successfully insert and find a subscription" in {
+        val subscription = validSubscription
+        repository.insertSubscription(subscription).futureValue shouldBe true
+        val found = repository.findByPLRReference(subscription.plrReference).futureValue
+        found.isDefined shouldBe true
+        found.get       shouldBe subscription
+      }
+
+      "return None when subscription not found" in {
+        repository.findByPLRReference("nonexistent").futureValue shouldBe None
       }
     }
   }
