@@ -147,6 +147,50 @@ class UKTRSubmissionISpec
         response.status shouldBe 400
       }
 
+      "return 422 when MTT values are provided for domestic-only groups" in {
+        val submissionJson = validRequestBody.as[JsObject] ++ Json.obj(
+          "obligationMTT" -> true,
+          "liabilities" -> Json.obj(
+            "electionDTTSingleMember" -> false,
+            "electionUTPRSingleMember" -> false,
+            "numberSubGroupDTT" -> 4,
+            "numberSubGroupUTPR" -> 5,
+            "totalLiability" -> 10000.99,
+            "totalLiabilityDTT" -> 5000.99,
+            "totalLiabilityIIR" -> 5000.00,
+            "totalLiabilityUTPR" -> 3000.00,
+            "liableEntities" -> Json.arr(validLiableEntity)
+          )
+        )
+        val submissionWithMTT = submissionJson.as[UKTRSubmission]
+
+        val response = submitUKTR(submissionWithMTT, validPlrId)
+        response.status shouldBe 422
+        (response.json \ "errors" \ "code").as[String] shouldBe "093"
+        (response.json \ "errors" \ "text").as[String] shouldBe "obligationMTT cannot be true for a domestic-only group"
+      }
+
+      "accept submission with only DTT values for domestic-only groups" in {
+        val submissionJson = validRequestBody.as[JsObject] ++ Json.obj(
+          "obligationMTT" -> false,
+          "liabilities" -> Json.obj(
+            "electionDTTSingleMember" -> false,
+            "electionUTPRSingleMember" -> false,
+            "numberSubGroupDTT" -> 4,
+            "numberSubGroupUTPR" -> 5,
+            "totalLiability" -> 5000.00,
+            "totalLiabilityDTT" -> 5000.00,
+            "totalLiabilityIIR" -> 0,
+            "totalLiabilityUTPR" -> 0,
+            "liableEntities" -> Json.arr(validLiableEntity)
+          )
+        )
+        val submissionWithDTTOnly = submissionJson.as[UKTRSubmission]
+
+        val response = submitUKTR(submissionWithDTTOnly, validPlrId)
+        response.status shouldBe 201
+      }
+
       "return 422 when Pillar2 ID header is missing" in {
         val response = httpClient
           .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
