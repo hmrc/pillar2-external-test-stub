@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{ServerErrorPlrId, pillar2Regex}
 import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
@@ -44,12 +44,15 @@ class SubmitUKTRController @Inject() (
     extends BackendController(cc)
     with Logging {
 
+  private def validatePillar2Id(pillar2Id: Option[String]): Either[Result, String] =
+    pillar2Id
+      .filter(pillar2Regex.matches)
+      .toRight(UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference))))
+
   def submitUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
-    request.headers.get("X-Pillar2-Id") match {
-      case None =>
-        logger.warn("X-Pillar2-Id header is missing")
-        Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference))))
-      case Some(plrReference) =>
+    validatePillar2Id(request.headers.get("X-Pillar2-Id")) match {
+      case Left(error) => Future.successful(error)
+      case Right(plrReference) =>
         plrReference match {
           case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
           case _ =>

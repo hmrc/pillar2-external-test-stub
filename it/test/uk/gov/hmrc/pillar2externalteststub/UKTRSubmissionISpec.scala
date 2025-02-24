@@ -76,9 +76,8 @@ class UKTRSubmissionISpec
       .futureValue
 
   override def beforeEach(): Unit = {
+    super.beforeEach()
     repository.uktrRepo.collection.drop().toFuture().futureValue
-    repository.subscriptionRepo.collection.drop().toFuture().futureValue
-    ()
   }
 
   "UKTR endpoints" should {
@@ -102,7 +101,7 @@ class UKTRSubmissionISpec
       }
 
       "return 422 when trying to amend non-existent liability return" in {
-        val response = amendUKTR(liabilitySubmission, "invalidPlr2Id")
+        val response = amendUKTR(liabilitySubmission, "XEPLR0000000001")
 
         response.status                                shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"
@@ -110,7 +109,7 @@ class UKTRSubmissionISpec
       }
 
       "return 422 when trying to amend non-existent nil return" in {
-        val response = amendUKTR(nilSubmission, "invalidPlr2Id")
+        val response = amendUKTR(nilSubmission, "XEPLR0000000001")
 
         response.status                                shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"

@@ -20,13 +20,13 @@ import play.api.libs.json.{Json, OWrites}
 
 case class SubscriptionSuccessResponse(
   formBundleNumber:         String,
-  upeDetails:               UPEDetailsResponse,
-  upeCorrespAddressDetails: AddressDetailsResponse,
-  primaryContactDetails:    ContactDetailsResponse,
-  secondaryContactDetails:  Option[ContactDetailsResponse],
-  filingMemberDetails:      FilingMemberDetailsResponse,
-  accountingPeriod:         AccountingPeriodResponse,
-  accountStatus:            AccountStatusResponse
+  upeDetails:               UPEDetails,
+  upeCorrespAddressDetails: AddressDetails,
+  primaryContactDetails:    ContactDetails,
+  secondaryContactDetails:  Option[ContactDetails],
+  filingMemberDetails:      FilingMemberDetails,
+  accountingPeriod:         AccountingPeriod,
+  accountStatus:            AccountStatus
 ) extends SubscriptionResponse
 
 object SubscriptionSuccessResponse {
@@ -35,7 +35,7 @@ object SubscriptionSuccessResponse {
   def successfulDomesticOnlyResponse: SubscriptionSuccessResponse =
     SubscriptionSuccessResponse(
       formBundleNumber = "123456789123",
-      upeDetails = UPEDetailsResponse(
+      upeDetails = UPEDetails(
         customerIdentification1 = "12345678",
         customerIdentification2 = "12345678",
         organisationName = "Domestic Organisation Inc.",
@@ -43,43 +43,45 @@ object SubscriptionSuccessResponse {
         domesticOnly = true,
         filingMember = true
       ),
-      upeCorrespAddressDetails = AddressDetailsResponse(
+      upeCorrespAddressDetails = AddressDetails(
         addressLine1 = "1 High Street",
         addressLine2 = Some("Egham"),
         addressLine3 = Some("Surrey"),
         postCode = Some("HP13 6TT"),
         countryCode = "GB"
       ),
-      primaryContactDetails = ContactDetailsResponse(
+      primaryContactDetails = ContactDetails(
         name = "John Doe",
         telephone = Some("0115 9700 700"),
         emailAddress = "johndoe@example.com"
       ),
       secondaryContactDetails = Some(
-        ContactDetailsResponse(
+        ContactDetails(
           name = "Jane Doe",
           telephone = Some("0115 9700 800"),
           emailAddress = "janedoe@example.com"
         )
       ),
-      filingMemberDetails = FilingMemberDetailsResponse(
-        safeId = "XL6967739016188",
+      filingMemberDetails = FilingMemberDetails(
+        safeId = "XE0000123456789",
         organisationName = "Domestic Operations Ltd",
         customerIdentification1 = "1234Z678",
         customerIdentification2 = "1234567Y"
       ),
-      accountingPeriod = AccountingPeriodResponse(
+      accountingPeriod = AccountingPeriod(
         startDate = "2023-04-06",
         endDate = "2024-04-05",
-        dueDate = Some("2024-05-01")
+        dueDate = Some("2024-06-30")
       ),
-      accountStatus = AccountStatusResponse(inactive = true)
+      accountStatus = AccountStatus(
+        inactive = false
+      )
     )
 
   def successfulNonDomesticResponse: SubscriptionSuccessResponse =
     SubscriptionSuccessResponse(
       formBundleNumber = "123456789123",
-      upeDetails = UPEDetailsResponse(
+      upeDetails = UPEDetails(
         customerIdentification1 = "87654321",
         customerIdentification2 = "87654321",
         organisationName = "International Organisation Inc.",
@@ -87,30 +89,32 @@ object SubscriptionSuccessResponse {
         domesticOnly = false,
         filingMember = false
       ),
-      upeCorrespAddressDetails = AddressDetailsResponse(
+      upeCorrespAddressDetails = AddressDetails(
         addressLine1 = "123 Overseas Road",
         addressLine2 = Some("Egham"),
         addressLine3 = Some("Surrey"),
         postCode = Some("HP13 6TT"),
         countryCode = "US"
       ),
-      primaryContactDetails = ContactDetailsResponse(
+      primaryContactDetails = ContactDetails(
         name = "Fred Flintstone",
         telephone = Some("0115 9700 700"),
         emailAddress = "fred@example.com"
       ),
       secondaryContactDetails = None,
-      filingMemberDetails = FilingMemberDetailsResponse(
-        safeId = "XL1234567890123",
+      filingMemberDetails = FilingMemberDetails(
+        safeId = "XE0000987654321",
         organisationName = "International Operations Ltd",
         customerIdentification1 = "8765X432",
         customerIdentification2 = "8765432Z"
       ),
-      accountingPeriod = AccountingPeriodResponse(
+      accountingPeriod = AccountingPeriod(
         startDate = "2023-04-06",
         endDate = "2024-04-05",
-        dueDate = Some("2024-05-01")
+        dueDate = Some("2024-06-30")
       ),
-      accountStatus = AccountStatusResponse(inactive = false)
+      accountStatus = AccountStatus(
+        inactive = false
+      )
     )
 }

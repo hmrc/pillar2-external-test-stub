@@ -18,7 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.models.subscription
 
 import play.api.libs.json.{Json, OWrites}
 
-case class UPEDetailsResponse(
+case class UPEDetails(
   customerIdentification1: String,
   customerIdentification2: String,
   organisationName:        String,
@@ -27,11 +27,11 @@ case class UPEDetailsResponse(
   filingMember:            Boolean
 )
 
-object UPEDetailsResponse {
-  implicit val writes: OWrites[UPEDetailsResponse] = Json.writes[UPEDetailsResponse]
+object UPEDetails {
+  implicit val writes: OWrites[UPEDetails] = Json.writes[UPEDetails]
 }
 
-case class AddressDetailsResponse(
+case class AddressDetails(
   addressLine1: String,
   addressLine2: Option[String],
   addressLine3: Option[String],
@@ -39,45 +39,45 @@ case class AddressDetailsResponse(
   countryCode:  String
 )
 
-object AddressDetailsResponse {
-  implicit val writes: OWrites[AddressDetailsResponse] = Json.writes[AddressDetailsResponse]
+object AddressDetails {
+  implicit val writes: OWrites[AddressDetails] = Json.writes[AddressDetails]
 }
 
-case class ContactDetailsResponse(
+case class ContactDetails(
   name:         String,
   telephone:    Option[String],
   emailAddress: String
 )
 
-object ContactDetailsResponse {
-  implicit val writes: OWrites[ContactDetailsResponse] = Json.writes[ContactDetailsResponse]
+object ContactDetails {
+  implicit val writes: OWrites[ContactDetails] = Json.writes[ContactDetails]
 }
 
-case class FilingMemberDetailsResponse(
+case class FilingMemberDetails(
   safeId:                  String,
   organisationName:        String,
   customerIdentification1: String,
   customerIdentification2: String
 )
 
-object FilingMemberDetailsResponse {
-  implicit val writes: OWrites[FilingMemberDetailsResponse] = Json.writes[FilingMemberDetailsResponse]
+object FilingMemberDetails {
+  implicit val writes: OWrites[FilingMemberDetails] = Json.writes[FilingMemberDetails]
 }
 
-case class AccountingPeriodResponse(
+case class AccountingPeriod(
   startDate: String,
   endDate:   String,
   dueDate:   Option[String]
 )
 
-object AccountingPeriodResponse {
-  implicit val writes: OWrites[AccountingPeriodResponse] = Json.writes[AccountingPeriodResponse]
+object AccountingPeriod {
+  implicit val writes: OWrites[AccountingPeriod] = Json.writes[AccountingPeriod]
 }
 
-case class AccountStatusResponse(
+case class AccountStatus(
   inactive: Boolean
 )
 
-object AccountStatusResponse {
-  implicit val writes: OWrites[AccountStatusResponse] = Json.writes[AccountStatusResponse]
+object AccountStatus {
+  implicit val writes: OWrites[AccountStatus] = Json.writes[AccountStatus]
 }

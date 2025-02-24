@@ -22,7 +22,6 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
-import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
@@ -55,14 +54,6 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
           .expireAfter(config.defaultDataExpireInDays, TimeUnit.DAYS)
       )
     ),
-    replaceIndexes = true
-  )
-
-  val subscriptionRepo = new PlayMongoRepository[SubscriptionMongo](
-    collectionName = "subscription",
-    mongoComponent = mongoComponent,
-    domainFormat = SubscriptionMongo.format,
-    indexes = Seq(),
     replaceIndexes = true
   )
 
@@ -101,49 +92,10 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .find(
         Filters.and(
           Filters.eq("pillar2Id", pillar2Id),
-          Filters.eq("data.accountingPeriodFrom", accountingPeriodFrom),
-          Filters.eq("data.accountingPeriodTo", accountingPeriodTo)
+          Filters.eq("data.accountingPeriodFrom", accountingPeriodFrom.toString),
+          Filters.eq("data.accountingPeriodTo", accountingPeriodTo.toString)
         )
       )
       .headOption()
       .map(_.isDefined)
-
-  // Subscription-related functionality
-  def findByPLRReference(plrReference: String): Future[Option[Subscription]] =
-    subscriptionRepo.collection
-      .find(Filters.eq("plrReference", plrReference))
-      .headOption()
-      .map(_.map(toSubscription))
-
-  def insertSubscription(subscription: Subscription): Future[Boolean] = {
-    val subscriptionMongo = toSubscriptionMongo(subscription)
-    subscriptionRepo.collection
-      .insertOne(subscriptionMongo)
-      .toFuture()
-      .map(_ => true)
-  }
-
-  private def toSubscription(mongo: SubscriptionMongo): Subscription =
-    Subscription(
-      plrReference = mongo.plrReference,
-      upeDetails = mongo.upeDetails,
-      addressDetails = mongo.addressDetails,
-      contactDetails = mongo.contactDetails,
-      secondaryContactDetails = mongo.secondaryContactDetails,
-      filingMemberDetails = mongo.filingMemberDetails,
-      accountingPeriod = mongo.accountingPeriod,
-      accountStatus = mongo.accountStatus
-    )
-
-  private def toSubscriptionMongo(subscription: Subscription): SubscriptionMongo =
-    SubscriptionMongo(
-      plrReference = subscription.plrReference,
-      upeDetails = subscription.upeDetails,
-      addressDetails = subscription.addressDetails,
-      contactDetails = subscription.contactDetails,
-      secondaryContactDetails = subscription.secondaryContactDetails,
-      filingMemberDetails = subscription.filingMemberDetails,
-      accountingPeriod = subscription.accountingPeriod,
-      accountStatus = subscription.accountStatus
-    )
 }

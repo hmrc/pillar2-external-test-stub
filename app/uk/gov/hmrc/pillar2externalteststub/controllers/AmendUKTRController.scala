@@ -20,12 +20,12 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{ServerErrorPlrId, pillar2Regex}
 import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, SubscriptionNotFound}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, RequestCouldNotBeProcessed, SubscriptionNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSimpleError.{InvalidJsonError, SAPError}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
@@ -46,15 +46,18 @@ class AmendUKTRController @Inject() (
 
   def amendUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
     request.headers.get("X-Pillar2-Id") match {
-      case None =>
-        logger.warn("X-Pillar2-Id header is missing")
-        Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference))))
+      case None => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference))))
       case Some(plrReference) =>
         plrReference match {
           case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
           case _ =>
             retrieveSubscription(plrReference)._2 match {
-              case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
+              case _: SubscriptionSuccessResponse =>
+                if (!pillar2Regex.matches(plrReference)) {
+                  Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference))))
+                } else {
+                  validateRequest(plrReference, request)
+                }
               case _ => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(SubscriptionNotFound(plrReference)))))
             }
         }
@@ -67,31 +70,41 @@ class AmendUKTRController @Inject() (
         Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
           case Right(_) =>
-            repository.update(uktrRequest, plrReference).map {
-              case Left(error)  => UnprocessableEntity(Json.toJson(error))
-              case Right(true)  => Ok(Json.toJson(successfulUKTRResponse))
-              case Right(false) => InternalServerError(Json.toJson(SAPError))
+            repository.findByPillar2Id(plrReference).flatMap {
+              case None => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(RequestCouldNotBeProcessed))))
+              case Some(_) =>
+                repository.update(uktrRequest, plrReference).map {
+                  case Left(error)  => UnprocessableEntity(Json.toJson(error))
+                  case Right(true)  => Ok(Json.toJson(successfulUKTRResponse))
+                  case Right(false) => InternalServerError(Json.toJson(SAPError))
+                }
             }
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
           case Right(_) =>
-            repository.update(nilReturnRequest, plrReference).map {
-              case Left(error)  => UnprocessableEntity(Json.toJson(error))
-              case Right(true)  => Ok(Json.toJson(successfulNilReturnResponse))
-              case Right(false) => InternalServerError(Json.toJson(SAPError))
+            repository.findByPillar2Id(plrReference).flatMap {
+              case None => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(RequestCouldNotBeProcessed))))
+              case Some(_) =>
+                repository.update(nilReturnRequest, plrReference).map {
+                  case Left(error)  => UnprocessableEntity(Json.toJson(error))
+                  case Right(true)  => Ok(Json.toJson(successfulNilReturnResponse))
+                  case Right(false) => InternalServerError(Json.toJson(SAPError))
+                }
             }
         }
+      case JsSuccess(_, _) =>
+        Future.successful(BadRequest(Json.toJson(InvalidJsonError())))
       case JsError(errors) =>
         val errorMessage = errors
           .map { case (path, validationErrors) =>
-            val fieldName     = path.toJsonString
-            val errorMessages = validationErrors.map(_.message).mkString(", ")
-            s"Field: $fieldName: $errorMessages"
+            val fieldName    = path.toJsonString
+            val errorMessage = validationErrors.map(_.message).mkString(", ")
+            s"$fieldName: $errorMessage"
           }
-          .mkString("; ")
-        Future.successful(BadRequest(Json.toJson(InvalidJsonError(errorMessage))))
-      case _ => Future.successful(BadRequest(Json.toJson(InvalidJsonError())))
+          .mkString(", ")
+        logger.error(s"Invalid JSON payload: $errorMessage")
+        Future.successful(BadRequest(Json.toJson(InvalidJsonError())))
     }
 }
