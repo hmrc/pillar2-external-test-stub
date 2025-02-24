@@ -20,36 +20,36 @@ import play.api.libs.json._
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
 
 sealed trait UKTRDetailedError {
-  def code:    String
+  def code: String
   def message: String
 }
 
 object UKTRDetailedError {
   case object MissingPLRReference extends UKTRDetailedError {
-    val code    = UKTRErrorCodes.PILLAR_2_ID_MISSING_OR_INVALID_002
+    val code = UKTRErrorCodes.PILLAR_2_ID_MISSING_OR_INVALID_002
     val message = "PLR Reference is missing or invalid"
   }
 
   case class SubscriptionNotFound(plrReference: String) extends UKTRDetailedError {
-    val code    = UKTRErrorCodes.BUSINESS_PARTNER_DOES_NOT_HAVE_AN_ACTIVE_SUBSCRIPTION_007
+    val code = UKTRErrorCodes.BUSINESS_PARTNER_DOES_NOT_HAVE_AN_ACTIVE_SUBSCRIPTION_007
     val message: String = s"No active subscription found for PLR Reference: $plrReference"
   }
 
   case object DuplicateSubmissionError extends UKTRDetailedError {
-    val code    = UKTRErrorCodes.DUPLICATE_SUBMISSION_044
+    val code = UKTRErrorCodes.DUPLICATE_SUBMISSION_044
     val message = "A submission already exists for this accounting period"
   }
 
   case object RequestCouldNotBeProcessed extends UKTRDetailedError {
-    override val code    = UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+    override val code = UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
     override val message = "Request could not be processed"
   }
 
   implicit val writes: Writes[UKTRDetailedError] = new Writes[UKTRDetailedError] {
     def writes(error: UKTRDetailedError): JsValue = Json.obj(
       "processingDate" -> nowZonedDateTime.toString,
-      "code"           -> error.code,
-      "text"           -> error.message
+      "code" -> error.code,
+      "text" -> error.message
     )
   }
 
