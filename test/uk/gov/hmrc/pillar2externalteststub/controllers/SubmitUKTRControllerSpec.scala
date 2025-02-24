@@ -47,7 +47,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     }
   }
 
-  "when validPlrId is missing" - {
+  "when pillar2Id is missing" - {
     "a 422 should be returned" in {
       val missingPlrIdRequest = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
         .withHeaders("Content-Type" -> "application/json", authHeader)

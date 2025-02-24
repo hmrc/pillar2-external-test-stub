@@ -64,7 +64,7 @@ class BTNController @Inject() (
   private def validatePillar2Id(pillar2Id: Option[String]): Either[Result, String] =
     pillar2Id
       .filter(pillar2Regex.matches)
-      .toRight(UnprocessableEntity(Json.toJson(BTN_PILLAR2_MISSING_002)))
+      .toRight(UnprocessableEntity(Json.toJson(BTN_PILLAR2_MISSING_OR_INVALID_002)))
 
   private def handleSubmission(pillar2Id: String, request: BTNRequest): Future[Result] =
     pillar2Id match {

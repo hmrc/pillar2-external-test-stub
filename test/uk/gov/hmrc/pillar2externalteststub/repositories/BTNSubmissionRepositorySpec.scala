@@ -83,7 +83,7 @@ class BTNSubmissionRepositorySpec
       submission.accountingPeriodTo   shouldBe testRequest.accountingPeriodTo
     }
 
-    "allow submissions for same validPlrId with different accounting periods" in {
+    "allow submissions for same pillar2Id with different accounting periods" in {
       repository.insert(testPillar2Id, testRequest).futureValue shouldBe true
 
       val differentPeriodRequest = testRequest.copy(
@@ -113,7 +113,7 @@ class BTNSubmissionRepositorySpec
       repository.findByPillar2Id("NONEXISTENT").futureValue shouldBe empty
     }
 
-    "return all submissions for a given validPlrId" in {
+    "return all submissions for a given pillar2Id" in {
       val requests = List(
         testRequest,
         testRequest.copy(
