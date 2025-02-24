@@ -63,7 +63,7 @@ object SubscriptionSuccessResponse {
         )
       ),
       filingMemberDetails = FilingMemberDetails(
-        safeId = "XL6967739016188",
+        safeId = "XE0000123456789",
         organisationName = "Domestic Operations Ltd",
         customerIdentification1 = "1234Z678",
         customerIdentification2 = "1234567Y"
@@ -71,9 +71,11 @@ object SubscriptionSuccessResponse {
       accountingPeriod = AccountingPeriod(
         startDate = "2023-04-06",
         endDate = "2024-04-05",
-        dueDate = Some("2024-05-01")
+        dueDate = Some("2024-06-30")
       ),
-      accountStatus = AccountStatus(inactive = true)
+      accountStatus = AccountStatus(
+        inactive = false
+      )
     )
 
   def successfulNonDomesticResponse: SubscriptionSuccessResponse =
@@ -101,7 +103,7 @@ object SubscriptionSuccessResponse {
       ),
       secondaryContactDetails = None,
       filingMemberDetails = FilingMemberDetails(
-        safeId = "XL1234567890123",
+        safeId = "XE0000987654321",
         organisationName = "International Operations Ltd",
         customerIdentification1 = "8765X432",
         customerIdentification2 = "8765432Z"
@@ -109,8 +111,10 @@ object SubscriptionSuccessResponse {
       accountingPeriod = AccountingPeriod(
         startDate = "2023-04-06",
         endDate = "2024-04-05",
-        dueDate = Some("2024-05-01")
+        dueDate = Some("2024-06-30")
       ),
-      accountStatus = AccountStatus(inactive = false)
+      accountStatus = AccountStatus(
+        inactive = false
+      )
     )
 }

@@ -20,12 +20,12 @@ import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{ServerErrorPlrId, pillar2Regex}
 import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, SubscriptionNotFound}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{DuplicateSubmissionError, MissingPLRReference, SubscriptionNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSimpleError.{InvalidJsonError, SAPError}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
@@ -44,18 +44,21 @@ class SubmitUKTRController @Inject() (
     extends BackendController(cc)
     with Logging {
 
+  private def validatePillar2Id(pillar2Id: Option[String]): Either[Result, String] =
+    pillar2Id
+      .filter(pillar2Regex.matches)
+      .toRight(UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference))))
+
   def submitUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
-    request.headers.get("X-Pillar2-Id") match {
-      case None =>
-        logger.warn("X-Pillar2-Id header is missing")
-        Future.successful(UnprocessableEntity(Json.toJson(MissingPLRReference)))
-      case Some(plrReference) =>
+    validatePillar2Id(request.headers.get("X-Pillar2-Id")) match {
+      case Left(error) => Future.successful(error)
+      case Right(plrReference) =>
         plrReference match {
           case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
           case _ =>
             retrieveSubscription(plrReference)._2 match {
               case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
-              case _ => Future.successful(UnprocessableEntity(Json.toJson(SubscriptionNotFound(plrReference))))
+              case _ => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(SubscriptionNotFound(plrReference)))))
             }
         }
     }
@@ -66,12 +69,20 @@ class SubmitUKTRController @Inject() (
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
         Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(successfulUKTRResponse)))
+          case Right(_) =>
+            repository.findDuplicateSubmission(plrReference, uktrRequest.accountingPeriodFrom, uktrRequest.accountingPeriodTo).flatMap {
+              case true  => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
+              case false => repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(successfulUKTRResponse)))
+            }
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
           case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-          case Right(_)     => repository.insert(nilReturnRequest, plrReference).map(_ => Created(Json.toJson(successfulNilReturnResponse)))
+          case Right(_) =>
+            repository.findDuplicateSubmission(plrReference, nilReturnRequest.accountingPeriodFrom, nilReturnRequest.accountingPeriodTo).flatMap {
+              case true  => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
+              case false => repository.insert(nilReturnRequest, plrReference).map(_ => Created(Json.toJson(successfulNilReturnResponse)))
+            }
         }
       case JsError(errors) =>
         val errorMessage = errors

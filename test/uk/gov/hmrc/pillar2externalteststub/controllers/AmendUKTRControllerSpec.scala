@@ -32,8 +32,10 @@ import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn, UKTRSubmission}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
+import org.bson.types.ObjectId
 
 import java.time._
 import scala.concurrent.Future
@@ -62,8 +64,20 @@ class AmendUKTRControllerSpec
   override def beforeEach(): Unit = reset(mockRepository)
 
   "return OK with success response for a valid uktr amendment" in {
-    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
-      .thenReturn(Future.successful(Right(true)))
+    when(mockRepository.findByPillar2Id(any[String])).thenReturn(
+      Future.successful(
+        Some(
+          UKTRMongoSubmission(
+            _id = new ObjectId(),
+            pillar2Id = validPlrId,
+            isAmendment = false,
+            data = liabilitySubmission,
+            submittedAt = Instant.now()
+          )
+        )
+      )
+    )
+    when(mockRepository.update(any[UKTRSubmission], any[String])).thenReturn(Future.successful(Right(true)))
 
     val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
@@ -84,7 +98,7 @@ class AmendUKTRControllerSpec
     status(result) mustBe UNPROCESSABLE_ENTITY
     val jsonResult = contentAsJson(result)
     (jsonResult \ "errors" \ "code").as[String] mustEqual "002"
-    (jsonResult \ "errors" \ "text").as[String] mustEqual "Pillar 2 ID missing or invalid"
+    (jsonResult \ "errors" \ "text").as[String] mustEqual "PLR Reference is missing or invalid"
   }
 
   "return UNPROCESSABLE_ENTITY when subscription is not found for the given PLR reference" in {
@@ -95,12 +109,13 @@ class AmendUKTRControllerSpec
     status(result) mustBe UNPROCESSABLE_ENTITY
     val jsonResult = contentAsJson(result)
     (jsonResult \ "errors" \ "code").as[String] mustEqual "007"
-    (jsonResult \ "errors" \ "text").as[String] mustEqual "Unable to fetch subscription for pillar2 ID: XEPLR5555555554"
+    (jsonResult \ "errors" \ "text").as[String] mustEqual s"No active subscription found for PLR Reference: $nonExistentPlrId"
   }
 
   "return UNPROCESSABLE_ENTITY when amendment to a liability return that does not exist" in {
+    when(mockRepository.findByPillar2Id(any[String])).thenReturn(Future.successful(None))
     when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
-      .thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
+      .thenReturn(Future.successful(Left(DetailedErrorResponse(RequestCouldNotBeProcessed))))
 
     val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
@@ -112,8 +127,20 @@ class AmendUKTRControllerSpec
   }
 
   "return OK with success response for a valid NIL_RETURN amendment" in {
-    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
-      .thenReturn(Future.successful(Right(true)))
+    when(mockRepository.findByPillar2Id(any[String])).thenReturn(
+      Future.successful(
+        Some(
+          UKTRMongoSubmission(
+            _id = new ObjectId(),
+            pillar2Id = validPlrId,
+            isAmendment = false,
+            data = nilSubmission,
+            submittedAt = Instant.now()
+          )
+        )
+      )
+    )
+    when(mockRepository.update(any[UKTRSubmission], any[String])).thenReturn(Future.successful(Right(true)))
 
     val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
@@ -125,8 +152,9 @@ class AmendUKTRControllerSpec
   }
 
   "return UNPROCESSABLE_ENTITY when amendment to a nil return that does not exist" in {
+    when(mockRepository.findByPillar2Id(any[String])).thenReturn(Future.successful(None))
     when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
-      .thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
+      .thenReturn(Future.successful(Left(DetailedErrorResponse(RequestCouldNotBeProcessed))))
 
     val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 

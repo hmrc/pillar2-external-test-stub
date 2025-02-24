@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub
 
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -27,11 +28,9 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.SessionKeys.authToken
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
-import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
 import java.time.LocalDate
@@ -43,20 +42,19 @@ class UKTRSubmissionISpec
     with ScalaFutures
     with IntegrationPatience
     with GuiceOneServerPerSuite
-    with DefaultPlayMongoRepositorySupport[UKTRMongoSubmission]
+    with BeforeAndAfterEach
     with UKTRDataFixture {
 
-  override protected val databaseName: String = "test-uktr-submission-integration"
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
-  override protected val repository: UKTRSubmissionRepository = app.injector.instanceOf[UKTRSubmissionRepository]
-  implicit val ec:                   ExecutionContext         = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier            = HeaderCarrier()
+  private val repository = app.injector.instanceOf[UKTRSubmissionRepository]
+  implicit val ec:       ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  implicit val hc:       HeaderCarrier    = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .configure(
-        "mongodb.uri"     -> s"mongodb://localhost:27017/$databaseName",
+        "mongodb.uri"     -> "mongodb://localhost:27017/test-uktr-submission-integration",
         "metrics.enabled" -> false
       )
       .build()
@@ -79,8 +77,7 @@ class UKTRSubmissionISpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    repository.collection.drop()
-    ()
+    repository.uktrRepo.collection.drop().toFuture().futureValue
   }
 
   "UKTR endpoints" should {
@@ -104,7 +101,7 @@ class UKTRSubmissionISpec
       }
 
       "return 422 when trying to amend non-existent liability return" in {
-        val response = amendUKTR(liabilitySubmission, "invalidPlr2Id")
+        val response = amendUKTR(liabilitySubmission, "XEPLR0000000001")
 
         response.status                                shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"
@@ -112,7 +109,7 @@ class UKTRSubmissionISpec
       }
 
       "return 422 when trying to amend non-existent nil return" in {
-        val response = amendUKTR(nilSubmission, "invalidPlr2Id")
+        val response = amendUKTR(nilSubmission, "XEPLR0000000001")
 
         response.status                                shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"
@@ -147,6 +144,50 @@ class UKTRSubmissionISpec
           .futureValue
 
         response.status shouldBe 400
+      }
+
+      "return 422 when MTT values are provided for domestic-only groups" in {
+        val submissionJson = validRequestBody.as[JsObject] ++ Json.obj(
+          "obligationMTT" -> true,
+          "liabilities" -> Json.obj(
+            "electionDTTSingleMember" -> false,
+            "electionUTPRSingleMember" -> false,
+            "numberSubGroupDTT" -> 4,
+            "numberSubGroupUTPR" -> 5,
+            "totalLiability" -> 10000.99,
+            "totalLiabilityDTT" -> 5000.99,
+            "totalLiabilityIIR" -> 5000.00,
+            "totalLiabilityUTPR" -> 3000.00,
+            "liableEntities" -> Json.arr(validLiableEntity)
+          )
+        )
+        val submissionWithMTT = submissionJson.as[UKTRSubmission]
+
+        val response = submitUKTR(submissionWithMTT, validPlrId)
+        response.status shouldBe 422
+        (response.json \ "errors" \ "code").as[String] shouldBe "093"
+        (response.json \ "errors" \ "text").as[String] shouldBe "obligationMTT cannot be true for a domestic-only group"
+      }
+
+      "accept submission with only DTT values for domestic-only groups" in {
+        val submissionJson = validRequestBody.as[JsObject] ++ Json.obj(
+          "obligationMTT" -> false,
+          "liabilities" -> Json.obj(
+            "electionDTTSingleMember" -> false,
+            "electionUTPRSingleMember" -> false,
+            "numberSubGroupDTT" -> 4,
+            "numberSubGroupUTPR" -> 5,
+            "totalLiability" -> 5000.00,
+            "totalLiabilityDTT" -> 5000.00,
+            "totalLiabilityIIR" -> 0,
+            "totalLiabilityUTPR" -> 0,
+            "liableEntities" -> Json.arr(validLiableEntity)
+          )
+        )
+        val submissionWithDTTOnly = submissionJson.as[UKTRSubmission]
+
+        val response = submitUKTR(submissionWithDTTOnly, validPlrId)
+        response.status shouldBe 201
       }
 
       "return 422 when Pillar2 ID header is missing" in {
