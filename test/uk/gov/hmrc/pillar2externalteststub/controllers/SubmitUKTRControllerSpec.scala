@@ -33,11 +33,11 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.{AccountingPeriod, OrgDetails, TestOrganisation, TestOrganisationRequest, TestOrganisationWithId}
 
 import java.time.LocalDate
 import scala.concurrent.Future

@@ -16,24 +16,25 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.IntegrationPatience
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import org.scalatest.concurrent.IntegrationPatience
-import org.scalatest.time.{Seconds, Span}
-import org.scalatest.concurrent.PatienceConfiguration.Timeout
-import scala.concurrent.duration._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
-import org.scalatest.BeforeAndAfterEach
+import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class UKTRSubmissionRepositorySpec
     extends AnyFreeSpec

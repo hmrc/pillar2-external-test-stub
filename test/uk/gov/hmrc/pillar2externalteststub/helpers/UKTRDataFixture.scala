@@ -18,8 +18,8 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.ReturnType
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 
 trait UKTRDataFixture extends Pillar2DataFixture {
 
