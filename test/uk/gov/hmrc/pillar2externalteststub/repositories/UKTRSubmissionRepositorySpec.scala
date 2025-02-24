@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.BeforeAndAfterEach
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, Configuration}
@@ -30,7 +31,6 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.DetailedErrorResponse
 
 import scala.concurrent.ExecutionContext
-import org.scalatest.time.{Millis, Seconds, Span}
 
 class UKTRSubmissionRepositorySpec
     extends AnyWordSpec

@@ -32,7 +32,7 @@ import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRLiabilityReturn, UKTRNilReturn, UKTRSubmission}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
 import java.time._

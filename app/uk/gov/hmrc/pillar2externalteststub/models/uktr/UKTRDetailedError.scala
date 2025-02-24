@@ -32,7 +32,7 @@ object UKTRDetailedError {
 
   case class SubscriptionNotFound(plrReference: String) extends UKTRDetailedError {
     val code    = UKTRErrorCodes.BUSINESS_PARTNER_DOES_NOT_HAVE_AN_ACTIVE_SUBSCRIPTION_007
-    val message = s"No active subscription found for PLR Reference: $plrReference"
+    val message: String = s"No active subscription found for PLR Reference: $plrReference"
   }
 
   case object DuplicateSubmissionError extends UKTRDetailedError {

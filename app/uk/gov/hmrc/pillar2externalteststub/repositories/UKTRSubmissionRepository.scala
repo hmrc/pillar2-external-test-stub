@@ -17,15 +17,15 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.bson.types.ObjectId
-import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
+import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
+import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
-import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 
 import java.time.Instant
 import java.time.LocalDate

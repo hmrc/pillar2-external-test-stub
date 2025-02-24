@@ -18,12 +18,12 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inspectors.forAll
 import org.scalatest.OptionValues
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status.CREATED
@@ -38,8 +38,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
-import java.time.ZonedDateTime
 import java.time.LocalDate
+import java.time.ZonedDateTime
 import scala.concurrent.Future
 
 class SubmitUKTRControllerSpec
