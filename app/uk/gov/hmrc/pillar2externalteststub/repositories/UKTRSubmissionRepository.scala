@@ -18,6 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.bson.types.ObjectId
 import org.mongodb.scala.model._
+import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
@@ -33,7 +34,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(implicit ec: ExecutionContext) {
+class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(implicit ec: ExecutionContext) extends Logging {
 
   val uktrRepo = new PlayMongoRepository[UKTRMongoSubmission](
     collectionName = "uktr-submissions",
@@ -71,14 +72,33 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .toFuture()
       .map(_ => true)
       .recoverWith { case e: Exception =>
+        logger.error(s"Failed to ${if (isAmendment) "amend" else "create"} UKTR", e)
         Future.failed(DatabaseError(s"Failed to ${if (isAmendment) "amend" else "create"} UKTR - ${e.getMessage}"))
       }
   }
 
   def update(submission: UKTRSubmission, pillar2Id: String): Future[Either[DetailedErrorResponse, Boolean]] =
     findByPillar2Id(pillar2Id).flatMap {
-      case None    => Future.successful(Left(DetailedErrorResponse(RequestCouldNotBeProcessed)))
-      case Some(_) => insert(submission, pillar2Id, isAmendment = true).map(Right(_))
+      case None => Future.successful(Left(DetailedErrorResponse(RequestCouldNotBeProcessed)))
+      case Some(existingSubmission) =>
+        val updatedSubmission = UKTRMongoSubmission(
+          _id = existingSubmission._id,
+          pillar2Id = pillar2Id,
+          isAmendment = true,
+          data = submission,
+          submittedAt = Instant.now()
+        )
+        uktrRepo.collection
+          .replaceOne(
+            Filters.eq("_id", existingSubmission._id),
+            updatedSubmission,
+            ReplaceOptions().upsert(false)
+          )
+          .toFuture()
+          .map(result => Right(result.wasAcknowledged()))
+          .recover { case _ =>
+            Left(DetailedErrorResponse(RequestCouldNotBeProcessed))
+          }
     }
 
   def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
@@ -86,6 +106,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .find(Filters.eq("pillar2Id", pillar2Id))
       .sort(Indexes.descending("submittedAt"))
       .headOption()
+      .recover { case _ => None }
 
   def findDuplicateSubmission(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Boolean] =
     uktrRepo.collection

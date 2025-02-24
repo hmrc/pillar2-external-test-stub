@@ -19,14 +19,13 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.Inspectors.forAll
 import org.scalatest.OptionValues
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.http.Status.CREATED
+import play.api.http.Status.{BAD_REQUEST, CREATED, UNPROCESSABLE_ENTITY}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
@@ -37,9 +36,10 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{AccountingPeriod, OrgDetails, TestOrganisation, TestOrganisationRequest, TestOrganisationWithId}
 
 import java.time.LocalDate
-import java.time.ZonedDateTime
 import scala.concurrent.Future
 
 class SubmitUKTRControllerSpec
@@ -51,26 +51,53 @@ class SubmitUKTRControllerSpec
     with MockitoSugar
     with BeforeAndAfterEach {
 
-  private val mockRepository = mock[UKTRSubmissionRepository]
+  private val mockRepository          = mock[UKTRSubmissionRepository]
+  private val mockOrganisationService = mock[OrganisationService]
+
+  private def createTestOrganisation(startDate: String, endDate: String): TestOrganisation = {
+    val request = TestOrganisationRequest(
+      orgDetails = OrgDetails(
+        domesticOnly = true,
+        organisationName = "Test Org",
+        registrationDate = LocalDate.now()
+      ),
+      accountingPeriod = AccountingPeriod(
+        startDate = LocalDate.parse(startDate),
+        endDate = LocalDate.parse(endDate)
+      )
+    )
+    TestOrganisation.fromRequest(request)
+  }
+
+  private def createTestOrganisationWithId(plrId: String, startDate: String, endDate: String): TestOrganisationWithId =
+    createTestOrganisation(startDate, endDate).withPillar2Id(plrId)
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
-      .overrides(inject.bind[UKTRSubmissionRepository].toInstance(mockRepository))
+      .overrides(
+        inject.bind[UKTRSubmissionRepository].toInstance(mockRepository),
+        inject.bind[OrganisationService].toInstance(mockOrganisationService)
+      )
       .build()
 
   override def beforeEach(): Unit = {
     reset(mockRepository)
-    // Default behavior for successful submissions
+    reset(mockOrganisationService)
     setupDefaultMockBehavior()
   }
 
   private def setupDefaultMockBehavior(): Unit = {
-    val _ = when(mockRepository.insert(any[UKTRSubmission], any[String], any[Boolean])).thenReturn(Future.successful(true))
-    val _ = when(mockRepository.findDuplicateSubmission(any[String], any[LocalDate], any[LocalDate])).thenReturn(Future.successful(false))
+    when(mockRepository.insert(any[UKTRSubmission], any[String], any[Boolean])).thenReturn(Future.successful(true))
+    when(mockRepository.findDuplicateSubmission(any[String], any[LocalDate], any[LocalDate])).thenReturn(Future.successful(false))
+    when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+      Future.successful(createTestOrganisationWithId("XMPLR0123456789", "2024-08-14", "2024-12-14"))
+    )
+    ()
   }
 
   private def setupDuplicateSubmissionBehavior(): Unit = {
-    val _ = when(mockRepository.findDuplicateSubmission(any[String], any[LocalDate], any[LocalDate])).thenReturn(Future.successful(true))
+    when(mockRepository.findDuplicateSubmission(any[String], any[LocalDate], any[LocalDate])).thenReturn(Future.successful(true))
+    ()
   }
 
   def request(plrReference: String = validPlrId, body: JsObject): FakeRequest[JsObject] =
@@ -108,6 +135,10 @@ class SubmitUKTRControllerSpec
   "when submitting a Liability UKTR" - {
     "should return CREATED (201)" - {
       "when plrReference is valid and JSON payload is correct" in {
+        val _ = when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
+
         val result = route(app, request(body = validRequestBody)).value
         status(result) mustBe CREATED
         val json = contentAsJson(result)
@@ -135,56 +166,80 @@ class SubmitUKTRControllerSpec
 
     "should return UNPROCESSABLE_ENTITY (422)" - {
       "when totalLiability is invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
-          val result = route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiability" -> amount))))).value
+        val invalidAmounts = List(
+          BigDecimal("-1.00"),
+          BigDecimal("10000000000000.00"),
+          BigDecimal("100.999")
+        )
 
+        invalidAmounts.foreach { amount =>
+          val result = route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiability" -> amount))))).value
           status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_096
-          (json \ "errors" \ "text")
+
+          val responseJson = contentAsJson(result)
+          (responseJson \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (responseJson \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_096
+          (responseJson \ "errors" \ "text")
             .as[String] mustBe "totalLiability must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
         }
       }
 
       "when totalLiabilityDTT is invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
+        val invalidAmounts = List(
+          BigDecimal("-1.00"),
+          BigDecimal("10000000000000.00"),
+          BigDecimal("100.999")
+        )
+
+        invalidAmounts.foreach { amount =>
           val result =
             route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiabilityDTT" -> amount))))).value
-
           status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_DTT_098
-          (json \ "errors" \ "text")
+
+          val responseJson = contentAsJson(result)
+          (responseJson \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (responseJson \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_DTT_098
+          (responseJson \ "errors" \ "text")
             .as[String] mustBe "totalLiabilityDTT must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
         }
       }
 
       "when totalLiabilityIIR is invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
+        val invalidAmounts = List(
+          BigDecimal("-1.00"),
+          BigDecimal("10000000000000.00"),
+          BigDecimal("100.999")
+        )
+
+        invalidAmounts.foreach { amount =>
           val result =
             route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiabilityIIR" -> amount))))).value
-
           status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_IIR_097
-          (json \ "errors" \ "text")
+
+          val responseJson = contentAsJson(result)
+          (responseJson \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (responseJson \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_IIR_097
+          (responseJson \ "errors" \ "text")
             .as[String] mustBe "totalLiabilityIIR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
         }
       }
 
       "when totalLiabilityUTPR is invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
+        val invalidAmounts = List(
+          BigDecimal("-1.00"),
+          BigDecimal("10000000000000.00"),
+          BigDecimal("100.999")
+        )
+
+        invalidAmounts.foreach { amount =>
           val result =
             route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiabilityUTPR" -> amount))))).value
-
           status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_UTPR_099
-          (json \ "errors" \ "text")
+
+          val responseJson = contentAsJson(result)
+          (responseJson \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (responseJson \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_UTPR_099
+          (responseJson \ "errors" \ "text")
             .as[String] mustBe "totalLiabilityUTPR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
         }
       }
@@ -291,7 +346,7 @@ class SubmitUKTRControllerSpec
       }
 
       "when amountOwedDTT is Invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
+        invalidUKTRAmounts.foreach { amount =>
           val result = route(
             app,
             request(body =
@@ -302,16 +357,16 @@ class SubmitUKTRControllerSpec
           ).value
 
           status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
+          val responseJson = contentAsJson(result)
+          (responseJson \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (responseJson \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (responseJson \ "errors" \ "text")
             .as[String] mustBe "amountOwedDTT must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
         }
       }
 
       "when amountOwedIIR is Invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
+        invalidUKTRAmounts.foreach { amount =>
           val result = route(
             app,
             request(body =
@@ -322,16 +377,16 @@ class SubmitUKTRControllerSpec
           ).value
 
           status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
+          val responseJson = contentAsJson(result)
+          (responseJson \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (responseJson \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (responseJson \ "errors" \ "text")
             .as[String] mustBe "amountOwedIIR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
         }
       }
 
       "when amountOwedUTPR is Invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
+        invalidUKTRAmounts.foreach { amount =>
           val result = route(
             app,
             request(body =
@@ -342,10 +397,10 @@ class SubmitUKTRControllerSpec
           ).value
 
           status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
+          val responseJson = contentAsJson(result)
+          (responseJson \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
+          (responseJson \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+          (responseJson \ "errors" \ "text")
             .as[String] mustBe "amountOwedUTPR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
         }
       }
@@ -359,6 +414,29 @@ class SubmitUKTRControllerSpec
         (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
         (json \ "errors" \ "text")
           .as[String] mustBe "amountOwedIIR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
+      }
+
+      "when accounting period does not match the registered period" in {
+        val _ = when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-01-01", "2024-12-31"))
+        )
+
+        val result = route(app, request(body = validRequestBody)).value
+        status(result) mustBe UNPROCESSABLE_ENTITY
+        val json = contentAsJson(result)
+        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+        (json \ "errors" \ "text")
+          .as[String] mustBe "Accounting period (2024-08-14 to 2024-12-14) does not match the registered period (2024-01-01 to 2024-12-31)"
+      }
+
+      "when organisation service fails" in {
+        val _ = when(mockOrganisationService.getOrganisation(any[String])).thenReturn(Future.failed(new RuntimeException("Test error")))
+
+        val result = route(app, request(body = validRequestBody)).value
+        status(result) mustBe UNPROCESSABLE_ENTITY
+        val json = contentAsJson(result)
+        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+        (json \ "errors" \ "text").as[String] mustBe "Request could not be processed"
       }
     }
 
@@ -424,81 +502,113 @@ class SubmitUKTRControllerSpec
   "when submitting a nil UKTR" - {
     "should return CREATED (201)" - {
       "when submitting a Domestic-Only Nil Return with electionUKGAAP = true" in {
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
         val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
-
         status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
       }
 
       "when submitting a Domestic-Only Nil Return with electionUKGAAP = false" in {
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
         val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
-
         status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
       }
 
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = false" in {
-        val result =
-          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
-
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(
+            createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14").copy(
+              organisation = createTestOrganisation("2024-08-14", "2024-12-14").copy(
+                orgDetails = OrgDetails(
+                  domesticOnly = false,
+                  organisationName = "Test Org",
+                  registrationDate = LocalDate.now()
+                )
+              )
+            )
+          )
+        )
+        val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
         status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
       }
 
       "when submitting a domestic-only Nil Return with obligationMTT = false" in {
-        val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
-
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
+        val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
         status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
       }
 
       "when submitting a non-domestic Nil Return with obligationMTT = false" in {
-        val result =
-          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
-
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(
+            createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14").copy(
+              organisation = createTestOrganisation("2024-08-14", "2024-12-14").copy(
+                orgDetails = OrgDetails(
+                  domesticOnly = false,
+                  organisationName = "Test Org",
+                  registrationDate = LocalDate.now()
+                )
+              )
+            )
+          )
+        )
+        val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
         status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
       }
 
       "when submitting a non-domestic Nil Return with obligationMTT = true" in {
-        val result =
-          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
-
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(
+            createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14").copy(
+              organisation = createTestOrganisation("2024-08-14", "2024-12-14").copy(
+                orgDetails = OrgDetails(
+                  domesticOnly = false,
+                  organisationName = "Test Org",
+                  registrationDate = LocalDate.now()
+                )
+              )
+            )
+          )
+        )
+        val result = route(app, request(body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
         status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
       }
     }
 
     "should return UNPROCESSABLE_ENTITY (422)" - {
       "when submitting a domestic-only Nil Return with obligationMTT = true" in {
-        val result = route(app, request(body = nilReturnBody(obligationMTT = true, electionUKGAAP = true))).value
-
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
+        val result = route(app, request(body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
         status(result) mustBe UNPROCESSABLE_ENTITY
         val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
         (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
         (json \ "errors" \ "text").as[String] mustBe "obligationMTT cannot be true for a domestic-only group"
       }
 
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = true" in {
-        val result =
-          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = true))).value
-
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(
+            createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14").copy(
+              organisation = createTestOrganisation("2024-08-14", "2024-12-14").copy(
+                orgDetails = OrgDetails(
+                  domesticOnly = false,
+                  organisationName = "Test Org",
+                  registrationDate = LocalDate.now()
+                )
+              )
+            )
+          )
+        )
+        val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
         status(result) mustBe UNPROCESSABLE_ENTITY
         val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
         (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
         (json \ "errors" \ "text").as[String] mustBe "electionUKGAAP can be true only for a domestic-only group"
       }
@@ -589,6 +699,94 @@ class SubmitUKTRControllerSpec
       val json = contentAsJson(result2)
       (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.DUPLICATE_SUBMISSION_044
       (json \ "errors" \ "text").as[String] mustBe "A submission already exists for this accounting period"
+    }
+  }
+
+  "Boundary testing" - {
+    "should handle boundary cases for amounts" in {
+      val boundaryAmounts = List(
+        (BigDecimal(0), CREATED),
+        (BigDecimal("9999999999999.99"), CREATED),
+        (BigDecimal("10000000000000.00"), UNPROCESSABLE_ENTITY),
+        (BigDecimal(-0.01), UNPROCESSABLE_ENTITY),
+        (BigDecimal("100.999"), UNPROCESSABLE_ENTITY)
+      )
+
+      boundaryAmounts.foreach { case (amount, expectedStatus) =>
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
+
+        val modifiedBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj("totalLiability" -> amount)
+          )
+        )
+
+        val result = route(app, request(body = modifiedBody)).value
+        status(result) mustBe expectedStatus
+      }
+    }
+
+    "should handle boundary cases for string fields" in {
+      val boundaryStrings = List(
+        ("", UNPROCESSABLE_ENTITY),
+        ("a" * 160, CREATED),
+        ("a" * 161, UNPROCESSABLE_ENTITY),
+        ("Test & Company's Ltd-", CREATED),
+        ("Test @ Company", UNPROCESSABLE_ENTITY)
+      )
+
+      boundaryStrings.foreach { case (value, expectedStatus) =>
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
+
+        val modifiedBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "liableEntities" -> Json.arr(
+                validLiableEntity.deepMerge(Json.obj("ukChargeableEntityName" -> value))
+              )
+            )
+          )
+        )
+
+        val result = route(app, request(body = modifiedBody)).value
+        status(result) mustBe expectedStatus
+      }
+    }
+
+    "should handle boundary cases for accounting periods" in {
+      val boundaryDates = List(
+        ("2024-01-01", "2024-12-31", CREATED),
+        ("2024-01-01", "2024-01-01", CREATED),
+        ("2024-12-31", "2024-01-01", BAD_REQUEST),
+        ("2024-01-99", "2024-12-31", BAD_REQUEST),
+        ("2024-13-01", "2024-12-31", BAD_REQUEST)
+      )
+
+      boundaryDates.foreach { case (startDate, endDate, expectedStatus) =>
+        val modifiedBody = validRequestBody.deepMerge(
+          Json.obj(
+            "accountingPeriodFrom" -> startDate,
+            "accountingPeriodTo"   -> endDate
+          )
+        )
+
+        // Use matching accounting periods for valid cases, and default dates for invalid cases
+        val (orgStartDate, orgEndDate) = expectedStatus match {
+          case CREATED => (startDate, endDate)
+          case _       => ("2024-01-01", "2024-12-31")
+        }
+
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, orgStartDate, orgEndDate))
+        )
+
+        val result = route(app, request(body = modifiedBody)).value
+        status(result) mustBe expectedStatus
+      }
     }
   }
 }

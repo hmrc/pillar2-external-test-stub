@@ -19,13 +19,13 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import play.api.mvc.Results._
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse.{successfulDomesticOnlyResponse, successfulNonDomesticResponse}
 import uk.gov.hmrc.pillar2externalteststub.models.subscription._
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+
+import scala.concurrent.{ExecutionContext, Future}
 
 object SubscriptionHelper {
-  def isDomesticOnly(plrReference: String): Boolean =
-    retrieveSubscription(plrReference)._2 match {
-      case success: SubscriptionSuccessResponse => success.upeDetails.domesticOnly
-      case _ => throw new IllegalStateException(s"Unable to fetch subscription for pillar2 ID: $plrReference")
-    }
+  def isDomesticOnly(plrReference: String)(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[Boolean] =
+    organisationService.getOrganisation(plrReference).map(_.organisation.orgDetails.domesticOnly)
 
   def retrieveSubscription(plrReference: String): (Status, SubscriptionResponse) =
     plrReference match {

@@ -18,10 +18,12 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.isDomesticOnly
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
+import scala.concurrent.{ExecutionContext, Future}
 
 case class UKTRLiabilityReturn(
   accountingPeriodFrom: LocalDate,
@@ -29,40 +31,56 @@ case class UKTRLiabilityReturn(
   obligationMTT:        Boolean,
   electionUKGAAP:       Boolean,
   liabilities:          Liability
-) extends UKTRSubmission
+) extends UKTRSubmission {
+  override def isNilReturn: Boolean = false
+}
 
 object UKTRLiabilityReturn {
   implicit val uktrSubmissionDataFormat: OFormat[UKTRLiabilityReturn] = Json.format[UKTRLiabilityReturn]
 
-  private val boundaryUKTRAmount                    = BigDecimal("9999999999999.99")
-  private val amountErrorMessage                    = s"must be a number between 0 and $boundaryUKTRAmount with up to 2 decimal places"
-  private def isValidUKTRAmount(number: BigDecimal) = number >= 0 && number <= boundaryUKTRAmount && number.scale <= 2
+  private val boundaryUKTRAmount = BigDecimal("9999999999999.99")
+  private val amountErrorMessage = s"must be a number between 0 and $boundaryUKTRAmount with up to 2 decimal places"
+  private def isValidUKTRAmount(number: BigDecimal) =
+    number >= 0 &&
+      number <= boundaryUKTRAmount &&
+      number.scale <= 2 &&
+      number.toString.matches("^\\d+(\\.\\d{1,2})?$")
 
-  private def obligationMTTRule(plrReference: String): ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.obligationMTT && isDomesticOnly(plrReference)) {
-      invalid(
-        UKTRSubmissionError(
-          UKTRErrorCodes.INVALID_RETURN_093,
-          "obligationMTT",
-          "obligationMTT cannot be true for a domestic-only group"
-        )
-      )
-    } else valid[UKTRLiabilityReturn](data)
-  }
-
-  private def electionUKGAAPRule(plrReference: String): ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    (data.electionUKGAAP, isDomesticOnly(plrReference)) match {
-      case (true, false) =>
-        invalid(
-          UKTRSubmissionError(
-            UKTRErrorCodes.INVALID_RETURN_093,
-            "electionUKGAAP",
-            "electionUKGAAP can be true only for a domestic-only group"
+  private def obligationMTTRule(
+    plrReference:                 String
+  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
+    isDomesticOnly(plrReference).map { isDomestic =>
+      ValidationRule[UKTRLiabilityReturn] { data =>
+        if (data.obligationMTT && isDomestic) {
+          invalid(
+            UKTRSubmissionError(
+              UKTRErrorCodes.INVALID_RETURN_093,
+              "obligationMTT",
+              "obligationMTT cannot be true for a domestic-only group"
+            )
           )
-        )
-      case _ => valid[UKTRLiabilityReturn](data)
+        } else valid[UKTRLiabilityReturn](data)
+      }
     }
-  }
+
+  private def electionUKGAAPRule(
+    plrReference:                 String
+  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
+    isDomesticOnly(plrReference).map { isDomestic =>
+      ValidationRule[UKTRLiabilityReturn] { data =>
+        (data.electionUKGAAP, isDomestic) match {
+          case (true, false) =>
+            invalid(
+              UKTRSubmissionError(
+                UKTRErrorCodes.INVALID_RETURN_093,
+                "electionUKGAAP",
+                "electionUKGAAP can be true only for a domestic-only group"
+              )
+            )
+          case _ => valid[UKTRLiabilityReturn](data)
+        }
+      }
+    }
 
   private val totalLiabilityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (isValidUKTRAmount(data.liabilities.totalLiability)) valid[UKTRLiabilityReturn](data)
@@ -196,10 +214,15 @@ object UKTRLiabilityReturn {
       )
   }
 
-  implicit def uktrSubmissionValidator(plrReference: String): ValidationRule[UKTRLiabilityReturn] =
-    ValidationRule.compose(
-      obligationMTTRule(plrReference),
-      electionUKGAAPRule(plrReference),
+  implicit def uktrSubmissionValidator(
+    plrReference:                 String
+  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
+    for {
+      obligationMTTRule  <- obligationMTTRule(plrReference)
+      electionUKGAAPRule <- electionUKGAAPRule(plrReference)
+    } yield ValidationRule.compose(
+      obligationMTTRule,
+      electionUKGAAPRule,
       totalLiabilityRule,
       totalLiabilityDTTRule,
       totalLiabilityIIRRule,

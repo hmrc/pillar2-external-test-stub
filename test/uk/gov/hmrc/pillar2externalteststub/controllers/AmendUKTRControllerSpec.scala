@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import org.mockito.ArgumentMatchers.{any, argThat}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
-import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfterEach, OptionValues}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.OptionValues
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -31,25 +32,45 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{AccountingPeriod, OrgDetails, TestOrganisation, TestOrganisationRequest, TestOrganisationWithId}
 import org.bson.types.ObjectId
 
 import java.time._
 import scala.concurrent.Future
 
 class AmendUKTRControllerSpec
-    extends AnyFreeSpec
+    extends AnyWordSpec
     with Matchers
     with GuiceOneAppPerSuite
-    with OptionValues
-    with UKTRDataFixture
     with MockitoSugar
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with OptionValues
+    with UKTRDataFixture {
 
-  private val mockRepository = mock[UKTRSubmissionRepository]
+  private val mockRepository          = mock[UKTRSubmissionRepository]
+  private val mockOrganisationService = mock[OrganisationService]
+
+  private def createTestOrganisation(startDate: String, endDate: String): TestOrganisation = {
+    val request = TestOrganisationRequest(
+      orgDetails = OrgDetails(
+        domesticOnly = true,
+        organisationName = "Test Org",
+        registrationDate = LocalDate.now()
+      ),
+      accountingPeriod = AccountingPeriod(
+        startDate = LocalDate.parse(startDate),
+        endDate = LocalDate.parse(endDate)
+      )
+    )
+    TestOrganisation.fromRequest(request)
+  }
+
+  private def createTestOrganisationWithId(plrId: String, startDate: String, endDate: String): TestOrganisationWithId =
+    createTestOrganisation(startDate, endDate).withPillar2Id(plrId)
 
   private def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
@@ -59,11 +80,18 @@ class AmendUKTRControllerSpec
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .overrides(inject.bind[UKTRSubmissionRepository].toInstance(mockRepository))
+      .overrides(inject.bind[OrganisationService].toInstance(mockOrganisationService))
       .build()
 
-  override def beforeEach(): Unit = reset(mockRepository)
+  override def beforeEach(): Unit = {
+    reset(mockRepository)
+    reset(mockOrganisationService)
+    setupDefaultMockBehavior()
+  }
 
-  "return OK with success response for a valid uktr amendment" in {
+  private def setupDefaultMockBehavior(): Unit = {
+    when(mockRepository.findDuplicateSubmission(any[String], any[LocalDate], any[LocalDate])).thenReturn(Future.successful(false))
+    when(mockRepository.insert(any[UKTRSubmission], any[String], any[Boolean])).thenReturn(Future.successful(true))
     when(mockRepository.findByPillar2Id(any[String])).thenReturn(
       Future.successful(
         Some(
@@ -78,7 +106,13 @@ class AmendUKTRControllerSpec
       )
     )
     when(mockRepository.update(any[UKTRSubmission], any[String])).thenReturn(Future.successful(Right(true)))
+    when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+      Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+    )
+    ()
+  }
 
+  "return OK with success response for a valid uktr amendment" in {
     val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
     val result = route(app, request).value
@@ -114,8 +148,9 @@ class AmendUKTRControllerSpec
 
   "return UNPROCESSABLE_ENTITY when amendment to a liability return that does not exist" in {
     when(mockRepository.findByPillar2Id(any[String])).thenReturn(Future.successful(None))
-    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
-      .thenReturn(Future.successful(Left(DetailedErrorResponse(RequestCouldNotBeProcessed))))
+    when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+      Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+    )
 
     val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
@@ -141,6 +176,9 @@ class AmendUKTRControllerSpec
       )
     )
     when(mockRepository.update(any[UKTRSubmission], any[String])).thenReturn(Future.successful(Right(true)))
+    when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+      Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+    )
 
     val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
@@ -153,8 +191,9 @@ class AmendUKTRControllerSpec
 
   "return UNPROCESSABLE_ENTITY when amendment to a nil return that does not exist" in {
     when(mockRepository.findByPillar2Id(any[String])).thenReturn(Future.successful(None))
-    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
-      .thenReturn(Future.successful(Left(DetailedErrorResponse(RequestCouldNotBeProcessed))))
+    when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+      Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+    )
 
     val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
@@ -185,7 +224,7 @@ class AmendUKTRControllerSpec
 
   "return BAD_REQUEST for non-JSON data" in {
     val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
-      .withHeaders("Content-Type" -> "application/json", authHeader)
+      .withHeaders("Content-Type" -> "application/json")
       .withHeaders("X-Pillar2-Id" -> validPlrId)
       .withBody("non-json body")
 

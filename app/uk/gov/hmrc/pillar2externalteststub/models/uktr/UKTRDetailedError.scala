@@ -45,6 +45,20 @@ object UKTRDetailedError {
     override val message: String = "Request could not be processed"
   }
 
+  case class InvalidAccountingPeriod(submittedStart: String, submittedEnd: String, registeredStart: String, registeredEnd: String)
+      extends UKTRDetailedError {
+    override val code: String = UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+    override val message: String =
+      s"Accounting period ($submittedStart to $submittedEnd) does not match the registered period ($registeredStart to $registeredEnd)"
+  }
+
+  case class InvalidNilReturnDomesticMTT(isDomestic: Boolean) extends UKTRDetailedError {
+    override val code: String = UKTRErrorCodes.INVALID_RETURN_093
+    override val message: String =
+      if (isDomestic) "obligationMTT cannot be true for a domestic-only group"
+      else "electionUKGAAP can be true only for a domestic-only group"
+  }
+
   implicit val writes: Writes[UKTRDetailedError] = new Writes[UKTRDetailedError] {
     def writes(error: UKTRDetailedError): JsValue = Json.obj(
       "processingDate" -> nowZonedDateTime.toString,

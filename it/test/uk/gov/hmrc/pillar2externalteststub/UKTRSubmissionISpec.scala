@@ -75,9 +75,48 @@ class UKTRSubmissionISpec
       .execute[HttpResponse]
       .futureValue
 
+  private def createOrganisation(pillar2Id: String, startDate: String, endDate: String): Unit = {
+    val response = httpClient
+      .post(url"$baseUrl/pillar2/test/organisation/$pillar2Id")
+      .withBody(Json.obj(
+        "orgDetails" -> Json.obj(
+          "domesticOnly" -> true,
+          "organisationName" -> "Test Org",
+          "registrationDate" -> LocalDate.now().toString
+        ),
+        "accountingPeriod" -> Json.obj(
+          "startDate" -> startDate,
+          "endDate" -> endDate
+        )
+      ))
+      .execute[HttpResponse]
+      .futureValue
+      
+    if (response.status != 201) {
+      throw new IllegalStateException(s"Failed to create organization for test: ${response.status}")
+    }
+  }
+  
+  private def deleteOrganisation(pillar2Id: String): Unit = {
+    // Ignore the response status as the organization might not exist
+    val response = httpClient
+      .delete(url"$baseUrl/pillar2/test/organisation/$pillar2Id")
+      .execute[HttpResponse]
+      .futureValue
+    
+    // Log the status but don't use the result
+    println(s"Deleted organization $pillar2Id with status: ${response.status}")
+  }
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     repository.uktrRepo.collection.drop().toFuture().futureValue
+    
+    // Delete the organization if it exists, then create a new one
+    deleteOrganisation(validPlrId)
+    
+    // Create an organization with the accounting period matching the test data
+    createOrganisation(validPlrId, "2024-08-14", "2024-12-14")
   }
 
   "UKTR endpoints" should {
@@ -91,13 +130,14 @@ class UKTRSubmissionISpec
       }
 
       "successfully amend an existing liability return" in {
-        submitUKTR(liabilitySubmission, validPlrId).status
-        val updatedBody      = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ Json.obj("accountingPeriodFrom" -> "2024-01-01")).get
+        submitUKTR(liabilitySubmission, validPlrId).status shouldBe 201
+        
+        val updatedBody      = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ Json.obj("accountingPeriodFrom" -> "2024-08-14")).get
         val response         = amendUKTR(updatedBody, validPlrId)
         val latestSubmission = repository.findByPillar2Id(validPlrId).futureValue
 
         response.status shouldBe 200
-        latestSubmission.get.data.accountingPeriodFrom shouldEqual LocalDate.of(2024, 1, 1)
+        latestSubmission.get.data.accountingPeriodFrom shouldEqual LocalDate.of(2024, 8, 14)
       }
 
       "return 422 when trying to amend non-existent liability return" in {
@@ -114,6 +154,41 @@ class UKTRSubmissionISpec
         response.status                                shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"
         (response.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+      }
+
+      "return 422 when accounting period does not match the registered period" in {
+        // Create an organization with a different accounting period and different ID
+        val testPlrId = "XMPLR0000000001"
+        deleteOrganisation(testPlrId)
+        createOrganisation(testPlrId, "2024-01-01", "2024-12-31")
+
+        // Then try to submit a UKTR with different accounting period
+        val response = submitUKTR(liabilitySubmission, testPlrId)
+        response.status shouldBe 422
+        (response.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Accounting period (2024-08-14 to 2024-12-14) does not match the registered period (2024-01-01 to 2024-12-31)"
+      }
+
+      "return 422 when trying to amend with mismatched accounting period" in {
+        // Create an organization with a different ID
+        val testPlrId = "XMPLR0000000002"
+        deleteOrganisation(testPlrId)
+        createOrganisation(testPlrId, "2024-08-14", "2024-12-14")
+
+        // Submit initial UKTR
+        val submitResponse = submitUKTR(liabilitySubmission, testPlrId)
+        submitResponse.status shouldBe 201
+
+        // Try to amend with different accounting period
+        val amendBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ Json.obj(
+          "accountingPeriodFrom" -> "2024-01-01",
+          "accountingPeriodTo" -> "2024-12-31"
+        )).get
+
+        val response = amendUKTR(amendBody, testPlrId)
+        response.status shouldBe 422
+        (response.json \ "errors" \ "code").as[String] shouldBe "003"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Accounting period (2024-01-01 to 2024-12-31) does not match the registered period (2024-08-14 to 2024-12-14)"
       }
     }
 

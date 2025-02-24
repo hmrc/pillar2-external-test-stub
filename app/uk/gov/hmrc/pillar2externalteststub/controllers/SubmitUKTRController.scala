@@ -29,7 +29,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{Duplic
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSimpleError.{InvalidJsonError, SAPError}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
-import uk.gov.hmrc.pillar2externalteststub.validation.syntax.ValidateOps
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -37,10 +37,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class SubmitUKTRController @Inject() (
-  cc:          ControllerComponents,
-  authFilter:  AuthActionFilter,
-  repository:  UKTRSubmissionRepository
-)(implicit ec: ExecutionContext)
+  cc:                  ControllerComponents,
+  authFilter:          AuthActionFilter,
+  repository:          UKTRSubmissionRepository,
+  organisationService: OrganisationService
+)(implicit ec:         ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
@@ -64,24 +65,70 @@ class SubmitUKTRController @Inject() (
     }
   }
 
-  def validateRequest(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] =
+  def validateRequest(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] = {
+    implicit val os = organisationService
+
+    def validateAccountingPeriod(submission: UKTRSubmission): Future[Either[Result, UKTRSubmission]] =
+      organisationService
+        .getOrganisation(plrReference)
+        .map { org =>
+          if (
+            org.organisation.accountingPeriod.startDate.isEqual(submission.accountingPeriodFrom) &&
+            org.organisation.accountingPeriod.endDate.isEqual(submission.accountingPeriodTo)
+          ) {
+            Right(submission)
+          } else {
+            Left(
+              UnprocessableEntity(
+                Json.toJson(
+                  DetailedErrorResponse(
+                    UKTRDetailedError.InvalidAccountingPeriod(
+                      submission.accountingPeriodFrom.toString,
+                      submission.accountingPeriodTo.toString,
+                      org.organisation.accountingPeriod.startDate.toString,
+                      org.organisation.accountingPeriod.endDate.toString
+                    )
+                  )
+                )
+              )
+            )
+          }
+        }
+        .recover { case _ =>
+          Left(UnprocessableEntity(Json.toJson(DetailedErrorResponse(UKTRDetailedError.RequestCouldNotBeProcessed))))
+        }
+
     request.body.validate[UKTRSubmission] match {
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
-        Future.successful(uktrRequest.validate(plrReference).toEither).flatMap {
-          case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+        validateAccountingPeriod(uktrRequest).flatMap {
+          case Left(error) => Future.successful(error)
           case Right(_) =>
-            repository.findDuplicateSubmission(plrReference, uktrRequest.accountingPeriodFrom, uktrRequest.accountingPeriodTo).flatMap {
-              case true  => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
-              case false => repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(successfulUKTRResponse)))
+            UKTRLiabilityReturn.uktrSubmissionValidator(plrReference).flatMap { validator =>
+              Future.successful(validator.validate(uktrRequest).toEither).flatMap {
+                case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+                case Right(_) =>
+                  repository.findDuplicateSubmission(plrReference, uktrRequest.accountingPeriodFrom, uktrRequest.accountingPeriodTo).flatMap {
+                    case true  => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
+                    case false => repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(successfulUKTRResponse)))
+                  }
+              }
             }
         }
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
-        Future.successful(nilReturnRequest.validate(plrReference).toEither).flatMap {
-          case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+        validateAccountingPeriod(nilReturnRequest).flatMap {
+          case Left(error) => Future.successful(error)
           case Right(_) =>
-            repository.findDuplicateSubmission(plrReference, nilReturnRequest.accountingPeriodFrom, nilReturnRequest.accountingPeriodTo).flatMap {
-              case true  => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
-              case false => repository.insert(nilReturnRequest, plrReference).map(_ => Created(Json.toJson(successfulNilReturnResponse)))
+            UKTRNilReturn.uktrNilReturnValidator(plrReference).flatMap { validator =>
+              Future.successful(validator.validate(nilReturnRequest).toEither).flatMap {
+                case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+                case Right(_) =>
+                  repository
+                    .findDuplicateSubmission(plrReference, nilReturnRequest.accountingPeriodFrom, nilReturnRequest.accountingPeriodTo)
+                    .flatMap {
+                      case true  => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
+                      case false => repository.insert(nilReturnRequest, plrReference).map(_ => Created(Json.toJson(successfulNilReturnResponse)))
+                    }
+              }
             }
         }
       case JsError(errors) =>
@@ -95,4 +142,5 @@ class SubmitUKTRController @Inject() (
         Future.successful(BadRequest(Json.toJson(InvalidJsonError(errorMessage))))
       case _ => Future.successful(BadRequest(Json.toJson(InvalidJsonError())))
     }
+  }
 }
