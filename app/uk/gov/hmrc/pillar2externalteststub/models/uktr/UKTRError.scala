@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper.nowZonedDateTime
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes._
 
 case class UKTRSimpleError(code: String, message: String, logID: Option[String])

@@ -114,7 +114,6 @@ class BTNSubmissionRepositorySpec
     }
 
     "return all submissions for a given pillar2Id" in {
-      // Insert multiple submissions with different accounting periods
       val requests = List(
         testRequest,
         testRequest.copy(
