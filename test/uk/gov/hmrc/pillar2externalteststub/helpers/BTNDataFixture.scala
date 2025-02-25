@@ -16,40 +16,38 @@
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
-import org.scalatest.freespec.AnyFreeSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import org.bson.types.ObjectId
 import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.POST
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
+import uk.gov.hmrc.pillar2externalteststub.models.btn.mongo.BTNSubmission
 
-import java.time.LocalDate
+import java.time.Instant
 
-trait BTNDataFixture extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite {
+trait BTNDataFixture extends Pillar2DataFixture {
 
   val authHeader: (String, String) = HeaderNames.AUTHORIZATION -> "Bearer token"
 
-  // Common test data
-  val validPlrId       = "XMPLR0000000000"
-  val serverErrorPlrId = "XEPLR0000000500"
-
-  val validRequest: BTNRequest = BTNRequest(
-    accountingPeriodFrom = LocalDate.of(2024, 1, 1),
-    accountingPeriodTo = LocalDate.of(2024, 12, 31)
+  val validBTNRequest: BTNRequest = BTNRequest(
+    accountingPeriodFrom = accountingPeriod.startDate,
+    accountingPeriodTo = accountingPeriod.endDate
   )
 
-  val validRequestBody: JsValue = Json.toJson(validRequest)
+  val validRequestBody: JsValue = Json.toJson(validBTNRequest)
 
-  // Helper methods for creating requests
+  val BTNMongoSubmission: BTNSubmission = BTNSubmission(
+    _id = new ObjectId(),
+    pillar2Id = validPlrId,
+    accountingPeriodFrom = validBTNRequest.accountingPeriodFrom,
+    accountingPeriodTo = validBTNRequest.accountingPeriodTo,
+    submittedAt = Instant.now()
+  )
+
   def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/RESTAdapter/PLR/below-threshold-notification")
-      .withHeaders(
-        HeaderNames.CONTENT_TYPE -> "application/json",
-        authHeader,
-        "X-Pillar2-Id" -> plrId
-      )
+      .withHeaders(HeaderNames.CONTENT_TYPE -> "application/json", authHeader, "X-Pillar2-Id" -> plrId)
       .withBody(body)
 
   def createRequestWithBody(plrId: String, request: BTNRequest): FakeRequest[JsValue] =

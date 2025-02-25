@@ -51,7 +51,7 @@ case class BTNErrorResponse(error: BTNError) extends BTNResponse
 object BTNErrorResponse {
   implicit val format: OFormat[BTNErrorResponse] = Json.format[BTNErrorResponse]
 
-  def BTN_ERROR_400(message: String): BTNErrorResponse = BTNErrorResponse(
+  def BTN_ERROR_400(message: String = "Bad request"): BTNErrorResponse = BTNErrorResponse(
     BTNError(
       code = "400",
       message = message,
@@ -59,7 +59,7 @@ object BTNErrorResponse {
     )
   )
 
-  def BTN_ERROR_500(message: String): BTNErrorResponse = BTNErrorResponse(
+  def BTN_ERROR_500(message: String = "Internal server error"): BTNErrorResponse = BTNErrorResponse(
     BTNError(
       code = "500",
       message = message,
@@ -79,15 +79,7 @@ case class BTNFailureResponse(errors: BTNFailure) extends BTNResponse
 object BTNFailureResponse {
   implicit val format: OFormat[BTNFailureResponse] = Json.format[BTNFailureResponse]
 
-  def BTN_GENERIC_422: BTNFailureResponse = BTNFailureResponse(
-    BTNFailure(
-      processingDate = now,
-      code = "422",
-      text = "Business validation failed"
-    )
-  )
-
-  def BTN_PILLAR2_MISSING_002: BTNFailureResponse = BTNFailureResponse(
+  def BTN_PILLAR2_MISSING_OR_INVALID_002: BTNFailureResponse = BTNFailureResponse(
     BTNFailure(
       processingDate = now,
       code = "002",

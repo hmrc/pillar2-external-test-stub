@@ -21,7 +21,7 @@ import cats.implicits.toFoldableOps
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results.UnprocessableEntity
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRHelper.nowZonedDateTime
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate

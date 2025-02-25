@@ -20,12 +20,10 @@ import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 
-trait UKTRDataFixture {
+trait UKTRDataFixture extends Pillar2DataFixture {
 
   val authHeader:         (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
   val invalidUKTRAmounts: Seq[BigDecimal]  = Seq(-5, 1e+13, 10.999)
-
-  val pillar2Id = "TEST123"
 
   val validLiableEntity: JsObject = Json.obj(
     "ukChargeableEntityName" -> "New Company",
