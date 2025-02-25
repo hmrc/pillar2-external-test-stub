@@ -114,28 +114,23 @@ class UKTRSubmissionRepositorySpec
         result shouldBe Right(true)
       }
 
-     
       "must successfully handle amendments with liability submission then updating with nil submission" in {
         repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
         val result = repository.update(nilSubmission, validPlrId).futureValue
         result.isRight shouldBe true
       }
-     
 
       "must maintain historical records by creating new documents for amendments" in {
-      
+
         repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
 
-        
         val countBefore = repository.collection
           .countDocuments(Filters.eq("pillar2Id", validPlrId))
           .toFuture()
           .futureValue
 
-        
         repository.update(liabilitySubmission, validPlrId).futureValue shouldBe Right(true)
 
-       
         val countAfter = repository.collection
           .countDocuments(Filters.eq("pillar2Id", validPlrId))
           .toFuture()
@@ -143,7 +138,6 @@ class UKTRSubmissionRepositorySpec
 
         countAfter shouldBe countBefore + 1
 
-       
         val documents = repository.collection
           .find(Filters.eq("pillar2Id", validPlrId))
           .sort(Indexes.descending("submittedAt"))
@@ -207,7 +201,7 @@ class UKTRSubmissionRepositorySpec
 
     "error handling" - {
       "must handle database errors gracefully" in {
-        
+
         val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
           override def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] =
             Future.failed(DatabaseError("Failed to create UKTR - Simulated database error"))
@@ -215,11 +209,10 @@ class UKTRSubmissionRepositorySpec
 
         val submission = liabilitySubmission
 
-       
         val result = errorThrowingRepo.insert(submission, "XMPLR0012345678")
 
         whenReady(result.failed) { error =>
-          error shouldBe a[uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError]
+          error          shouldBe a[uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError]
           error.getMessage should include("Failed to create UKTR")
         }
       }

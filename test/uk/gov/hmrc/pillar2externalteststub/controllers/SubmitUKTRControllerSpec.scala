@@ -30,12 +30,10 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
-
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
@@ -101,7 +99,6 @@ class SubmitUKTRControllerSpec
     when(mockRepository.findDuplicateSubmission(any[String], any[LocalDate], any[LocalDate])).thenReturn(Future.successful(true))
     ()
   }
-
 
   def request(plrReference: String = validPlrId, body: JsObject): FakeRequest[JsObject] =
     FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
@@ -681,14 +678,12 @@ class SubmitUKTRControllerSpec
 
   "when submitting a duplicate UKTR" - {
     "should return 422 with error code 044 for duplicate liability return" in {
-   
+
       val result1 = route(app, request(body = validRequestBody)).value
       status(result1) mustBe CREATED
 
-   
       setupDuplicateSubmissionBehavior()
 
-     
       val result2 = route(app, request(body = validRequestBody)).value
       status(result2) mustBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result2)
@@ -697,14 +692,12 @@ class SubmitUKTRControllerSpec
     }
 
     "should return 422 with error code 044 for duplicate nil return" in {
-     
+
       val result1 = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
       status(result1) mustBe CREATED
 
-     
       setupDuplicateSubmissionBehavior()
 
-     
       val result2 = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
       status(result2) mustBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result2)
@@ -785,7 +778,6 @@ class SubmitUKTRControllerSpec
           )
         )
 
-       
         val (orgStartDate, orgEndDate) = expectedStatus match {
           case CREATED => (startDate, endDate)
           case _       => ("2024-01-01", "2024-12-31")
