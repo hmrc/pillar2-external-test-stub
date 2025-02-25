@@ -1,0 +1,30 @@
+{
+  "name": "UKTR API Tests",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "name": "Organization Creation",
+      "files": [
+        "Create Organisation.bru",
+        "Create Non-Domestic Organisation.bru"
+      ]
+    },
+    {
+      "name": "UKTR Submissions",
+      "files": [
+        "Submit UKTR - valid request.bru",
+        "Submit UKTR - new liability return.bru",
+        "Submit UKTR nilreturn - valid request.bru",
+        "Submit UKTR - amend submission.bru"
+      ]
+    },
+    {
+      "name": "Validation Tests",
+      "files": [
+        "Submit UKTR - no plr id.bru",
+        "Submit UKTR - duplicate submission.bru",
+        "obligationMTT/Submit UKTR - domestic only with MTT.bru"
+      ]
+    }
+  ]
+} 

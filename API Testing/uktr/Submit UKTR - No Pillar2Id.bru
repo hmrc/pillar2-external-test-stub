@@ -1,7 +1,7 @@
 meta {
-  name: Submit UKTR - valid request
+  name: Submit UKTR - No Pillar2Id
   type: http
-  seq: 3
+  seq: 8
 }
 
 post {
@@ -13,7 +13,6 @@ post {
 headers {
   Content-Type: application/json
   Authorization: {{validBearerToken}}
-  X-Pillar2-Id: {{domesticOnlyPlrId}}
 }
 
 body:json {
@@ -46,6 +45,7 @@ body:json {
 }
 
 assert {
-  res.status: eq 201
-  res.body.success: isDefined
-}
+  res.status: eq 422
+  res.body.errors.code: eq "002"
+  res.body.errors.text: eq "PLR Reference is missing or invalid"
+} 

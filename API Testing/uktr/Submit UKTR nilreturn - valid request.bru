@@ -12,22 +12,21 @@ post {
 
 headers {
   Content-Type: application/json
+  Authorization: {{validBearerToken}}
   X-Pillar2-Id: {{domesticOnlyPlrId}}
-  Authorization: validBearerToken
 }
 
 body:json {
   {
-    "accountingPeriodFrom": "2024-08-14",
-    "accountingPeriodTo": "2024-12-14",
+    "accountingPeriodFrom": "2024-01-01",
+    "accountingPeriodTo": "2024-03-31",
     "obligationMTT": false,
-    "electionUKGAAP": true,
-    "liabilities": {
-      "returnType": "NIL_RETURN"
-    }
+    "electionUKGAAP": false,
+    "returnType": "NIL_RETURN"
   }
 }
 
 assert {
+  res.status: eq 201
   res.body.success: isDefined
 }

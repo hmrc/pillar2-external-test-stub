@@ -1,10 +1,10 @@
 meta {
-  name: Submit UKTR - valid request
+  name: Submit UKTR - amend submission
   type: http
-  seq: 3
+  seq: 7
 }
 
-post {
+put {
   url: {{baseUrl}}/RESTAdapter/PLR/UKTaxReturn
   body: json
   auth: none
@@ -27,8 +27,8 @@ body:json {
       "electionUTPRSingleMember": false,
       "numberSubGroupDTT": 4,
       "numberSubGroupUTPR": 5,
-      "totalLiability": 5000.99,
-      "totalLiabilityDTT": 5000.99,
+      "totalLiability": 6000.99,
+      "totalLiabilityDTT": 6000.99,
       "totalLiabilityIIR": 0,
       "totalLiabilityUTPR": 0,
       "liableEntities": [
@@ -36,7 +36,7 @@ body:json {
           "ukChargeableEntityName": "Domestic Test Company",
           "idType": "CRN",
           "idValue": "1234",
-          "amountOwedDTT": 5000.99,
+          "amountOwedDTT": 6000.99,
           "amountOwedIIR": 0,
           "amountOwedUTPR": 0
         }
@@ -46,6 +46,6 @@ body:json {
 }
 
 assert {
-  res.status: eq 201
+  res.status: eq 200
   res.body.success: isDefined
-}
+} 
