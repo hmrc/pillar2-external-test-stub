@@ -30,10 +30,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
+
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
@@ -99,6 +101,7 @@ class SubmitUKTRControllerSpec
     when(mockRepository.findDuplicateSubmission(any[String], any[LocalDate], any[LocalDate])).thenReturn(Future.successful(true))
     ()
   }
+
 
   def request(plrReference: String = validPlrId, body: JsObject): FakeRequest[JsObject] =
     FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
@@ -518,6 +521,7 @@ class SubmitUKTRControllerSpec
       }
 
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = false" in {
+
         when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
           Future.successful(
             createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14").copy(
@@ -532,6 +536,7 @@ class SubmitUKTRControllerSpec
           )
         )
         val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
+
         status(result) mustBe CREATED
       }
 
@@ -544,6 +549,7 @@ class SubmitUKTRControllerSpec
       }
 
       "when submitting a non-domestic Nil Return with obligationMTT = false" in {
+
         when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
           Future.successful(
             createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14").copy(
@@ -558,10 +564,12 @@ class SubmitUKTRControllerSpec
           )
         )
         val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
+
         status(result) mustBe CREATED
       }
 
       "when submitting a non-domestic Nil Return with obligationMTT = true" in {
+
         when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
           Future.successful(
             createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14").copy(
@@ -576,6 +584,7 @@ class SubmitUKTRControllerSpec
           )
         )
         val result = route(app, request(body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
+
         status(result) mustBe CREATED
       }
     }
@@ -593,6 +602,7 @@ class SubmitUKTRControllerSpec
       }
 
       "when submitting a Non-Domestic Nil Return with electionUKGAAP = true" in {
+
         when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
           Future.successful(
             createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14").copy(
@@ -607,6 +617,7 @@ class SubmitUKTRControllerSpec
           )
         )
         val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
+
         status(result) mustBe UNPROCESSABLE_ENTITY
         val json = contentAsJson(result)
         (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
@@ -670,14 +681,14 @@ class SubmitUKTRControllerSpec
 
   "when submitting a duplicate UKTR" - {
     "should return 422 with error code 044 for duplicate liability return" in {
-      // First submission
+   
       val result1 = route(app, request(body = validRequestBody)).value
       status(result1) mustBe CREATED
 
-      // Setup mock for duplicate submission
+   
       setupDuplicateSubmissionBehavior()
 
-      // Duplicate submission
+     
       val result2 = route(app, request(body = validRequestBody)).value
       status(result2) mustBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result2)
@@ -686,14 +697,14 @@ class SubmitUKTRControllerSpec
     }
 
     "should return 422 with error code 044 for duplicate nil return" in {
-      // First submission
+     
       val result1 = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
       status(result1) mustBe CREATED
 
-      // Setup mock for duplicate submission
+     
       setupDuplicateSubmissionBehavior()
 
-      // Duplicate submission
+     
       val result2 = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
       status(result2) mustBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result2)
@@ -774,7 +785,7 @@ class SubmitUKTRControllerSpec
           )
         )
 
-        // Use matching accounting periods for valid cases, and default dates for invalid cases
+       
         val (orgStartDate, orgEndDate) = expectedStatus match {
           case CREATED => (startDate, endDate)
           case _       => ("2024-01-01", "2024-12-31")

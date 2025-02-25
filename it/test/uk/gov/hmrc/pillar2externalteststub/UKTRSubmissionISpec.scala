@@ -100,13 +100,13 @@ class UKTRSubmissionISpec
   }
   
   private def deleteOrganisation(pillar2Id: String): Unit = {
-    // Ignore the response status as the organization might not exist
+  
     val response = httpClient
       .delete(url"$baseUrl/pillar2/test/organisation/$pillar2Id")
       .execute[HttpResponse]
       .futureValue
     
-    // Log the status but don't use the result
+   
     println(s"Deleted organization $pillar2Id with status: ${response.status}")
   }
 
@@ -114,10 +114,10 @@ class UKTRSubmissionISpec
     super.beforeEach()
     repository.collection.drop().toFuture().futureValue
     
-    // Delete the organization if it exists, then create a new one
+   
     deleteOrganisation(validPlrId)
     
-    // Create an organization with the accounting period matching the test data
+   
     createOrganisation(validPlrId, "2024-08-14", "2024-12-14")
   }
 
@@ -135,6 +135,7 @@ class UKTRSubmissionISpec
         submitUKTR(liabilitySubmission, validPlrId).status shouldBe 201
         
         val updatedBody      = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ Json.obj("accountingPeriodFrom" -> "2024-08-14")).get
+
         val response         = amendUKTR(updatedBody, validPlrId)
         val latestSubmission = repository.findByPillar2Id(validPlrId).futureValue
 
@@ -143,31 +144,31 @@ class UKTRSubmissionISpec
       }
       
       "maintain historical records when amending submissions" in {
-        // Clear any existing data for this test
+      
         repository.collection.deleteMany(Filters.eq("pillar2Id", validPlrId)).toFuture().futureValue
         
-        // Initial submission
+      
         submitUKTR(liabilitySubmission, validPlrId).status shouldBe 201
         
-        // Count submissions before amendment
+       
         val countBefore = repository.collection.countDocuments(
           Filters.eq("pillar2Id", validPlrId)
         ).toFuture().futureValue
         
-        // Amend submission
+    
         val updatedBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ 
           Json.obj("accountingPeriodFrom" -> "2024-08-14")).get
         amendUKTR(updatedBody, validPlrId).status shouldBe 200
         
-        // Count submissions after amendment
+      
         val countAfter = repository.collection.countDocuments(
           Filters.eq("pillar2Id", validPlrId)
         ).toFuture().futureValue
         
-        // Should have created a new document instead of replacing the old one
+      
         countAfter shouldBe countBefore + 1
         
-        // Get all documents and verify amendment flag
+      
         val documents = repository.collection
           .find(Filters.eq("pillar2Id", validPlrId))
           .sort(Indexes.descending("submittedAt"))
@@ -196,12 +197,12 @@ class UKTRSubmissionISpec
       }
 
       "return 422 when accounting period does not match the registered period" in {
-        // Create an organization with a different accounting period and different ID
+       
         val testPlrId = "XMPLR0000000001"
         deleteOrganisation(testPlrId)
         createOrganisation(testPlrId, "2024-01-01", "2024-12-31")
 
-        // Then try to submit a UKTR with different accounting period
+ 
         val response = submitUKTR(liabilitySubmission, testPlrId)
         response.status shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"
@@ -209,16 +210,16 @@ class UKTRSubmissionISpec
       }
 
       "return 422 when trying to amend with mismatched accounting period" in {
-        // Create an organization with a different ID
+      
         val testPlrId = "XMPLR0000000002"
         deleteOrganisation(testPlrId)
         createOrganisation(testPlrId, "2024-08-14", "2024-12-14")
 
-        // Submit initial UKTR
+      
         val submitResponse = submitUKTR(liabilitySubmission, testPlrId)
         submitResponse.status shouldBe 201
 
-        // Try to amend with different accounting period
+       
         val amendBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ Json.obj(
           "accountingPeriodFrom" -> "2024-01-01",
           "accountingPeriodTo" -> "2024-12-31"

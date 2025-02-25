@@ -65,6 +65,7 @@ class UKTRSubmissionRepositorySpec
   }
 
   "UKTRSubmissionRepository" - {
+
     "insert" - {
       "must successfully insert a liability return" in {
         val result = repository.insert(liabilitySubmission, validPlrId).futureValue
@@ -113,32 +114,36 @@ class UKTRSubmissionRepositorySpec
         result shouldBe Right(true)
       }
 
+     
+      "must successfully handle amendments with liability submission then updating with nil submission" in {
+        repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
+        val result = repository.update(nilSubmission, validPlrId).futureValue
+        result.isRight shouldBe true
+      }
+     
+
       "must maintain historical records by creating new documents for amendments" in {
-        // Insert original submission
+      
         repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
 
-        // Count documents before update
+        
         val countBefore = repository.collection
-          .countDocuments(
-            Filters.eq("pillar2Id", validPlrId)
-          )
+          .countDocuments(Filters.eq("pillar2Id", validPlrId))
           .toFuture()
           .futureValue
 
-        // Update (which should create a new document)
+        
         repository.update(liabilitySubmission, validPlrId).futureValue shouldBe Right(true)
 
-        // Count documents after update - should be increased by 1
+       
         val countAfter = repository.collection
-          .countDocuments(
-            Filters.eq("pillar2Id", validPlrId)
-          )
+          .countDocuments(Filters.eq("pillar2Id", validPlrId))
           .toFuture()
           .futureValue
 
         countAfter shouldBe countBefore + 1
 
-        // Verify the new document has isAmendment = true
+       
         val documents = repository.collection
           .find(Filters.eq("pillar2Id", validPlrId))
           .sort(Indexes.descending("submittedAt"))
@@ -157,7 +162,8 @@ class UKTRSubmissionRepositorySpec
       "must handle concurrent updates correctly" in {
         repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
 
-        val futures:       List[Future[Either[DetailedErrorResponse, Boolean]]] = List.fill(5)(repository.update(liabilitySubmission, validPlrId))
+        val futures: List[Future[Either[DetailedErrorResponse, Boolean]]] =
+          List.fill(5)(repository.update(liabilitySubmission, validPlrId))
         val futureResults: Future[List[Either[DetailedErrorResponse, Boolean]]] = Future.sequence(futures)
         whenReady(futureResults, Timeout(Span(5, Seconds))) { results =>
           all(results) shouldBe Right(true)
@@ -201,7 +207,7 @@ class UKTRSubmissionRepositorySpec
 
     "error handling" - {
       "must handle database errors gracefully" in {
-        // Create a test repository that throws a DatabaseError when insert is called
+        
         val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
           override def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] =
             Future.failed(DatabaseError("Failed to create UKTR - Simulated database error"))
@@ -209,11 +215,11 @@ class UKTRSubmissionRepositorySpec
 
         val submission = liabilitySubmission
 
-        // Test that the exception is properly handled
+       
         val result = errorThrowingRepo.insert(submission, "XMPLR0012345678")
 
         whenReady(result.failed) { error =>
-          error          shouldBe a[uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError]
+          error shouldBe a[uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError]
           error.getMessage should include("Failed to create UKTR")
         }
       }

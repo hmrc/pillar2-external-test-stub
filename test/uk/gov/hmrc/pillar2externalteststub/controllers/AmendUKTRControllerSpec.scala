@@ -33,9 +33,14 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+<<<<<<< HEAD
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
+=======
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn, UKTRSubmission}
+>>>>>>> main
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
@@ -113,6 +118,12 @@ class AmendUKTRControllerSpec
   }
 
   "return OK with success response for a valid uktr amendment" in {
+<<<<<<< HEAD
+=======
+    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
+      .thenReturn(Future.successful(Right(true)))
+
+>>>>>>> main
     val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
     val result = route(app, request).value
@@ -224,7 +235,11 @@ class AmendUKTRControllerSpec
 
   "return BAD_REQUEST for non-JSON data" in {
     val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
+<<<<<<< HEAD
       .withHeaders("Content-Type" -> "application/json")
+=======
+      .withHeaders("Content-Type" -> "application/json", authHeader)
+>>>>>>> main
       .withHeaders("X-Pillar2-Id" -> validPlrId)
       .withBody("non-json body")
 
