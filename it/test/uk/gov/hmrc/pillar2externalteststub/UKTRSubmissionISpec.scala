@@ -35,6 +35,8 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext
+import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.Indexes
 
 class UKTRSubmissionISpec
     extends AnyWordSpec
@@ -138,6 +140,43 @@ class UKTRSubmissionISpec
 
         response.status shouldBe 200
         latestSubmission.get.data.accountingPeriodFrom shouldEqual LocalDate.of(2024, 8, 14)
+      }
+      
+      "maintain historical records when amending submissions" in {
+        // Clear any existing data for this test
+        repository.uktrRepo.collection.deleteMany(Filters.eq("pillar2Id", validPlrId)).toFuture().futureValue
+        
+        // Initial submission
+        submitUKTR(liabilitySubmission, validPlrId).status shouldBe 201
+        
+        // Count submissions before amendment
+        val countBefore = repository.uktrRepo.collection.countDocuments(
+          Filters.eq("pillar2Id", validPlrId)
+        ).toFuture().futureValue
+        
+        // Amend submission
+        val updatedBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ 
+          Json.obj("accountingPeriodFrom" -> "2024-08-14")).get
+        amendUKTR(updatedBody, validPlrId).status shouldBe 200
+        
+        // Count submissions after amendment
+        val countAfter = repository.uktrRepo.collection.countDocuments(
+          Filters.eq("pillar2Id", validPlrId)
+        ).toFuture().futureValue
+        
+        // Should have created a new document instead of replacing the old one
+        countAfter shouldBe countBefore + 1
+        
+        // Get all documents and verify amendment flag
+        val documents = repository.uktrRepo.collection
+          .find(Filters.eq("pillar2Id", validPlrId))
+          .sort(Indexes.descending("submittedAt"))
+          .toFuture()
+          .futureValue
+          
+        documents.size shouldBe 2
+        documents.head.isAmendment shouldBe true
+        documents(1).isAmendment shouldBe false
       }
 
       "return 422 when trying to amend non-existent liability return" in {

@@ -35,6 +35,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, U
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.Indexes
 
 class UKTRSubmissionRepositorySpec
     extends AnyFreeSpec
@@ -109,6 +111,42 @@ class UKTRSubmissionRepositorySpec
         repository.insert(nilSubmission, validPlrId).futureValue shouldBe true
         val result = repository.update(nilSubmission, validPlrId).futureValue
         result shouldBe Right(true)
+      }
+
+      "must maintain historical records by creating new documents for amendments" in {
+        // Insert original submission
+        repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
+
+        // Count documents before update
+        val countBefore = repository.uktrRepo.collection
+          .countDocuments(
+            Filters.eq("pillar2Id", validPlrId)
+          )
+          .toFuture()
+          .futureValue
+
+        // Update (which should create a new document)
+        repository.update(liabilitySubmission, validPlrId).futureValue shouldBe Right(true)
+
+        // Count documents after update - should be increased by 1
+        val countAfter = repository.uktrRepo.collection
+          .countDocuments(
+            Filters.eq("pillar2Id", validPlrId)
+          )
+          .toFuture()
+          .futureValue
+
+        countAfter shouldBe countBefore + 1
+
+        // Verify the new document has isAmendment = true
+        val documents = repository.uktrRepo.collection
+          .find(Filters.eq("pillar2Id", validPlrId))
+          .sort(Indexes.descending("submittedAt"))
+          .toFuture()
+          .futureValue
+
+        documents.size             shouldBe 2
+        documents.head.isAmendment shouldBe true
       }
 
       "must return Left(DetailedErrorResponse(RequestCouldNotBeProcessed)) when no submission exists" in {

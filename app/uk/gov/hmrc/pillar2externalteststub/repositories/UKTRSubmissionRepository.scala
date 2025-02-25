@@ -79,23 +79,11 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
 
   def update(submission: UKTRSubmission, pillar2Id: String): Future[Either[DetailedErrorResponse, Boolean]] =
     findByPillar2Id(pillar2Id).flatMap {
-      case None => Future.successful(Left(DetailedErrorResponse(RequestCouldNotBeProcessed)))
-      case Some(existingSubmission) =>
-        val updatedSubmission = UKTRMongoSubmission(
-          _id = existingSubmission._id,
-          pillar2Id = pillar2Id,
-          isAmendment = true,
-          data = submission,
-          submittedAt = Instant.now()
-        )
-        uktrRepo.collection
-          .replaceOne(
-            Filters.eq("_id", existingSubmission._id),
-            updatedSubmission,
-            ReplaceOptions().upsert(false)
-          )
-          .toFuture()
-          .map(result => Right(result.wasAcknowledged()))
+      case None    => Future.successful(Left(DetailedErrorResponse(RequestCouldNotBeProcessed)))
+      case Some(_) =>
+        // Use insert with isAmendment=true to create a new record for this amendment
+        insert(submission, pillar2Id, isAmendment = true)
+          .map(result => Right(result))
           .recover { case _ =>
             Left(DetailedErrorResponse(RequestCouldNotBeProcessed))
           }
