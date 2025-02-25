@@ -23,7 +23,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
 
@@ -34,29 +34,29 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(implicit ec: ExecutionContext) extends Logging {
-
-  val uktrRepo = new PlayMongoRepository[UKTRMongoSubmission](
-    collectionName = "uktr-submissions",
-    mongoComponent = mongoComponent,
-    domainFormat = UKTRMongoSubmission.format,
-    indexes = Seq(
-      IndexModel(
-        Indexes.compoundIndex(
-          Indexes.ascending("pillar2Id"),
-          Indexes.descending("submittedAt")
+class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
+    extends PlayMongoRepository[UKTRMongoSubmission](
+      collectionName = "uktr-submissions",
+      mongoComponent = mongoComponent,
+      domainFormat = UKTRMongoSubmission.format,
+      indexes = Seq(
+        IndexModel(
+          Indexes.compoundIndex(
+            Indexes.ascending("pillar2Id"),
+            Indexes.descending("submittedAt")
+          ),
+          IndexOptions().name("pillar2IdIndex")
         ),
-        IndexOptions().name("pillar2IdIndex")
+        IndexModel(
+          Indexes.ascending("submittedAt"),
+          IndexOptions()
+            .name("submittedAtTTL")
+            .expireAfter(config.defaultDataExpireInDays, TimeUnit.DAYS)
+        )
       ),
-      IndexModel(
-        Indexes.ascending("submittedAt"),
-        IndexOptions()
-          .name("submittedAtTTL")
-          .expireAfter(config.defaultDataExpireInDays, TimeUnit.DAYS)
-      )
-    ),
-    replaceIndexes = true
-  )
+      replaceIndexes = true
+    )
+    with Logging {
 
   def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] = {
     val document = UKTRMongoSubmission(
@@ -67,7 +67,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       submittedAt = Instant.now()
     )
 
-    uktrRepo.collection
+    collection
       .insertOne(document)
       .toFuture()
       .map(_ => true)
@@ -78,26 +78,24 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
   }
 
   def update(submission: UKTRSubmission, pillar2Id: String): Future[Either[DetailedErrorResponse, Boolean]] =
-    findByPillar2Id(pillar2Id).flatMap {
-      case None    => Future.successful(Left(DetailedErrorResponse(RequestCouldNotBeProcessed)))
-      case Some(_) =>
-        // Use insert with isAmendment=true to create a new record for this amendment
-        insert(submission, pillar2Id, isAmendment = true)
-          .map(result => Right(result))
-          .recover { case _ =>
-            Left(DetailedErrorResponse(RequestCouldNotBeProcessed))
-          }
+    findByPillar2Id(pillar2Id).flatMap { maybeSubmission =>
+      maybeSubmission match {
+        case Some(_) =>
+          insert(submission, pillar2Id, isAmendment = true).map(Right(_))
+        case None =>
+          Future.successful(Left(DetailedErrorResponse(UKTRDetailedError.RequestCouldNotBeProcessed)))
+      }
     }
 
   def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
-    uktrRepo.collection
+    collection
       .find(Filters.eq("pillar2Id", pillar2Id))
       .sort(Indexes.descending("submittedAt"))
       .headOption()
       .recover { case _ => None }
 
   def findDuplicateSubmission(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Boolean] =
-    uktrRepo.collection
+    collection
       .find(
         Filters.and(
           Filters.eq("pillar2Id", pillar2Id),

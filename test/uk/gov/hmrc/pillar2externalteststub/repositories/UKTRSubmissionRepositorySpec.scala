@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
+import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.Indexes
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
@@ -35,8 +37,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, U
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import org.mongodb.scala.model.Filters
-import org.mongodb.scala.model.Indexes
 
 class UKTRSubmissionRepositorySpec
     extends AnyFreeSpec
@@ -61,7 +61,7 @@ class UKTRSubmissionRepositorySpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    repository.uktrRepo.collection.drop().toFuture().futureValue
+    repository.collection.drop().toFuture().futureValue
   }
 
   "UKTRSubmissionRepository" - {
@@ -118,7 +118,7 @@ class UKTRSubmissionRepositorySpec
         repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
 
         // Count documents before update
-        val countBefore = repository.uktrRepo.collection
+        val countBefore = repository.collection
           .countDocuments(
             Filters.eq("pillar2Id", validPlrId)
           )
@@ -129,7 +129,7 @@ class UKTRSubmissionRepositorySpec
         repository.update(liabilitySubmission, validPlrId).futureValue shouldBe Right(true)
 
         // Count documents after update - should be increased by 1
-        val countAfter = repository.uktrRepo.collection
+        val countAfter = repository.collection
           .countDocuments(
             Filters.eq("pillar2Id", validPlrId)
           )
@@ -139,7 +139,7 @@ class UKTRSubmissionRepositorySpec
         countAfter shouldBe countBefore + 1
 
         // Verify the new document has isAmendment = true
-        val documents = repository.uktrRepo.collection
+        val documents = repository.collection
           .find(Filters.eq("pillar2Id", validPlrId))
           .sort(Indexes.descending("submittedAt"))
           .toFuture()

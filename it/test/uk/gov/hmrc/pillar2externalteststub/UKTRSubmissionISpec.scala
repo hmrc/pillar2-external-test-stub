@@ -112,7 +112,7 @@ class UKTRSubmissionISpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    repository.uktrRepo.collection.drop().toFuture().futureValue
+    repository.collection.drop().toFuture().futureValue
     
     // Delete the organization if it exists, then create a new one
     deleteOrganisation(validPlrId)
@@ -144,13 +144,13 @@ class UKTRSubmissionISpec
       
       "maintain historical records when amending submissions" in {
         // Clear any existing data for this test
-        repository.uktrRepo.collection.deleteMany(Filters.eq("pillar2Id", validPlrId)).toFuture().futureValue
+        repository.collection.deleteMany(Filters.eq("pillar2Id", validPlrId)).toFuture().futureValue
         
         // Initial submission
         submitUKTR(liabilitySubmission, validPlrId).status shouldBe 201
         
         // Count submissions before amendment
-        val countBefore = repository.uktrRepo.collection.countDocuments(
+        val countBefore = repository.collection.countDocuments(
           Filters.eq("pillar2Id", validPlrId)
         ).toFuture().futureValue
         
@@ -160,7 +160,7 @@ class UKTRSubmissionISpec
         amendUKTR(updatedBody, validPlrId).status shouldBe 200
         
         // Count submissions after amendment
-        val countAfter = repository.uktrRepo.collection.countDocuments(
+        val countAfter = repository.collection.countDocuments(
           Filters.eq("pillar2Id", validPlrId)
         ).toFuture().futureValue
         
@@ -168,7 +168,7 @@ class UKTRSubmissionISpec
         countAfter shouldBe countBefore + 1
         
         // Get all documents and verify amendment flag
-        val documents = repository.uktrRepo.collection
+        val documents = repository.collection
           .find(Filters.eq("pillar2Id", validPlrId))
           .sort(Indexes.descending("submittedAt"))
           .toFuture()

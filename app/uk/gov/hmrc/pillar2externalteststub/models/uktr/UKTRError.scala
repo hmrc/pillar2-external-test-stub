@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,26 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes._
 
+// Error Codes
+object UKTRErrorCodes {
+  val PILLAR_2_ID_MISSING_OR_INVALID_002                        = "002"
+  val REQUEST_COULD_NOT_BE_PROCESSED_003                        = "003"
+  val DUPLICATE_SUBMISSION_ACKNOWLEDGMENT_REFERENCE_004         = "004"
+  val BUSINESS_PARTNER_DOES_NOT_HAVE_AN_ACTIVE_SUBSCRIPTION_007 = "007"
+  val DUPLICATE_SUBMISSION_044                                  = "044"
+  val TAX_OBLIGATION_ALREADY_FULFILLED_044                      = "044"
+  val INVALID_RETURN_093                                        = "093"
+  val INVALID_DTT_ELECTION_094                                  = "094"
+  val INVALID_UTPR_ELECTION_095                                 = "095"
+  val INVALID_TOTAL_LIABILITY_096                               = "096"
+  val INVALID_TOTAL_LIABILITY_IIR_097                           = "097"
+  val INVALID_TOTAL_LIABILITY_DTT_098                           = "098"
+  val INVALID_TOTAL_LIABILITY_UTPR_099                          = "099"
+  val BAD_REQUEST_400                                           = "400"
+  val INTERNAL_SERVER_ERROR_500                                 = "500"
+}
+
+// Simple Error
 case class UKTRSimpleError(code: String, message: String, logID: Option[String])
 
 object UKTRSimpleError {
@@ -44,19 +64,60 @@ object UKTRSimpleError {
     )
 }
 
-case class UKTRError(
-  processingDate: String,
-  code:           String,
-  text:           String
-)
+// Detailed Error
+case class UKTRDetailedError(processingDate: String, code: String, text: String)
 
-object UKTRError {
-  implicit val format: OFormat[UKTRError] = Json.format[UKTRError]
+object UKTRDetailedError {
+  implicit val format: OFormat[UKTRDetailedError] = Json.format[UKTRDetailedError]
 
-  def apply(error: UKTRDetailedError): UKTRError =
-    UKTRError(
-      processingDate = nowZonedDateTime.toString,
-      code = error.code,
-      text = error.message
+  def TaxObligationFulfilled: UKTRDetailedError =
+    UKTRDetailedError(
+      processingDate = nowZonedDateTime,
+      code = TAX_OBLIGATION_ALREADY_FULFILLED_044,
+      text = "Tax Obligation Already Fulfilled"
+    )
+
+  def SubscriptionNotFound(plrReference: String): UKTRDetailedError =
+    UKTRDetailedError(
+      processingDate = nowZonedDateTime,
+      code = BUSINESS_PARTNER_DOES_NOT_HAVE_AN_ACTIVE_SUBSCRIPTION_007,
+      text = s"No active subscription found for PLR Reference: $plrReference"
+    )
+
+  def MissingPLRReference: UKTRDetailedError =
+    UKTRDetailedError(
+      processingDate = nowZonedDateTime,
+      code = UKTRErrorCodes.PILLAR_2_ID_MISSING_OR_INVALID_002,
+      text = "PLR Reference is missing or invalid"
+    )
+
+  def RequestCouldNotBeProcessed: UKTRDetailedError =
+    UKTRDetailedError(
+      processingDate = nowZonedDateTime,
+      code = REQUEST_COULD_NOT_BE_PROCESSED_003,
+      text = "Request could not be processed"
+    )
+
+  def DuplicateSubmissionError: UKTRDetailedError =
+    UKTRDetailedError(
+      processingDate = nowZonedDateTime,
+      code = DUPLICATE_SUBMISSION_044,
+      text = "A submission already exists for this accounting period"
+    )
+
+  def InvalidAccountingPeriod(submittedStart: String, submittedEnd: String, registeredStart: String, registeredEnd: String): UKTRDetailedError =
+    UKTRDetailedError(
+      processingDate = nowZonedDateTime,
+      code = REQUEST_COULD_NOT_BE_PROCESSED_003,
+      text = s"Accounting period ($submittedStart to $submittedEnd) does not match the registered period ($registeredStart to $registeredEnd)"
+    )
+
+  def InvalidNilReturnDomesticMTT(isDomestic: Boolean): UKTRDetailedError =
+    UKTRDetailedError(
+      processingDate = nowZonedDateTime,
+      code = INVALID_RETURN_093,
+      text =
+        if (isDomestic) "obligationMTT cannot be true for a domestic-only group"
+        else "electionUKGAAP can be true only for a domestic-only group"
     )
 }
