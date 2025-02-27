@@ -1,10 +1,10 @@
 meta {
-  name: Submit UKTR - amend submission
+  name: Submit UKTR - domestic with MTT
   type: http
-  seq: 7
+  seq: 9
 }
 
-put {
+post {
   url: {{baseUrl}}/RESTAdapter/PLR/UKTaxReturn
   body: json
   auth: none
@@ -26,19 +26,19 @@ body:json {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
       "numberSubGroupDTT": 4,
-      "numberSubGroupUTPR": 0,
-      "totalLiability": 6000.99,
-      "totalLiabilityDTT": 6000.99,
-      "totalLiabilityIIR": 0,
-      "totalLiabilityUTPR": 0,
+      "numberSubGroupUTPR": 5,
+      "totalLiability": 15000.99,
+      "totalLiabilityDTT": 5000.99,
+      "totalLiabilityIIR": 5000.00,
+      "totalLiabilityUTPR": 5000.00,
       "liableEntities": [
         {
           "ukChargeableEntityName": "Domestic Test Company",
           "idType": "CRN",
           "idValue": "1234",
-          "amountOwedDTT": 6000.99,
-          "amountOwedIIR": 0,
-          "amountOwedUTPR": 0
+          "amountOwedDTT": 5000.99,
+          "amountOwedIIR": 5000.00,
+          "amountOwedUTPR": 5000.00
         }
       ]
     }
@@ -46,6 +46,7 @@ body:json {
 }
 
 assert {
-  res.status: eq 200
-  res.body.success: isDefined
+  res.status: eq 422
+  res.body.errors.code: eq "093"
+  res.body.errors.text: contains "domestic-only group"
 } 

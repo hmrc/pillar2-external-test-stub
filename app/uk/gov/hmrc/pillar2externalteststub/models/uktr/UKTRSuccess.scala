@@ -32,6 +32,15 @@ object LiabilityReturnSuccess {
         chargeReference = "XTC01234123412"
       )
     )
+
+  def successfulNewLiabilityResponse: LiabilitySuccessResponse =
+    LiabilitySuccessResponse(
+      LiabilityReturnSuccess(
+        processingDate = nowZonedDateTime,
+        formBundleNumber = "119000004322",
+        chargeReference = "XTC01234123412"
+      )
+    )
 }
 
 case class NilReturnSuccess(processingDate: String, formBundleNumber: String)
@@ -42,7 +51,7 @@ object NilReturnSuccess {
   def successfulNilReturnResponse: NilSuccessResponse = NilSuccessResponse(
     NilReturnSuccess(
       processingDate = nowZonedDateTime,
-      formBundleNumber = "119000004320"
+      formBundleNumber = "119000004321"
     )
   )
 }

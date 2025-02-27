@@ -1,30 +1,23 @@
 {
   "name": "UKTR API Tests",
   "version": "1.0.0",
-  "tests": [
-    {
-      "name": "Organization Creation",
-      "files": [
-        "Create Organisation.bru",
-        "Create Non-Domestic Organisation.bru"
-      ]
-    },
-    {
-      "name": "UKTR Submissions",
-      "files": [
-        "Submit UKTR - valid request.bru",
-        "Submit UKTR - new liability return.bru",
-        "Submit UKTR nilreturn - valid request.bru",
-        "Submit UKTR - amend submission.bru"
-      ]
-    },
-    {
-      "name": "Validation Tests",
-      "files": [
-        "Submit UKTR - no plr id.bru",
-        "Submit UKTR - duplicate submission.bru",
-        "obligationMTT/Submit UKTR - domestic only with MTT.bru"
-      ]
-    }
+  "description": "Test sequence for UKTR API",
+  "runOptions": {
+    "sequential": true,
+    "stopOnFailure": true,
+    "delay": 1000
+  },
+  "scripts": [
+    "0. Cleanup Database.bru",
+    "Create Organisation.bru",
+    "Create Non-Domestic Organisation.bru",
+    "Submit UKTR - valid request.bru",
+    "Submit UKTR nilreturn - valid request.bru",
+    "Submit UKTR - duplicate submission.bru",
+    "Submit UKTR - invalid accounting period.bru",
+    "Submit UKTR - domestic with MTT.bru",
+    "Submit UKTR - empty liable entities.bru",
+    "Submit UKTR - No Pillar2Id.bru",
+    "Submit UKTR - amend submission.bru"
   ]
 } 
