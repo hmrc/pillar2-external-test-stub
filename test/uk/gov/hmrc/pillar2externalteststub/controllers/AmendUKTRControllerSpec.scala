@@ -27,7 +27,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
@@ -40,6 +40,7 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time._
+import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.Future
 
 class AmendUKTRControllerSpec
@@ -113,7 +114,24 @@ class AmendUKTRControllerSpec
   }
 
   "return OK with success response for a valid uktr amendment" in {
-    when(mockRepository.update(any[UKTRSubmission], any[String])).thenReturn(Future.successful(Right(true)))
+    val originalSubmission = UKTRMongoSubmission(
+      _id = new ObjectId(),
+      pillar2Id = validPlrId,
+      isAmendment = false,
+      data = liabilitySubmission,
+      submittedAt = Instant.now()
+    )
+
+    when(mockRepository.findByPillar2Id(validPlrId)).thenReturn(Future.successful(Some(originalSubmission)))
+    when(mockRepository.update(any[UKTRSubmission], any[String])).thenAnswer { invocation =>
+      val submission = invocation.getArgument[UKTRSubmission](0)
+      val pillar2Id  = invocation.getArgument[String](1)
+
+      // Verify the amendment is created with isAmendment=true
+      mockRepository
+        .insert(submission, pillar2Id, isAmendment = true)
+        .map(Right(_))(scala.concurrent.ExecutionContext.global)
+    }
 
     val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
@@ -187,7 +205,7 @@ class AmendUKTRControllerSpec
     val result = route(app, request).value
     status(result) mustBe OK
     val jsonResult = contentAsJson(result)
-    (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
+    (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004321"
     (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
   }
 
@@ -244,5 +262,60 @@ class AmendUKTRControllerSpec
     val jsonResult = contentAsJson(result)
     (jsonResult \ "errors" \ "code").as[String] mustEqual "093"
     (jsonResult \ "errors" \ "text").as[String] mustEqual "liabilityEntity cannot be empty"
+  }
+
+  "verify amendment data is correctly stored" in {
+    // Create original submission with initial liability
+    val originalMongoSubmission = UKTRMongoSubmission(
+      _id = new ObjectId(),
+      pillar2Id = validPlrId,
+      isAmendment = false,
+      data = liabilitySubmission,
+      submittedAt = Instant.now()
+    )
+
+    val capturedSubmission = new AtomicReference[UKTRSubmission]()
+
+    when(mockRepository.findByPillar2Id(validPlrId)).thenReturn(Future.successful(Some(originalMongoSubmission)))
+    when(mockRepository.update(any[UKTRSubmission], any[String])).thenAnswer { invocation =>
+      val submission = invocation.getArgument[UKTRSubmission](0)
+      capturedSubmission.set(submission)
+      Future.successful(Right(true))
+    }
+
+    // Create amended submission with updated liability
+    val amendedRequestBody = validRequestBody.as[JsObject] ++ Json.obj(
+      "liabilities" -> Json.obj(
+        "electionDTTSingleMember"  -> false,
+        "electionUTPRSingleMember" -> false,
+        "numberSubGroupDTT"        -> 4,
+        "numberSubGroupUTPR"       -> 5,
+        "totalLiability"           -> 6000.99,
+        "totalLiabilityDTT"        -> 6000.99,
+        "totalLiabilityIIR"        -> 0,
+        "totalLiabilityUTPR"       -> 0,
+        "liableEntities" -> Json.arr(
+          Json.obj(
+            "ukChargeableEntityName" -> "Domestic Test Company",
+            "idType"                 -> "CRN",
+            "idValue"                -> "1234",
+            "amountOwedDTT"          -> 6000.99,
+            "amountOwedIIR"          -> 0,
+            "amountOwedUTPR"         -> 0
+          )
+        )
+      )
+    )
+
+    val request = createRequest(validPlrId, amendedRequestBody)
+    val result  = route(app, request).value
+
+    status(result) mustBe OK
+    Option(capturedSubmission.get()).isDefined mustBe true
+
+    val capturedLiabilityReturn = capturedSubmission.get().asInstanceOf[UKTRLiabilityReturn]
+    capturedLiabilityReturn.liabilities.totalLiability mustBe BigDecimal(6000.99)
+    capturedLiabilityReturn.liabilities.totalLiabilityDTT mustBe BigDecimal(6000.99)
+    capturedLiabilityReturn.liabilities.liableEntities.head.amountOwedDTT mustBe BigDecimal(6000.99)
   }
 }
