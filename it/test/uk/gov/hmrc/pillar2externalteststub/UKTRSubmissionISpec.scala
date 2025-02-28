@@ -34,7 +34,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 
 import java.time.LocalDate
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration._
 import org.mongodb.scala.model.Filters
 import org.mongodb.scala.model.Indexes
 
@@ -52,6 +53,7 @@ class UKTRSubmissionISpec
   private val repository = app.injector.instanceOf[UKTRSubmissionRepository]
   implicit val ec:       ExecutionContext = app.injector.instanceOf[ExecutionContext]
   implicit val hc:       HeaderCarrier    = HeaderCarrier()
+  private val timeout: FiniteDuration = 5.seconds
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -101,7 +103,7 @@ class UKTRSubmissionISpec
   
   override def beforeEach(): Unit = {
     super.beforeEach()
-    repository.collection.drop().toFuture().futureValue
+    Await.ready(repository.collection.drop().toFuture(), timeout)
     createOrganisation(validPlrId, "2024-08-14", "2024-12-14")
   }
 
@@ -129,15 +131,15 @@ class UKTRSubmissionISpec
       
       "maintain historical records when amending submissions" in {
       
-        repository.collection.deleteMany(Filters.eq("pillar2Id", validPlrId)).toFuture().futureValue
+        Await.ready(repository.collection.deleteMany(Filters.eq("pillar2Id", validPlrId)).toFuture(), timeout)
         
       
         submitUKTR(liabilitySubmission, validPlrId).status shouldBe 201
         
        
-        val countBefore = repository.collection.countDocuments(
+        val countBefore = Await.ready(repository.collection.countDocuments(
           Filters.eq("pillar2Id", validPlrId)
-        ).toFuture().futureValue
+        ).toFuture(), timeout).value.get.get
         
     
         val updatedBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ 
@@ -145,19 +147,18 @@ class UKTRSubmissionISpec
         amendUKTR(updatedBody, validPlrId).status shouldBe 200
         
       
-        val countAfter = repository.collection.countDocuments(
+        val countAfter = Await.ready(repository.collection.countDocuments(
           Filters.eq("pillar2Id", validPlrId)
-        ).toFuture().futureValue
+        ).toFuture(), timeout).value.get.get
         
       
         countAfter shouldBe countBefore + 1
         
       
-        val documents = repository.collection
+        val documents = Await.ready(repository.collection
           .find(Filters.eq("pillar2Id", validPlrId))
           .sort(Indexes.descending("submittedAt"))
-          .toFuture()
-          .futureValue
+          .toFuture(), timeout).value.get.get
           
         documents.size shouldBe 2
         documents.head.isAmendment shouldBe true
