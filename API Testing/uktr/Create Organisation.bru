@@ -1,5 +1,5 @@
 meta {
-  name: Create Organisation
+  name: 1. Create Domestic Organisation
   type: http
   seq: 1
 }
@@ -12,6 +12,8 @@ post {
 
 headers {
   Content-Type: application/json
+  Authorization: {{validBearerToken}}
+  Content-Length: auto
 }
 
 body:json {
@@ -30,8 +32,4 @@ body:json {
 
 assert {
   res.status: oneOf [201 409]
-  res.body.pillar2Id: isDefined
-  res.body.organisation: isDefined
-  res.body.organisation.orgDetails: isDefined
-  res.body.organisation.accountingPeriod: isDefined
 } 

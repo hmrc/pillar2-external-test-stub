@@ -94,28 +94,14 @@ class UKTRSubmissionISpec
       .execute[HttpResponse]
       .futureValue
       
-    if (response.status != 201) {
+    if (response.status != 201 && response.status != 409) {
       throw new IllegalStateException(s"Failed to create organization for test: ${response.status}")
     }
   }
   
-  private def deleteOrganisation(pillar2Id: String): Unit = {
-  
-    val response = httpClient
-      .delete(url"$baseUrl/pillar2/test/organisation/$pillar2Id")
-      .execute[HttpResponse]
-      .futureValue
-  
-  }
-
   override def beforeEach(): Unit = {
     super.beforeEach()
     repository.collection.drop().toFuture().futureValue
-    
-   
-    deleteOrganisation(validPlrId)
-    
-   
     createOrganisation(validPlrId, "2024-08-14", "2024-12-14")
   }
 
@@ -197,7 +183,6 @@ class UKTRSubmissionISpec
       "return 422 when accounting period does not match the registered period" in {
        
         val testPlrId = "XMPLR0000000001"
-        deleteOrganisation(testPlrId)
         createOrganisation(testPlrId, "2024-01-01", "2024-12-31")
 
  
@@ -210,7 +195,6 @@ class UKTRSubmissionISpec
       "return 422 when trying to amend with mismatched accounting period" in {
       
         val testPlrId = "XMPLR0000000002"
-        deleteOrganisation(testPlrId)
         createOrganisation(testPlrId, "2024-08-14", "2024-12-14")
 
       

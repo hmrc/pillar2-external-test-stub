@@ -1,7 +1,7 @@
 meta {
-  name: Submit UKTR - amend submission
+  name: 10. Submit UKTR - Amend Submission
   type: http
-  seq: 7
+  seq: 10
 }
 
 put {
@@ -48,4 +48,6 @@ body:json {
 assert {
   res.status: eq 200
   res.body.success: isDefined
+  res.body.success.formBundleNumber: isDefined
+  res.body.success.chargeReference: isDefined
 } 

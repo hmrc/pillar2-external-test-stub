@@ -1,5 +1,5 @@
 meta {
-  name: Submit UKTR - invalid accounting period
+  name: 6. Submit UKTR - Invalid Accounting Period Error
   type: http
   seq: 6
 }
@@ -25,8 +25,8 @@ body:json {
     "liabilities": {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
-      "numberSubGroupDTT": 4,
-      "numberSubGroupUTPR": 5,
+      "numberSubGroupDTT": 1,
+      "numberSubGroupUTPR": 0,
       "totalLiability": 5000.99,
       "totalLiabilityDTT": 5000.99,
       "totalLiabilityIIR": 0,
@@ -47,6 +47,7 @@ body:json {
 
 assert {
   res.status: eq 422
+  res.body.errors: isDefined
   res.body.errors.code: eq "003"
-  res.body.errors.text: contains "Accounting period"
+  res.body.errors.text: eq "Accounting period (2024-04-01 to 2024-06-30) does not match the registered period (2024-01-01 to 2024-03-31)"
 } 

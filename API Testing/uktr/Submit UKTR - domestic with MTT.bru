@@ -1,7 +1,7 @@
 meta {
-  name: Submit UKTR - domestic with MTT
+  name: 7. Submit UKTR - Domestic With MTT Error
   type: http
-  seq: 9
+  seq: 7
 }
 
 post {
@@ -20,15 +20,15 @@ body:json {
   {
     "accountingPeriodFrom": "2024-01-01",
     "accountingPeriodTo": "2024-03-31",
-    "obligationMTT": false,
+    "obligationMTT": true,
     "electionUKGAAP": false,
     "liabilities": {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
-      "numberSubGroupDTT": 4,
-      "numberSubGroupUTPR": 5,
-      "totalLiability": 15000.99,
-      "totalLiabilityDTT": 5000.99,
+      "numberSubGroupDTT": 0,
+      "numberSubGroupUTPR": 1,
+      "totalLiability": 10000.00,
+      "totalLiabilityDTT": 0,
       "totalLiabilityIIR": 5000.00,
       "totalLiabilityUTPR": 5000.00,
       "liableEntities": [
@@ -36,7 +36,7 @@ body:json {
           "ukChargeableEntityName": "Domestic Test Company",
           "idType": "CRN",
           "idValue": "1234",
-          "amountOwedDTT": 5000.99,
+          "amountOwedDTT": 0,
           "amountOwedIIR": 5000.00,
           "amountOwedUTPR": 5000.00
         }
@@ -47,6 +47,7 @@ body:json {
 
 assert {
   res.status: eq 422
+  res.body.errors: isDefined
   res.body.errors.code: eq "093"
-  res.body.errors.text: contains "domestic-only group"
+  res.body.errors.text: eq "obligationMTT cannot be true for a domestic-only group"
 } 

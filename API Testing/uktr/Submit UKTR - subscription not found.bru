@@ -1,7 +1,7 @@
 meta {
-  name: Submit UKTR - No Pillar2Id
+  name: 11. Submit UKTR - Subscription Not Found Error
   type: http
-  seq: 1
+  seq: 11
 }
 
 post {
@@ -12,7 +12,8 @@ post {
 
 headers {
   Content-Type: application/json
-  Authorization: validBearerToken
+  X-Pillar2-Id: XMPLR0012345674
+  Authorization: {{validBearerToken}}
 }
 
 body:json {
@@ -45,7 +46,7 @@ body:json {
 }
 
 assert {
-  res.body.errors.code: eq '002'
-  res.body.errors.text: eq "Pillar 2 ID missing or invalid"
+  res.body.errors.code: eq '007'
+  res.body.errors.text: eq "Unable to fetch subscription for pillar2 ID: XMPLR0012345674"
   res.status: eq 422
 }

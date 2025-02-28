@@ -1,7 +1,7 @@
 meta {
-  name: Submit UKTR - No Pillar2Id
+  name: 9. Submit UKTR - Missing Pillar2Id Error
   type: http
-  seq: 8
+  seq: 9
 }
 
 post {
@@ -24,8 +24,8 @@ body:json {
     "liabilities": {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
-      "numberSubGroupDTT": 4,
-      "numberSubGroupUTPR": 5,
+      "numberSubGroupDTT": 1,
+      "numberSubGroupUTPR": 0,
       "totalLiability": 5000.99,
       "totalLiabilityDTT": 5000.99,
       "totalLiabilityIIR": 0,
@@ -46,6 +46,7 @@ body:json {
 
 assert {
   res.status: eq 422
+  res.body.errors: isDefined
   res.body.errors.code: eq "002"
-  res.body.errors.text: eq "PLR Reference is missing or invalid"
+  res.body.errors.text: eq "Missing or invalid Pillar2 ID"
 } 

@@ -1,7 +1,7 @@
 meta {
-  name: Submit UKTR - duplicate submission
+  name: 5. Submit UKTR - Duplicate Submission Error
   type: http
-  seq: 6
+  seq: 5
 }
 
 post {
@@ -26,7 +26,7 @@ body:json {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
       "numberSubGroupDTT": 4,
-      "numberSubGroupUTPR": 5,
+      "numberSubGroupUTPR": 0,
       "totalLiability": 5000.99,
       "totalLiabilityDTT": 5000.99,
       "totalLiabilityIIR": 0,
@@ -47,6 +47,7 @@ body:json {
 
 assert {
   res.status: eq 422
+  res.body.errors: isDefined
   res.body.errors.code: eq "044"
   res.body.errors.text: eq "A submission already exists for this accounting period"
 } 
