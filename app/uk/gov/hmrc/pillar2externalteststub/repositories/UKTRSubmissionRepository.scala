@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
 
-import java.time.Instant
-import java.time.LocalDate
+import java.time.{Instant, LocalDate}
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -58,6 +57,8 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
     )
     with Logging {
 
+  private def byPillar2Id(pillar2Id: String) = Filters.eq("pillar2Id", pillar2Id)
+
   def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] = {
     val document = UKTRMongoSubmission(
       _id = new ObjectId(),
@@ -81,7 +82,12 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
     findByPillar2Id(pillar2Id).flatMap { maybeSubmission =>
       maybeSubmission match {
         case Some(_) =>
-          insert(submission, pillar2Id, isAmendment = true).map(Right(_))
+          insert(submission, pillar2Id, isAmendment = true)
+            .map(Right(_))
+            .recover { case _: DatabaseError =>
+              logger.warn(s"Database error when updating submission for $pillar2Id - returning error response")
+              Left(DetailedErrorResponse(UKTRDetailedError.RequestCouldNotBeProcessed))
+            }
         case None =>
           Future.successful(Left(DetailedErrorResponse(UKTRDetailedError.RequestCouldNotBeProcessed)))
       }
@@ -89,12 +95,19 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
 
   def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
     collection
-      .find(Filters.eq("pillar2Id", pillar2Id))
-      .sort(Indexes.descending("submittedAt"))
+      .find(byPillar2Id(pillar2Id))
+      .sort(Sorts.descending("submittedAt"))
       .headOption()
-      .recover { case _ => None }
+      .recover {
+        case e: DatabaseError =>
+          logger.warn(s"Database error when finding submission for $pillar2Id: ${e.getMessage}")
+          None
+        case e: Exception =>
+          logger.warn(s"Database error when finding submission for $pillar2Id: ${e.getMessage}")
+          None
+      }
 
-  def findDuplicateSubmission(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Boolean] =
+  def isDuplicateSubmission(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Boolean] =
     collection
       .find(
         Filters.and(
@@ -105,4 +118,8 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       )
       .headOption()
       .map(_.isDefined)
+      .recoverWith { case e: Exception =>
+        logger.error(s"Failed to check for duplicate submission", e)
+        Future.failed(DatabaseError(s"Failed to check for duplicate submission - ${e.getMessage}"))
+      }
 }

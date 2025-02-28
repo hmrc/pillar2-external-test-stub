@@ -105,9 +105,7 @@ class UKTRSubmissionISpec
       .delete(url"$baseUrl/pillar2/test/organisation/$pillar2Id")
       .execute[HttpResponse]
       .futureValue
-    
-   
-    println(s"Deleted organization $pillar2Id with status: ${response.status}")
+  
   }
 
   override def beforeEach(): Unit = {
@@ -182,7 +180,7 @@ class UKTRSubmissionISpec
 
       "return 422 when trying to amend non-existent liability return" in {
         val response = amendUKTR(liabilitySubmission, "XEPLR0000000001")
-
+        
         response.status                                shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"
         (response.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
@@ -190,7 +188,7 @@ class UKTRSubmissionISpec
 
       "return 422 when trying to amend non-existent nil return" in {
         val response = amendUKTR(nilSubmission, "XEPLR0000000001")
-
+        
         response.status                                shouldBe 422
         (response.json \ "errors" \ "code").as[String] shouldBe "003"
         (response.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"

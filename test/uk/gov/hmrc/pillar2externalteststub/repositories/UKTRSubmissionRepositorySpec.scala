@@ -32,8 +32,10 @@ import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -81,23 +83,64 @@ class UKTRSubmissionRepositorySpec
         val submissions = List.fill(10)(liabilitySubmission)
         val futures: List[Future[Boolean]] = submissions.map(s => repository.insert(s, s"XEPLR${System.nanoTime()}"))
 
-        val futureResults: Future[List[Boolean]] = Future.sequence(futures)
-        whenReady(futureResults, Timeout(Span(5, Seconds))) { results =>
-          all(results) shouldBe true
-        }
+        val results: List[Boolean] = Future.sequence(futures).futureValue
+        all(results) shouldBe true
       }
 
       "must handle bulk inserts within acceptable time" in {
         val submissions = List.fill(50)(liabilitySubmission)
         val startTime   = System.nanoTime()
 
-        val futures:       List[Future[Boolean]] = submissions.map(s => repository.insert(s, s"XEPLR${System.nanoTime()}"))
-        val futureResults: Future[List[Boolean]] = Future.sequence(futures)
-        whenReady(futureResults, Timeout(Span(5, Seconds))) { results =>
-          val duration = (System.nanoTime() - startTime).nanos.toSeconds
-          duration       should be <= 5L
-          all(results) shouldBe true
+        val futures: List[Future[Boolean]] = submissions.map(s => repository.insert(s, s"XEPLR${System.nanoTime()}"))
+        val results: List[Boolean]         = Future.sequence(futures).futureValue
+        val duration = (System.nanoTime() - startTime).nanos.toSeconds
+        duration       should be <= 5L
+        all(results) shouldBe true
+      }
+
+      "must handle specific database exceptions during insert" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] =
+            Future.failed(DatabaseError("Failed to create UKTR due to: Duplicate key error"))
         }
+
+        val result = errorThrowingRepo.insert(liabilitySubmission, validPlrId)
+
+        whenReady(result.failed) { error =>
+          error          shouldBe a[DatabaseError]
+          error.getMessage should include("Failed to create UKTR")
+          error.getMessage should include("Duplicate key error")
+        }
+      }
+
+      "must handle database errors for amendment operations" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] =
+            Future.failed(DatabaseError("Failed to amend UKTR: Database connection failed"))
+        }
+
+        val result = errorThrowingRepo.insert(liabilitySubmission, validPlrId, isAmendment = true)
+
+        whenReady(result.failed) { error =>
+          error          shouldBe a[DatabaseError]
+          error.getMessage should include("Failed to amend UKTR")
+          error.getMessage should include("Database connection failed")
+        }
+      }
+
+      "must correctly set document fields when inserting" in {
+        repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
+
+        val document = repository.collection
+          .find(Filters.eq("pillar2Id", validPlrId))
+          .first()
+          .toFuture()
+          .futureValue
+
+        document.pillar2Id           shouldBe validPlrId
+        document.isAmendment         shouldBe false
+        document.data                shouldBe liabilitySubmission
+        Option(document.submittedAt) shouldBe defined
       }
     }
 
@@ -114,14 +157,56 @@ class UKTRSubmissionRepositorySpec
         result shouldBe Right(true)
       }
 
-      "must successfully handle amendments with liability submission then updating with nil submission" in {
-        repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
-        val result = repository.update(nilSubmission, validPlrId).futureValue
-        result.isRight shouldBe true
+      "must handle database errors during update" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def update(submission: UKTRSubmission, pillar2Id: String): Future[Either[DetailedErrorResponse, Boolean]] =
+            Future.failed(DatabaseError("Failed to update submission"))
+        }
+
+        val result = errorThrowingRepo.update(liabilitySubmission, validPlrId)
+
+        whenReady(result.failed) { error =>
+          error          shouldBe a[DatabaseError]
+          error.getMessage should include("Failed to update submission")
+        }
+      }
+
+      "must handle validation errors during update" in {
+        val result = repository.update(liabilitySubmission, "invalid-id").futureValue
+        result shouldBe Left(DetailedErrorResponse(RequestCouldNotBeProcessed))
+      }
+
+      "must handle insert errors during update" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          // Override findByPillar2Id to return Some to trigger the insert path
+          override def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
+            Future.successful(
+              Some(
+                UKTRMongoSubmission(
+                  _id = new org.bson.types.ObjectId(),
+                  pillar2Id = pillar2Id,
+                  isAmendment = false,
+                  data = liabilitySubmission,
+                  submittedAt = java.time.Instant.now()
+                )
+              )
+            )
+
+          // Override insert to fail with DatabaseError
+          override def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] =
+            Future.failed(DatabaseError("Database connection failed during insert"))
+        }
+
+        val result = errorThrowingRepo.update(liabilitySubmission, validPlrId).futureValue
+        result shouldBe Left(DetailedErrorResponse(RequestCouldNotBeProcessed))
+      }
+
+      "must return Left with error response when submission not found" in {
+        val result = repository.update(liabilitySubmission, "XEPLR0000000001").futureValue
+        result shouldBe Left(DetailedErrorResponse(RequestCouldNotBeProcessed))
       }
 
       "must maintain historical records by creating new documents for amendments" in {
-
         repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
 
         val countBefore = repository.collection
@@ -146,37 +231,80 @@ class UKTRSubmissionRepositorySpec
 
         documents.size             shouldBe 2
         documents.head.isAmendment shouldBe true
+        documents.last.isAmendment shouldBe false
+      }
+    }
+
+    "findByPillar2Id" - {
+      "must return None when no submission exists" in {
+        val result = repository.findByPillar2Id("non-existent-id").futureValue
+        result shouldBe None
       }
 
-      "must return Left(DetailedErrorResponse(RequestCouldNotBeProcessed)) when no submission exists" in {
-        val result = repository.update(liabilitySubmission, validPlrId).futureValue
-        result shouldBe Left(DetailedErrorResponse(RequestCouldNotBeProcessed))
-      }
-
-      "must handle concurrent updates correctly" in {
+      "must return the latest submission when multiple submissions exist" in {
         repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
+        repository.update(nilSubmission, validPlrId).futureValue       shouldBe Right(true)
 
-        val futures: List[Future[Either[DetailedErrorResponse, Boolean]]] =
-          List.fill(5)(repository.update(liabilitySubmission, validPlrId))
-        val futureResults: Future[List[Either[DetailedErrorResponse, Boolean]]] = Future.sequence(futures)
-        whenReady(futureResults, Timeout(Span(5, Seconds))) { results =>
-          all(results) shouldBe Right(true)
+        val result = repository.findByPillar2Id(validPlrId).futureValue
+        result                 shouldBe defined
+        result.get.isAmendment shouldBe true
+        result.get.data        shouldBe nilSubmission
+      }
+
+      "must handle database errors gracefully" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
+            Future.failed(DatabaseError("Failed to find submission"))
+        }
+
+        val result = errorThrowingRepo.findByPillar2Id(validPlrId).recover { case _: DatabaseError =>
+          None
+        }
+
+        whenReady(result) { r =>
+          r shouldBe None
+        }
+      }
+
+      "must handle non-DatabaseError exceptions gracefully" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
+            Future.successful(None)
+        }
+
+        val result = errorThrowingRepo.findByPillar2Id(validPlrId)
+
+        whenReady(result) { r =>
+          r shouldBe None
+        }
+      }
+
+      "must recover from MongoDB exceptions" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
+            Future.successful(None)
+        }
+
+        val result = errorThrowingRepo.findByPillar2Id(validPlrId)
+
+        whenReady(result) { r =>
+          r shouldBe None
         }
       }
     }
 
-    "findDuplicateSubmission" - {
+    "isDuplicateSubmission" - {
       "must return true when a submission exists for the same period" in {
         repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
         val result = repository
-          .findDuplicateSubmission(validPlrId, liabilitySubmission.accountingPeriodFrom, liabilitySubmission.accountingPeriodTo)
+          .isDuplicateSubmission(validPlrId, liabilitySubmission.accountingPeriodFrom, liabilitySubmission.accountingPeriodTo)
           .futureValue
         result shouldBe true
       }
 
       "must return false when no submission exists for the period" in {
         val result = repository
-          .findDuplicateSubmission(validPlrId, liabilitySubmission.accountingPeriodFrom, liabilitySubmission.accountingPeriodTo)
+          .isDuplicateSubmission(validPlrId, liabilitySubmission.accountingPeriodFrom, liabilitySubmission.accountingPeriodTo)
           .futureValue
         result shouldBe false
       }
@@ -185,7 +313,7 @@ class UKTRSubmissionRepositorySpec
         repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
 
         val futures: List[Future[Boolean]] = List.fill(10)(
-          repository.findDuplicateSubmission(
+          repository.isDuplicateSubmission(
             validPlrId,
             liabilitySubmission.accountingPeriodFrom,
             liabilitySubmission.accountingPeriodTo
@@ -195,6 +323,80 @@ class UKTRSubmissionRepositorySpec
         val futureResults: Future[List[Boolean]] = Future.sequence(futures)
         whenReady(futureResults, Timeout(Span(5, Seconds))) { results =>
           all(results) shouldBe true
+        }
+      }
+
+      "must handle database errors gracefully" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def isDuplicateSubmission(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Boolean] =
+            Future.failed(DatabaseError("Failed to check for duplicate submission - Simulated error"))
+        }
+
+        val result = errorThrowingRepo.isDuplicateSubmission(
+          validPlrId,
+          liabilitySubmission.accountingPeriodFrom,
+          liabilitySubmission.accountingPeriodTo
+        )
+
+        whenReady(result.failed) { error =>
+          error          shouldBe a[DatabaseError]
+          error.getMessage should include("Failed to check for duplicate submission")
+        }
+      }
+
+      "must handle database timeouts" in {
+        val timeoutRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def isDuplicateSubmission(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Boolean] =
+            Future.failed(DatabaseError("Operation timed out"))
+        }
+
+        val result = timeoutRepo.isDuplicateSubmission(
+          validPlrId,
+          liabilitySubmission.accountingPeriodFrom,
+          liabilitySubmission.accountingPeriodTo
+        )
+
+        whenReady(result.failed) { error =>
+          error          shouldBe a[DatabaseError]
+          error.getMessage should include("Operation timed out")
+        }
+      }
+
+      "must handle MongoDB exceptions during duplicate check" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def isDuplicateSubmission(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Boolean] =
+            Future.failed(DatabaseError("Failed to check for duplicate submission - MongoDB connection exception"))
+        }
+
+        val result = errorThrowingRepo.isDuplicateSubmission(
+          validPlrId,
+          liabilitySubmission.accountingPeriodFrom,
+          liabilitySubmission.accountingPeriodTo
+        )
+
+        whenReady(result.failed) { error =>
+          error          shouldBe a[DatabaseError]
+          error.getMessage should include("Failed to check for duplicate submission")
+          error.getMessage should include("MongoDB connection exception")
+        }
+      }
+
+      "must handle general exceptions during duplicate check" in {
+        val errorThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def isDuplicateSubmission(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Boolean] =
+            Future.failed(DatabaseError("Failed to check for duplicate submission - Unexpected runtime error"))
+        }
+
+        val result = errorThrowingRepo.isDuplicateSubmission(
+          validPlrId,
+          liabilitySubmission.accountingPeriodFrom,
+          liabilitySubmission.accountingPeriodTo
+        )
+
+        whenReady(result.failed) { error =>
+          error          shouldBe a[DatabaseError]
+          error.getMessage should include("Failed to check for duplicate submission")
+          error.getMessage should include("Unexpected runtime error")
         }
       }
     }

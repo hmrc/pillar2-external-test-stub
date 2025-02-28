@@ -76,6 +76,39 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       (json \ "message").as[String] shouldBe "Connection failed"
     }
 
+    "handle InvalidAccountingPeriod error" in {
+      val error = InvalidAccountingPeriod(
+        submittedStart = "2024-01-01",
+        submittedEnd = "2024-12-31",
+        registeredStart = "2023-01-01",
+        registeredEnd = "2023-12-31"
+      )
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "code").as[String]  shouldBe "INVALID_ACCOUNTING_PERIOD"
+      (json \ "message").as[String] should include("Accounting period")
+      (json \ "message").as[String] should include("does not match the registered period")
+    }
+
+    "handle InvalidPillar2Id error" in {
+      val error  = InvalidPillar2Id(Some("invalid-id"))
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "code").as[String]  shouldBe "INVALID_PILLAR2_ID"
+      (json \ "message").as[String] should include("Invalid Pillar2Id format")
+    }
+
+    "handle InvalidPillar2Id error with None" in {
+      val error  = InvalidPillar2Id(None)
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "code").as[String]  shouldBe "INVALID_PILLAR2_ID"
+      (json \ "message").as[String] should include("Pillar2Id is missing")
+    }
+
     "handle unknown errors" in {
       val result = errorHandler.onServerError(dummyRequest, new RuntimeException("Unexpected error"))
       status(result) shouldBe INTERNAL_SERVER_ERROR

@@ -22,11 +22,12 @@ import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
+import uk.gov.hmrc.pillar2externalteststub.models.error._
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{DuplicateSubmissionError, MissingPLRReference, SubscriptionNotFound}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSimpleError.{InvalidJsonError, SAPError}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.SubscriptionNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{DuplicateSubmissionError, MissingPLRReference}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes.INTERNAL_SERVER_ERROR_500
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -45,101 +46,180 @@ class SubmitUKTRController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  private def validatePillar2Id(pillar2Id: Option[String]): Either[Result, String] =
-    pillar2Id
-      .filter(pillar2Regex.matches)
-      .toRight(UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference))))
+  private def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
+    pillar2Id match {
+      case Some(id) if pillar2Regex.matches(id) => Future.successful(id)
+      case other                                => Future.failed(InvalidPillar2Id(other))
+    }
 
   def submitUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
-    validatePillar2Id(request.headers.get("X-Pillar2-Id")) match {
-      case Left(error) => Future.successful(error)
-      case Right(plrReference) =>
-        plrReference match {
-          case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(SAPError)))
-          case _ =>
-            retrieveSubscription(plrReference)._2 match {
-              case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
-              case _ => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(SubscriptionNotFound(plrReference)))))
-            }
+    validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+      .flatMap { plr =>
+        if (plr == ServerErrorPlrId) {
+          Future.successful(
+            InternalServerError(
+              Json.obj(
+                "error" -> Json.obj(
+                  "code"    -> "500",
+                  "message" -> "Internal server error",
+                  "logID"   -> "C0000000000000000000000000000500"
+                )
+              )
+            )
+          )
+        } else {
+          validateRequest(plr, request)
         }
-    }
+      }
+      .recover { case _: InvalidPillar2Id =>
+        UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference)))
+      }
   }
 
   def validateRequest(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] = {
     implicit val os = organisationService
 
-    def validateAccountingPeriod(submission: UKTRSubmission): Future[Either[Result, (UKTRSubmission, TestOrganisationWithId)]] =
-      organisationService
-        .getOrganisation(plrReference)
-        .map { org =>
+    retrieveSubscription(plrReference)._2 match {
+      case _: SubscriptionSuccessResponse => processValidRequest(plrReference, request)
+      case _ => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(SubscriptionNotFound(plrReference)))))
+    }
+  }
+
+  private def processValidRequest(plrReference: String, request: Request[JsValue])(implicit
+    ec:                                         ExecutionContext,
+    os:                                         OrganisationService
+  ): Future[Result] = {
+    def validateAccountingPeriod[T <: UKTRSubmission](submission: T): Future[T] =
+      os.getOrganisation(plrReference)
+        .flatMap { org =>
           if (
             org.organisation.accountingPeriod.startDate.isEqual(submission.accountingPeriodFrom) &&
             org.organisation.accountingPeriod.endDate.isEqual(submission.accountingPeriodTo)
           ) {
-            Right((submission, org))
+            Future.successful(submission)
           } else {
-            Left(
-              UnprocessableEntity(
-                Json.toJson(
-                  DetailedErrorResponse(
-                    UKTRDetailedError.InvalidAccountingPeriod(
-                      submission.accountingPeriodFrom.toString,
-                      submission.accountingPeriodTo.toString,
-                      org.organisation.accountingPeriod.startDate.toString,
-                      org.organisation.accountingPeriod.endDate.toString
-                    )
-                  )
-                )
+            Future.failed(
+              InvalidAccountingPeriod(
+                submission.accountingPeriodFrom.toString,
+                submission.accountingPeriodTo.toString,
+                org.organisation.accountingPeriod.startDate.toString,
+                org.organisation.accountingPeriod.endDate.toString
               )
             )
           }
         }
-        .recover { case _ =>
-          Left(UnprocessableEntity(Json.toJson(DetailedErrorResponse(UKTRDetailedError.RequestCouldNotBeProcessed))))
+        .recoverWith {
+          case _: DatabaseError           => Future.failed(DatabaseError("Failed to validate accounting period"))
+          case _: OrganisationNotFound    => Future.failed(OrganisationNotFound(plrReference))
+          case e: InvalidAccountingPeriod => Future.failed(e)
+          case _: RuntimeException        => Future.failed(new RuntimeException("Request could not be processed"))
+          case _ => Future.failed(DatabaseError("Request could not be processed"))
         }
 
     request.body.validate[UKTRSubmission] match {
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
-        validateAccountingPeriod(uktrRequest).flatMap {
-          case Left(error) => Future.successful(error)
-          case Right((submission: UKTRLiabilityReturn, org)) =>
+        validateAccountingPeriod(uktrRequest)
+          .flatMap { submission =>
             UKTRLiabilityReturn.uktrSubmissionValidator(plrReference).flatMap { validator =>
               Future.successful(validator.validate(submission).toEither).flatMap {
                 case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
                 case Right(_) =>
-                  repository.findDuplicateSubmission(plrReference, submission.accountingPeriodFrom, submission.accountingPeriodTo).flatMap {
+                  repository.isDuplicateSubmission(plrReference, submission.accountingPeriodFrom, submission.accountingPeriodTo).flatMap {
                     case true => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
                     case false =>
-                      if (org.organisation.orgDetails.domesticOnly) {
-                        repository.insert(submission, plrReference).map(_ => Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
-                      } else {
-                        repository
-                          .insert(submission, plrReference)
-                          .map(_ => Created(Json.toJson(LiabilityReturnSuccess.successfulNewLiabilityResponse)))
-                      }
+                      repository.insert(submission, plrReference).map(_ => Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
                   }
               }
             }
-          case Right(_) => Future.successful(BadRequest(Json.toJson(InvalidJsonError("Invalid submission type"))))
-        }
+          }
+          .recoverWith {
+            case e: InvalidAccountingPeriod =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "003",
+                      "text" -> s"Accounting period (${e.submittedStart} to ${e.submittedEnd}) does not match the registered period (${e.registeredStart} to ${e.registeredEnd})"
+                    )
+                  )
+                )
+              )
+            case _: OrganisationNotFound =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "001",
+                      "text" -> s"Organisation not found for PLR reference: $plrReference"
+                    )
+                  )
+                )
+              )
+            case _: RuntimeException =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "003",
+                      "text" -> "Request could not be processed"
+                    )
+                  )
+                )
+              )
+            case _ =>
+              Future.successful(
+                InternalServerError(
+                  Json.obj(
+                    "error" -> Json.obj(
+                      "code"    -> INTERNAL_SERVER_ERROR_500,
+                      "message" -> "Internal server error",
+                      "logID"   -> "C0000000000000000000000000000500"
+                    )
+                  )
+                )
+              )
+          }
+
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
-        validateAccountingPeriod(nilReturnRequest).flatMap {
-          case Left(error) => Future.successful(error)
-          case Right((submission: UKTRNilReturn, _)) =>
+        validateAccountingPeriod(nilReturnRequest)
+          .flatMap { submission =>
             UKTRNilReturn.uktrNilReturnValidator(plrReference).flatMap { validator =>
               Future.successful(validator.validate(submission).toEither).flatMap {
                 case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
                 case Right(_) =>
-                  repository
-                    .findDuplicateSubmission(plrReference, submission.accountingPeriodFrom, submission.accountingPeriodTo)
-                    .flatMap {
-                      case true  => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
-                      case false => repository.insert(submission, plrReference).map(_ => Created(Json.toJson(successfulNilReturnResponse)))
-                    }
+                  repository.isDuplicateSubmission(plrReference, submission.accountingPeriodFrom, submission.accountingPeriodTo).flatMap {
+                    case true  => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
+                    case false => repository.insert(submission, plrReference).map(_ => Created(Json.toJson(successfulNilReturnResponse)))
+                  }
               }
             }
-          case Right(_) => Future.successful(BadRequest(Json.toJson(InvalidJsonError("Invalid submission type"))))
-        }
+          }
+          .recoverWith {
+            case e: InvalidAccountingPeriod =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "003",
+                      "text" -> s"Accounting period (${e.submittedStart} to ${e.submittedEnd}) does not match the registered period (${e.registeredStart} to ${e.registeredEnd})"
+                    )
+                  )
+                )
+              )
+            case _ =>
+              Future.successful(
+                InternalServerError(
+                  Json.obj(
+                    "error" -> Json.obj(
+                      "code"    -> INTERNAL_SERVER_ERROR_500,
+                      "message" -> "Internal server error",
+                      "logID"   -> "C0000000000000000000000000000500"
+                    )
+                  )
+                )
+              )
+          }
+
       case JsError(errors) =>
         val errorMessage = errors
           .map { case (path, validationErrors) =>
@@ -148,8 +228,8 @@ class SubmitUKTRController @Inject() (
             s"Field: $fieldName: $errorMessages"
           }
           .mkString("; ")
-        Future.successful(BadRequest(Json.toJson(InvalidJsonError(errorMessage))))
-      case _ => Future.successful(BadRequest(Json.toJson(InvalidJsonError())))
+        Future.successful(BadRequest(Json.toJson(UKTRSimpleError.InvalidJsonError(errorMessage))))
+      case _ => Future.successful(BadRequest(Json.toJson(UKTRSimpleError.InvalidJsonError())))
     }
   }
 }

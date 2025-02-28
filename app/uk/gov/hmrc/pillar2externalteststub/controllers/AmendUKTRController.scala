@@ -16,14 +16,15 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
+import uk.gov.hmrc.pillar2externalteststub.models.error._
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{MissingPLRReference, SubscriptionNotFound}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes.INTERNAL_SERVER_ERROR_500
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -32,129 +33,204 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
+case class SubmissionNotFoundError(message: String) extends Exception(message)
+
 @Singleton
 class AmendUKTRController @Inject() (
-  cc:                  ControllerComponents,
-  authFilter:          AuthActionFilter,
-  repository:          UKTRSubmissionRepository,
-  organisationService: OrganisationService
-)(implicit ec:         ExecutionContext)
-    extends BackendController(cc)
-    with Logging {
+  authFilter:                        AuthActionFilter,
+  repository:                        UKTRSubmissionRepository,
+  organisationService:               OrganisationService,
+  override val controllerComponents: ControllerComponents
+)(implicit ec:                       ExecutionContext)
+    extends BackendController(controllerComponents) {
 
-  private def validatePillar2Id(pillar2Id: Option[String]): Either[Result, String] =
-    pillar2Id
-      .filter(pillar2Regex.matches)
-      .toRight(UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference))))
+  private def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
+    pillar2Id match {
+      case Some(id) if pillar2Regex.matches(id) => Future.successful(id)
+      case other                                => Future.failed(InvalidPillar2Id(other))
+    }
 
   def amendUKTR: Action[JsValue] = (Action andThen authFilter).async(parse.json) { implicit request =>
-    validatePillar2Id(request.headers.get("X-Pillar2-Id")) match {
-      case Left(error) => Future.successful(error)
-      case Right(plrReference) =>
-        plrReference match {
-          case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(UKTRSimpleError.SAPError)))
-          case _ =>
-            retrieveSubscription(plrReference)._2 match {
-              case _: SubscriptionSuccessResponse => validateRequest(plrReference, request)
-              case _ => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(SubscriptionNotFound(plrReference)))))
-            }
+    validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+      .flatMap { plr =>
+        if (plr == ServerErrorPlrId) {
+          Future.successful(InternalServerError(Json.toJson(UKTRSimpleError.SAPError)))
+        } else {
+          retrieveSubscription(plr)._2 match {
+            case _: SubscriptionSuccessResponse => validateRequest(plr, request)
+            case _ => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(SubscriptionNotFound(plr)))))
+          }
         }
-    }
+      }
+      .recover { case _: InvalidPillar2Id =>
+        UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference)))
+      }
   }
 
   def validateRequest(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] = {
-    def validateSubmissionExists(submission: UKTRSubmission): Future[Either[Result, UKTRSubmission]] =
-      repository.findByPillar2Id(plrReference).flatMap {
-        case None    => Future.successful(Left(UnprocessableEntity(Json.toJson(DetailedErrorResponse(UKTRDetailedError.RequestCouldNotBeProcessed)))))
-        case Some(_) => Future.successful(Right(submission))
-      }
+    implicit val os = organisationService
 
-    def validateAccountingPeriod(submission: UKTRSubmission): Future[Either[Result, UKTRSubmission]] =
+    def validateAccountingPeriod[T <: UKTRSubmission](submission: T): Future[T] =
       organisationService
         .getOrganisation(plrReference)
-        .map { org =>
-          if (!submission.isValidAccountingPeriod) {
-            Left(
-              UnprocessableEntity(
-                Json.toJson(
-                  DetailedErrorResponse(
-                    UKTRDetailedError.InvalidAccountingPeriod(
-                      submission.accountingPeriodFrom.toString,
-                      submission.accountingPeriodTo.toString,
-                      org.organisation.accountingPeriod.startDate.toString,
-                      org.organisation.accountingPeriod.endDate.toString
-                    )
-                  )
-                )
-              )
-            )
-          } else if (
+        .flatMap { org =>
+          if (
             org.organisation.accountingPeriod.startDate.isEqual(submission.accountingPeriodFrom) &&
             org.organisation.accountingPeriod.endDate.isEqual(submission.accountingPeriodTo)
           ) {
-            Right(submission)
+            repository.findByPillar2Id(plrReference).flatMap {
+              case Some(_) => Future.successful(submission)
+              case None    => Future.failed(SubmissionNotFoundError("No existing submission found to amend"))
+            }
           } else {
-            Left(
-              UnprocessableEntity(
-                Json.toJson(
-                  DetailedErrorResponse(
-                    UKTRDetailedError.InvalidAccountingPeriod(
-                      submission.accountingPeriodFrom.toString,
-                      submission.accountingPeriodTo.toString,
-                      org.organisation.accountingPeriod.startDate.toString,
-                      org.organisation.accountingPeriod.endDate.toString
-                    )
-                  )
-                )
+            Future.failed(
+              InvalidAccountingPeriod(
+                submission.accountingPeriodFrom.toString,
+                submission.accountingPeriodTo.toString,
+                org.organisation.accountingPeriod.startDate.toString,
+                org.organisation.accountingPeriod.endDate.toString
               )
             )
           }
         }
-        .recover { case _ =>
-          Left(UnprocessableEntity(Json.toJson(DetailedErrorResponse(UKTRDetailedError.RequestCouldNotBeProcessed))))
+        .recoverWith {
+          case _: DatabaseError           => Future.failed(DatabaseError("Failed to validate accounting period"))
+          case _: OrganisationNotFound    => Future.failed(DatabaseError("Request could not be processed"))
+          case e: InvalidAccountingPeriod => Future.failed(e)
+          case e: SubmissionNotFoundError => Future.failed(e)
+          case _ => Future.failed(DatabaseError("Request could not be processed"))
         }
 
     request.body.validate[UKTRSubmission] match {
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
-        validateAccountingPeriod(uktrRequest).flatMap {
-          case Left(error) => Future.successful(error)
-          case Right(_) =>
-            validateSubmissionExists(uktrRequest).flatMap {
-              case Left(error) => Future.successful(error)
-              case Right(_) =>
-                UKTRLiabilityReturn.uktrSubmissionValidator(plrReference)(organisationService, ec).flatMap { validator =>
-                  Future.successful(validator.validate(uktrRequest).toEither).flatMap {
-                    case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-                    case Right(_) =>
-                      repository.update(uktrRequest, plrReference).map {
-                        case Left(error)  => UnprocessableEntity(Json.toJson(error))
-                        case Right(true)  => Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse))
-                        case Right(false) => InternalServerError(Json.toJson(UKTRSimpleError.SAPError))
-                      }
-                  }
-                }
+        validateAccountingPeriod(uktrRequest)
+          .flatMap { submission =>
+            UKTRLiabilityReturn.uktrSubmissionValidator(plrReference).flatMap { validator =>
+              Future.successful(validator.validate(submission).toEither).flatMap {
+                case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+                case Right(_) =>
+                  repository
+                    .update(submission, plrReference)
+                    .map {
+                      case Right(_) =>
+                        Ok(Json.toJson(LiabilitySuccessResponse(LiabilityReturnSuccess(nowZonedDateTime, "119000004320", "XTC01234123412"))))
+                      case Left(errorResponse) => UnprocessableEntity(Json.toJson(errorResponse))
+                    }
+              }
             }
-        }
+          }
+          .recoverWith {
+            case e: InvalidAccountingPeriod =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "003",
+                      "text" -> s"Accounting period (${e.submittedStart} to ${e.submittedEnd}) does not match the registered period (${e.registeredStart} to ${e.registeredEnd})"
+                    )
+                  )
+                )
+              )
+            case e: SubmissionNotFoundError =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "003",
+                      "text" -> e.getMessage
+                    )
+                  )
+                )
+              )
+            case _: DatabaseError =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "003",
+                      "text" -> "Request could not be processed"
+                    )
+                  )
+                )
+              )
+            case _ =>
+              Future.successful(
+                InternalServerError(
+                  Json.obj(
+                    "error" -> Json.obj(
+                      "code"    -> INTERNAL_SERVER_ERROR_500,
+                      "message" -> "Internal server error",
+                      "logID"   -> "C0000000000000000000000000000500"
+                    )
+                  )
+                )
+              )
+          }
+
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
-        validateAccountingPeriod(nilReturnRequest).flatMap {
-          case Left(error) => Future.successful(error)
-          case Right(_) =>
-            validateSubmissionExists(nilReturnRequest).flatMap {
-              case Left(error) => Future.successful(error)
-              case Right(_) =>
-                UKTRNilReturn.uktrNilReturnValidator(plrReference)(organisationService, ec).flatMap { validator =>
-                  Future.successful(validator.validate(nilReturnRequest).toEither).flatMap {
-                    case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-                    case Right(_) =>
-                      repository.update(nilReturnRequest, plrReference).map {
-                        case Left(error)  => UnprocessableEntity(Json.toJson(error))
-                        case Right(true)  => Ok(Json.toJson(NilReturnSuccess.successfulNilReturnResponse))
-                        case Right(false) => InternalServerError(Json.toJson(UKTRSimpleError.SAPError))
-                      }
-                  }
-                }
+        validateAccountingPeriod(nilReturnRequest)
+          .flatMap { submission =>
+            UKTRNilReturn.uktrNilReturnValidator(plrReference).flatMap { validator =>
+              Future.successful(validator.validate(submission).toEither).flatMap {
+                case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
+                case Right(_) =>
+                  repository
+                    .update(submission, plrReference)
+                    .map {
+                      case Right(_)            => Ok(Json.toJson(NilSuccessResponse(NilReturnSuccess(nowZonedDateTime, "119000004321"))))
+                      case Left(errorResponse) => UnprocessableEntity(Json.toJson(errorResponse))
+                    }
+              }
             }
-        }
+          }
+          .recoverWith {
+            case e: InvalidAccountingPeriod =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "003",
+                      "text" -> s"Accounting period (${e.submittedStart} to ${e.submittedEnd}) does not match the registered period (${e.registeredStart} to ${e.registeredEnd})"
+                    )
+                  )
+                )
+              )
+            case e: SubmissionNotFoundError =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "003",
+                      "text" -> e.getMessage
+                    )
+                  )
+                )
+              )
+            case _: DatabaseError =>
+              Future.successful(
+                UnprocessableEntity(
+                  Json.obj(
+                    "errors" -> Json.obj(
+                      "code" -> "003",
+                      "text" -> "Request could not be processed"
+                    )
+                  )
+                )
+              )
+            case _ =>
+              Future.successful(
+                InternalServerError(
+                  Json.obj(
+                    "error" -> Json.obj(
+                      "code"    -> INTERNAL_SERVER_ERROR_500,
+                      "message" -> "Internal server error",
+                      "logID"   -> "C0000000000000000000000000000500"
+                    )
+                  )
+                )
+              )
+          }
+
       case JsError(errors) =>
         val errorMessage = errors
           .map { case (path, validationErrors) =>

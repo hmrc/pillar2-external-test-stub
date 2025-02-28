@@ -46,3 +46,14 @@ case class DatabaseError(error: String) extends StubError {
   override val code:    String = "DATABASE_ERROR"
   override val message: String = error
 }
+
+case class InvalidPillar2Id(pillar2Id: Option[String]) extends StubError {
+  override val code:    String = "INVALID_PILLAR2_ID"
+  override val message: String = pillar2Id.fold("Pillar2Id is missing")(id => s"Invalid Pillar2Id format: $id")
+}
+
+case class InvalidAccountingPeriod(submittedStart: String, submittedEnd: String, registeredStart: String, registeredEnd: String) extends StubError {
+  override val code: String = "INVALID_ACCOUNTING_PERIOD"
+  override val message: String =
+    s"Accounting period ($submittedStart to $submittedEnd) does not match the registered period ($registeredStart to $registeredEnd)"
+}
