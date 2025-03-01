@@ -29,6 +29,8 @@ body:json {
 }
 
 assert {
-  res.body.success: isDefined
   res.status: eq 201
+  res.body.success: isDefined
+  res.body.success.processingDate: isDefined
+  res.body.success.formBundleNumber: isDefined
 }

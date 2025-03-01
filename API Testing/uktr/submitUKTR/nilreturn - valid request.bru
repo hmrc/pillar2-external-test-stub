@@ -1,0 +1,51 @@
+meta {
+  name: "4. Submit UKTR nilreturn - valid request"
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/RESTAdapter/PLR/UKTaxReturn
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: {{validBearerToken}}
+  X-Pillar2-Id: {{nonDomesticPlrId}}
+}
+
+body:json {
+  "accountingPeriodFrom": "2024-01-01",
+  "accountingPeriodTo": "2024-03-31",
+  "obligationMTT": true,
+  "electionUKGAAP": false,
+  "liabilities": {
+    "electionDTTSingleMember": false,
+    "electionUTPRSingleMember": false,
+    "numberSubGroupDTT": 0,
+    "numberSubGroupUTPR": 0,
+    "totalLiability": 0,
+    "totalLiabilityDTT": 0,
+    "totalLiabilityIIR": 0,
+    "totalLiabilityUTPR": 0,
+    "liableEntities": [
+      {
+        "ukChargeableEntityName": "Non-Domestic Test Company",
+        "idType": "CRN",
+        "idValue": "1234",
+        "amountOwedDTT": 0,
+        "amountOwedIIR": 0,
+        "amountOwedUTPR": 0
+      }
+    ]
+  },
+  "returnType": "NIL_RETURN"
+}
+
+assert {
+  res.status: eq 201
+  res.body.processingDate: isDefined
+  res.body.formBundleNumber: isDefined
+} 

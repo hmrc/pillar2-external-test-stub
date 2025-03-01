@@ -12,6 +12,10 @@
       "path": "uktr"
     },
     {
+      "name": "Submit UKTR Requests",
+      "path": "uktr/submitUKTR"
+    },
+    {
       "name": "Below Threshold Notification",
       "path": "btn"
     },

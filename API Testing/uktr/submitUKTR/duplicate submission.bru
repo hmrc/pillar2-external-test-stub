@@ -1,7 +1,7 @@
 meta {
-  name: 8. Submit UKTR - Empty Liable Entities Error
+  name: "5. Submit UKTR - duplicate submission"
   type: http
-  seq: 8
+  seq: 5
 }
 
 post {
@@ -25,13 +25,22 @@ body:json {
     "liabilities": {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
-      "numberSubGroupDTT": 0,
-      "numberSubGroupUTPR": 0,
-      "totalLiability": 0,
-      "totalLiabilityDTT": 0,
+      "numberSubGroupDTT": 4,
+      "numberSubGroupUTPR": 5,
+      "totalLiability": 5000.99,
+      "totalLiabilityDTT": 5000.99,
       "totalLiabilityIIR": 0,
       "totalLiabilityUTPR": 0,
-      "liableEntities": []
+      "liableEntities": [
+        {
+          "ukChargeableEntityName": "DomesticTestCompany",
+          "idType": "CRN",
+          "idValue": "1234",
+          "amountOwedDTT": 5000.99,
+          "amountOwedIIR": 0,
+          "amountOwedUTPR": 0
+        }
+      ]
     }
   }
 }
@@ -39,6 +48,6 @@ body:json {
 assert {
   res.status: eq 422
   res.body.errors: isDefined
-  res.body.errors.code: eq "093"
-  res.body.errors.text: eq "liabilityEntity cannot be empty"
-}
+  res.body.errors.code: eq "044"
+  res.body.errors.text: eq "A submission already exists for this accounting period"
+} 

@@ -1,7 +1,7 @@
 meta {
-  name: Submit UKTR - new liability return
+  name: "6. Submit UKTR - invalid accounting period"
   type: http
-  seq: 5
+  seq: 6
 }
 
 post {
@@ -13,32 +13,32 @@ post {
 headers {
   Content-Type: application/json
   Authorization: {{validBearerToken}}
-  X-Pillar2-Id: {{test3PlrId}}
+  X-Pillar2-Id: {{domesticOnlyPlrId}}
 }
 
 body:json {
   {
     "accountingPeriodFrom": "2024-04-01",
     "accountingPeriodTo": "2024-06-30",
-    "obligationMTT": true,
+    "obligationMTT": false,
     "electionUKGAAP": false,
     "liabilities": {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
       "numberSubGroupDTT": 4,
       "numberSubGroupUTPR": 5,
-      "totalLiability": 15000.99,
+      "totalLiability": 5000.99,
       "totalLiabilityDTT": 5000.99,
-      "totalLiabilityIIR": 5000.00,
-      "totalLiabilityUTPR": 5000.00,
+      "totalLiabilityIIR": 0,
+      "totalLiabilityUTPR": 0,
       "liableEntities": [
         {
-          "ukChargeableEntityName": "Non-Domestic Test Company Q2",
+          "ukChargeableEntityName": "DomesticTestCompany",
           "idType": "CRN",
           "idValue": "1234",
           "amountOwedDTT": 5000.99,
-          "amountOwedIIR": 5000.00,
-          "amountOwedUTPR": 5000.00
+          "amountOwedIIR": 0,
+          "amountOwedUTPR": 0
         }
       ]
     }
@@ -46,6 +46,8 @@ body:json {
 }
 
 assert {
-  res.status: eq 201
-  res.body.success: isDefined
+  res.status: eq 422
+  res.body.errors: isDefined
+  res.body.errors.code: eq "003"
+  res.body.errors.text: contains "Accounting period"
 } 

@@ -1,0 +1,36 @@
+meta {
+  name: "12. Submit UKTR nilreturn - amend"
+  type: http
+  seq: 12
+}
+
+put {
+  url: {{baseUrl}}/RESTAdapter/PLR/UKTaxReturn
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: {{validBearerToken}}
+  X-Pillar2-Id: {{nonDomesticPlrId}}
+}
+
+body:json {
+  {
+    "accountingPeriodFrom": "2024-01-01",
+    "accountingPeriodTo": "2024-03-31",
+    "obligationMTT": true,
+    "electionUKGAAP": false,
+    "liabilities": {
+      "returnType": "NIL_RETURN"
+    }
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.success: isDefined
+  res.body.success.processingDate: isDefined
+  res.body.success.formBundleNumber: eq "119000004321"
+} 

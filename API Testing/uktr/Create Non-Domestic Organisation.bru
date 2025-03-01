@@ -1,5 +1,5 @@
 meta {
-  name: 2. Create Non-Domestic Organisation
+  name: Create Non-Domestic Organisation
   type: http
   seq: 2
 }
@@ -12,15 +12,13 @@ post {
 
 headers {
   Content-Type: application/json
-  Authorization: {{validBearerToken}}
-  Content-Length: auto
 }
 
 body:json {
   {
     "orgDetails": {
       "domesticOnly": false,
-      "organisationName": "Non-Domestic Test Company",
+      "organisationName": "NonDomesticTestCompany",
       "registrationDate": "2024-01-01"
     },
     "accountingPeriod": {
@@ -32,4 +30,8 @@ body:json {
 
 assert {
   res.status: oneOf [201 409]
+  res.body.pillar2Id: isDefined
+  res.body.organisation: isDefined
+  res.body.organisation.orgDetails: isDefined
+  res.body.organisation.accountingPeriod: isDefined
 } 

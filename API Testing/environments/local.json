@@ -1,0 +1,16 @@
+{
+  "baseUrl": "http://localhost:10055",
+  "authUrl": "http://localhost:8585/government-gateway/session/login",
+  "testPlrId": "XEPLR1234567890",
+  "domesticOnlyPlrId": "XEPLR1234567891",
+  "nonDomesticPlrId": "XEPLR1234567892",
+  "validBearerToken": "Bearer valid_token",
+  "accountingPeriod1From": "2024-01-01",
+  "accountingPeriod1To": "2024-03-31",
+  "accountingPeriod2From": "2024-04-01",
+  "accountingPeriod2To": "2024-06-30",
+  "accountingPeriod3From": "2024-07-01",
+  "accountingPeriod3To": "2024-09-30",
+  "test2PlrId": "XEPLR1234567892",
+  "test1PlrId": "XEPLR1234567891"
+} 

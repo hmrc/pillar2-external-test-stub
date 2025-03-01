@@ -1,0 +1,51 @@
+meta {
+  name: "3. Submit UKTR - No Pillar2Id"
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/RESTAdapter/PLR/UKTaxReturn
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: {{validBearerToken}}
+}
+
+body:json {
+  "accountingPeriodFrom": "2024-08-14",
+  "accountingPeriodTo": "2024-12-14",
+  "obligationMTT": true,
+  "electionUKGAAP": false,
+  "liabilities": {
+    "electionDTTSingleMember": false,
+    "electionUTPRSingleMember": false,
+    "numberSubGroupDTT": 1,
+    "numberSubGroupUTPR": 1,
+    "totalLiability": 10000.99,
+    "totalLiabilityDTT": 5000.99,
+    "totalLiabilityIIR": 4000,
+    "totalLiabilityUTPR": 10000.99,
+    "liableEntities": [
+      {
+        "ukChargeableEntityName": "NewcoPLC",
+        "idType": "CRN",
+        "idValue": "12345678",
+        "amountOwedDTT": 5000,
+        "amountOwedIIR": 3400,
+        "amountOwedUTPR": 6000.5
+      }
+    ]
+  }
+}
+
+assert {
+  res.status: eq 422
+  res.body.errors: isDefined
+  res.body.errors.code: eq "002"
+  res.body.errors.text: eq "PLR Reference is missing or invalid"
+  res.body.errors.processingDate: isDefined
+}

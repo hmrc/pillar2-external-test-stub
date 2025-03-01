@@ -38,3 +38,4 @@ target
 test-result
 tmp
 .vscode/
+run_tests.sh

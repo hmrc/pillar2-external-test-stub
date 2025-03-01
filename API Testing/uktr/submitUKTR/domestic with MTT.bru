@@ -1,7 +1,7 @@
 meta {
-  name: 7. Submit UKTR - Domestic With MTT Error
+  name: 9. Submit UKTR - domestic with MTT
   type: http
-  seq: 7
+  seq: 9
 }
 
 post {
@@ -20,25 +20,25 @@ body:json {
   {
     "accountingPeriodFrom": "2024-01-01",
     "accountingPeriodTo": "2024-03-31",
-    "obligationMTT": true,
+    "obligationMTT": false,
     "electionUKGAAP": false,
     "liabilities": {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
-      "numberSubGroupDTT": 0,
-      "numberSubGroupUTPR": 1,
-      "totalLiability": 10000.00,
-      "totalLiabilityDTT": 0,
+      "numberSubGroupDTT": 4,
+      "numberSubGroupUTPR": 5,
+      "totalLiability": 15000.99,
+      "totalLiabilityDTT": 5000.99,
       "totalLiabilityIIR": 5000.00,
       "totalLiabilityUTPR": 5000.00,
       "liableEntities": [
         {
-          "ukChargeableEntityName": "Domestic Test Company",
+          "ukChargeableEntityName": "DomesticTestCompany",
           "idType": "CRN",
           "idValue": "1234",
-          "amountOwedDTT": 0,
-          "amountOwedIIR": 5000.00,
-          "amountOwedUTPR": 5000.00
+          "amountOwedDTT": 5000.99,
+          "amountOwedIIR": 0,
+          "amountOwedUTPR": 0
         }
       ]
     }
@@ -47,7 +47,7 @@ body:json {
 
 assert {
   res.status: eq 422
-  res.body.errors: isDefined
-  res.body.errors.code: eq "093"
-  res.body.errors.text: eq "obligationMTT cannot be true for a domestic-only group"
+  res.body.errors.processingDate: isDefined
+  res.body.errors.code: eq "044"
+  res.body.errors.text: eq "A submission already exists for this accounting period"
 } 

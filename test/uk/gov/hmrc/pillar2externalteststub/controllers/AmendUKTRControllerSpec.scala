@@ -145,7 +145,7 @@ class AmendUKTRControllerSpec
       status(result) mustBe OK
       val jsonResult = contentAsJson(result)
       (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
-      (jsonResult \ "success" \ "chargeReference").as[String] mustEqual "XTC01234123412"
+      (jsonResult \ "success" \ "chargeReference").as[String] mustEqual "XY123456789012"
       (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
     }
 
@@ -401,6 +401,39 @@ class AmendUKTRControllerSpec
       val result3 = route(app, request).value
       status(result3) mustBe OK
       (contentAsJson(result3) \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
+    }
+
+    "when submitting a Liability UKTR" - {
+      "should return CREATED (201)" - {
+        "when plrReference is valid and JSON payload is correct" in {
+          val _ = when(mockOrganisationService.getOrganisation(mockAny[String])).thenReturn(
+            Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+          )
+
+          val result = route(app, request(body = validRequestBody)).value
+          status(result) mustBe CREATED
+          val json = contentAsJson(result)
+          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+          (json \ "success" \ "chargeReference").as[String] mustBe "XY123456789012"
+        }
+
+        "when plrReference is valid and JSON is correct and has 3 Liable Entities" in {
+          val result = route(
+            app,
+            request(body =
+              validRequestBody.deepMerge(
+                Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr(validLiableEntity, validLiableEntity, validLiableEntity)))
+              )
+            )
+          ).value
+          status(result) mustBe CREATED
+          val json = contentAsJson(result)
+          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+          (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+          (json \ "success" \ "chargeReference").as[String] mustBe "XY123456789012"
+        }
+      }
     }
   }
 }

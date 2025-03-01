@@ -113,7 +113,7 @@ class AmendUKTRController @Inject() (
                     .update(submission, plrReference)
                     .map {
                       case Right(_) =>
-                        Ok(Json.toJson(LiabilitySuccessResponse(LiabilityReturnSuccess(nowZonedDateTime, "119000004320", "XTC01234123412"))))
+                        Ok(Json.toJson(LiabilitySuccessResponse(LiabilityReturnSuccess(nowZonedDateTime, "119000004320", "XY123456789012"))))
                       case Left(errorResponse) => UnprocessableEntity(Json.toJson(errorResponse))
                     }
               }

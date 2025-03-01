@@ -1,10 +1,10 @@
 meta {
-  name: 6. Submit UKTR - Invalid Accounting Period Error
+  name: "10. Submit UKTR - amend submission"
   type: http
-  seq: 6
+  seq: 10
 }
 
-post {
+put {
   url: {{baseUrl}}/RESTAdapter/PLR/UKTaxReturn
   body: json
   auth: none
@@ -18,22 +18,22 @@ headers {
 
 body:json {
   {
-    "accountingPeriodFrom": "2024-04-01",
-    "accountingPeriodTo": "2024-06-30",
+    "accountingPeriodFrom": "2024-01-01",
+    "accountingPeriodTo": "2024-03-31",
     "obligationMTT": false,
     "electionUKGAAP": false,
     "liabilities": {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
-      "numberSubGroupDTT": 1,
+      "numberSubGroupDTT": 4,
       "numberSubGroupUTPR": 0,
-      "totalLiability": 5000.99,
-      "totalLiabilityDTT": 5000.99,
+      "totalLiability": 6000.99,
+      "totalLiabilityDTT": 6000.99,
       "totalLiabilityIIR": 0,
       "totalLiabilityUTPR": 0,
       "liableEntities": [
         {
-          "ukChargeableEntityName": "Domestic Test Company",
+          "ukChargeableEntityName": "DomesticTestCompany",
           "idType": "CRN",
           "idValue": "1234",
           "amountOwedDTT": 5000.99,
@@ -46,8 +46,9 @@ body:json {
 }
 
 assert {
-  res.status: eq 422
-  res.body.errors: isDefined
-  res.body.errors.code: eq "003"
-  res.body.errors.text: eq "Accounting period (2024-04-01 to 2024-06-30) does not match the registered period (2024-01-01 to 2024-03-31)"
+  res.status: eq 200
+  res.body.success: isDefined
+  res.body.success.processingDate: isDefined
+  res.body.success.formBundleNumber: eq "119000004320"
+  res.body.success.chargeReference: eq "XY123456789012"
 } 

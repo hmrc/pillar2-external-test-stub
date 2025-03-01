@@ -29,7 +29,7 @@ object LiabilityReturnSuccess {
       LiabilityReturnSuccess(
         processingDate = nowZonedDateTime,
         formBundleNumber = "119000004320",
-        chargeReference = "XTC01234123412"
+        chargeReference = "XY123456789012"
       )
     )
 
@@ -38,7 +38,7 @@ object LiabilityReturnSuccess {
       LiabilityReturnSuccess(
         processingDate = nowZonedDateTime,
         formBundleNumber = "119000004322",
-        chargeReference = "XTC01234123412"
+        chargeReference = "XY123456789012"
       )
     )
 }

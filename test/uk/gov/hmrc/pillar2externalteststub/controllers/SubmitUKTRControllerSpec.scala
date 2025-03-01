@@ -144,7 +144,7 @@ class SubmitUKTRControllerSpec
         val json = contentAsJson(result)
         (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
         (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-        (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
+        (json \ "success" \ "chargeReference").as[String] mustBe "XY123456789012"
       }
 
       "when plrReference is valid and JSON is correct and has 3 Liable Entities" in {
@@ -160,7 +160,7 @@ class SubmitUKTRControllerSpec
         val json = contentAsJson(result)
         (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
         (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-        (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
+        (json \ "success" \ "chargeReference").as[String] mustBe "XY123456789012"
       }
     }
 

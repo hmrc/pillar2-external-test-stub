@@ -1,7 +1,7 @@
 meta {
-  name: 3. Submit UKTR - valid request (Domestic)
+  name: "5. Submit UKTR - new liability return"
   type: http
-  seq: 3
+  seq: 5
 }
 
 post {
@@ -13,27 +13,27 @@ post {
 headers {
   Content-Type: application/json
   Authorization: {{validBearerToken}}
-  X-Pillar2-Id: {{domesticOnlyPlrId}}
+  X-Pillar2-Id: {{test3PlrId}}
 }
 
 body:json {
   {
-    "accountingPeriodFrom": "2024-01-01",
-    "accountingPeriodTo": "2024-03-31",
-    "obligationMTT": false,
+    "accountingPeriodFrom": "2024-04-01",
+    "accountingPeriodTo": "2024-06-30",
+    "obligationMTT": true,
     "electionUKGAAP": false,
     "liabilities": {
       "electionDTTSingleMember": false,
       "electionUTPRSingleMember": false,
       "numberSubGroupDTT": 4,
       "numberSubGroupUTPR": 5,
-      "totalLiability": 5000.99,
+      "totalLiability": 15000.99,
       "totalLiabilityDTT": 5000.99,
-      "totalLiabilityIIR": 0,
-      "totalLiabilityUTPR": 0,
+      "totalLiabilityIIR": 5000.00,
+      "totalLiabilityUTPR": 5000.00,
       "liableEntities": [
         {
-          "ukChargeableEntityName": "Domestic Test Company",
+          "ukChargeableEntityName": "NonDomesticTestCompanyQ2",
           "idType": "CRN",
           "idValue": "1234",
           "amountOwedDTT": 5000.99,
@@ -48,4 +48,7 @@ body:json {
 assert {
   res.status: eq 201
   res.body.success: isDefined
-}
+  res.body.success.processingDate: isDefined
+  res.body.success.formBundleNumber: eq "119000004322"
+  res.body.success.chargeReference: eq "XY123456789012"
+} 
