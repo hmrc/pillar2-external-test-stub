@@ -113,7 +113,7 @@ class AmendUKTRController @Inject() (
                     .update(submission, plrReference)
                     .map {
                       case Right(_) =>
-                        Ok(Json.toJson(LiabilitySuccessResponse(LiabilityReturnSuccess(nowZonedDateTime, "119000004320", "XY123456789012"))))
+                        Created(Json.toJson(LiabilitySuccessResponse(LiabilityReturnSuccess(nowZonedDateTime, "119000004320", "XY123456789012"))))
                       case Left(errorResponse) => UnprocessableEntity(Json.toJson(errorResponse))
                     }
               }
@@ -177,7 +177,7 @@ class AmendUKTRController @Inject() (
                   repository
                     .update(submission, plrReference)
                     .map {
-                      case Right(_)            => Ok(Json.toJson(NilSuccessResponse(NilReturnSuccess(nowZonedDateTime, "119000004321"))))
+                      case Right(_)            => Created(Json.toJson(NilSuccessResponse(NilReturnSuccess(nowZonedDateTime, "119000004321"))))
                       case Left(errorResponse) => UnprocessableEntity(Json.toJson(errorResponse))
                     }
               }

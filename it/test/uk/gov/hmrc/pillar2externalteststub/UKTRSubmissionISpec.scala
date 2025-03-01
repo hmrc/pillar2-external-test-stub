@@ -125,7 +125,7 @@ class UKTRSubmissionISpec
         val response         = amendUKTR(updatedBody, validPlrId)
         val latestSubmission = repository.findByPillar2Id(validPlrId).futureValue
 
-        response.status shouldBe 200
+        response.status shouldBe 201
         latestSubmission.get.data.accountingPeriodFrom shouldEqual LocalDate.of(2024, 8, 14)
       }
       
@@ -144,7 +144,7 @@ class UKTRSubmissionISpec
     
         val updatedBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ 
           Json.obj("accountingPeriodFrom" -> "2024-08-14")).get
-        amendUKTR(updatedBody, validPlrId).status shouldBe 200
+        amendUKTR(updatedBody, validPlrId).status shouldBe 201
         
       
         val countAfter = Await.ready(repository.collection.countDocuments(
@@ -228,7 +228,7 @@ class UKTRSubmissionISpec
         submitUKTR(nilSubmission, validPlrId).status shouldBe 201
 
         val response = amendUKTR(nilSubmission, validPlrId)
-        response.status shouldBe 200
+        response.status shouldBe 201
       }
     }
 

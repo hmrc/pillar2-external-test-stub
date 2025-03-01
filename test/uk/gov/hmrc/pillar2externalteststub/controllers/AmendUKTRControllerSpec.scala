@@ -84,6 +84,9 @@ class AmendUKTRControllerSpec
       .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> plrId)
       .withBody(body)
 
+  private def request(body: JsValue): FakeRequest[JsValue] =
+    createRequest(validPlrId, body)
+
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .overrides(inject.bind[UKTRSubmissionRepository].toInstance(mockRepository))
@@ -119,7 +122,7 @@ class AmendUKTRControllerSpec
   }
 
   "AmendUKTRController" should {
-    "return OK with success response for a valid uktr amendment" in {
+    "return CREATED with success response for a valid uktr amendment" in {
       val originalSubmission = UKTRMongoSubmission(
         _id = new ObjectId(),
         pillar2Id = validPlrId,
@@ -142,14 +145,14 @@ class AmendUKTRControllerSpec
       val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
       val result = route(app, request).value
-      status(result) mustBe OK
+      status(result) mustBe CREATED
       val jsonResult = contentAsJson(result)
       (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
       (jsonResult \ "success" \ "chargeReference").as[String] mustEqual "XY123456789012"
       (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
     }
 
-    "return OK with success response for a valid NIL_RETURN amendment" in {
+    "return CREATED with success response for a valid NIL_RETURN amendment" in {
       when(mockRepository.findByPillar2Id(any[String])).thenReturn(
         Future.successful(
           Some(
@@ -168,7 +171,7 @@ class AmendUKTRControllerSpec
       val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
       val result = route(app, request).value
-      status(result) mustBe OK
+      status(result) mustBe CREATED
       val jsonResult = contentAsJson(result)
       (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004321"
       (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
@@ -220,7 +223,7 @@ class AmendUKTRControllerSpec
       val request = createRequest(validPlrId, amendedRequestBody)
       val result  = route(app, request).value
 
-      status(result) mustBe OK
+      status(result) mustBe CREATED
       Option(capturedSubmission.get()).isDefined mustBe true
 
       val capturedLiabilityReturn = capturedSubmission.get().asInstanceOf[UKTRLiabilityReturn]
@@ -389,50 +392,48 @@ class AmendUKTRControllerSpec
 
       // First request
       val result1 = route(app, request).value
-      status(result1) mustBe OK
+      status(result1) mustBe CREATED
       (contentAsJson(result1) \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
 
       // Second request
       val result2 = route(app, request).value
-      status(result2) mustBe OK
+      status(result2) mustBe CREATED
       (contentAsJson(result2) \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
 
       // Third request
       val result3 = route(app, request).value
-      status(result3) mustBe OK
+      status(result3) mustBe CREATED
       (contentAsJson(result3) \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
     }
 
-    "when submitting a Liability UKTR" - {
-      "should return CREATED (201)" - {
-        "when plrReference is valid and JSON payload is correct" in {
-          val _ = when(mockOrganisationService.getOrganisation(mockAny[String])).thenReturn(
-            Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
-          )
+    "when submitting a Liability UKTR" should {
+      "return CREATED (201) when plrReference is valid and JSON payload is correct" in {
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
 
-          val result = route(app, request(body = validRequestBody)).value
-          status(result) mustBe CREATED
-          val json = contentAsJson(result)
-          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-          (json \ "success" \ "chargeReference").as[String] mustBe "XY123456789012"
-        }
+        val result = route(app, request(body = validRequestBody)).value
+        status(result) mustBe CREATED
+        val json = contentAsJson(result)
+        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+        (json \ "success" \ "chargeReference").as[String] mustBe "XY123456789012"
+      }
 
-        "when plrReference is valid and JSON is correct and has 3 Liable Entities" in {
-          val result = route(
-            app,
-            request(body =
-              validRequestBody.deepMerge(
-                Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr(validLiableEntity, validLiableEntity, validLiableEntity)))
-              )
+      "return CREATED (201) when plrReference is valid and JSON is correct and has 3 Liable Entities" in {
+        val result = route(
+          app,
+          request(body =
+            validRequestBody.deepMerge(
+              Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr(validLiableEntity, validLiableEntity, validLiableEntity)))
             )
-          ).value
-          status(result) mustBe CREATED
-          val json = contentAsJson(result)
-          (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-          (json \ "success" \ "chargeReference").as[String] mustBe "XY123456789012"
-        }
+          )
+        ).value
+        status(result) mustBe CREATED
+        val json = contentAsJson(result)
+        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+        (json \ "success" \ "chargeReference").as[String] mustBe "XY123456789012"
       }
     }
   }
