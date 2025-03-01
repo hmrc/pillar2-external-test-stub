@@ -32,8 +32,48 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onClientError(dummyRequest, BAD_REQUEST, "Bad Request Message")
       status(result) shouldBe BAD_REQUEST
       val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "400"
-      (json \ "message").as[String] shouldBe "Bad Request Message"
+      (json \ "error" \ "code").as[String]    shouldBe "400"
+      (json \ "error" \ "message").as[String] shouldBe "Bad request"
+    }
+
+    "handle client errors with UNAUTHORIZED status" in {
+      val result = errorHandler.onClientError(dummyRequest, UNAUTHORIZED, "Unauthorized Message")
+      status(result) shouldBe UNAUTHORIZED
+      val json = contentAsJson(result)
+      (json \ "error" \ "code").as[String]    shouldBe "401"
+      (json \ "error" \ "message").as[String] shouldBe "Unauthorized"
+    }
+
+    "handle client errors with FORBIDDEN status" in {
+      val result = errorHandler.onClientError(dummyRequest, FORBIDDEN, "Forbidden Message")
+      status(result) shouldBe FORBIDDEN
+      val json = contentAsJson(result)
+      (json \ "error" \ "code").as[String]    shouldBe "403"
+      (json \ "error" \ "message").as[String] shouldBe "Forbidden"
+    }
+
+    "handle client errors with NOT_FOUND status" in {
+      val result = errorHandler.onClientError(dummyRequest, NOT_FOUND, "Not Found Message")
+      status(result) shouldBe NOT_FOUND
+      val json = contentAsJson(result)
+      (json \ "error" \ "code").as[String]    shouldBe "404"
+      (json \ "error" \ "message").as[String] shouldBe "Not found"
+    }
+
+    "handle client errors with UNPROCESSABLE_ENTITY status" in {
+      val result = errorHandler.onClientError(dummyRequest, UNPROCESSABLE_ENTITY, "Validation Failed Message")
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String] shouldBe "Validation Failed Message"
+    }
+
+    "handle client errors with other status codes" in {
+      val result = errorHandler.onClientError(dummyRequest, PAYMENT_REQUIRED, "Payment Required Message")
+      status(result) shouldBe PAYMENT_REQUIRED
+      val json = contentAsJson(result)
+      (json \ "error" \ "code").as[String]    shouldBe "402"
+      (json \ "error" \ "message").as[String] shouldBe "Payment Required Message"
     }
 
     "handle InvalidJson error" in {
@@ -86,9 +126,9 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, error)
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
-      (json \ "code").as[String]  shouldBe "INVALID_ACCOUNTING_PERIOD"
-      (json \ "message").as[String] should include("Accounting period")
-      (json \ "message").as[String] should include("does not match the registered period")
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String]   should include("Accounting period")
+      (json \ "errors" \ "text").as[String]   should include("does not match the registered period")
     }
 
     "handle InvalidPillar2Id error" in {
@@ -96,8 +136,8 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, error)
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
-      (json \ "code").as[String]  shouldBe "INVALID_PILLAR2_ID"
-      (json \ "message").as[String] should include("Invalid Pillar2Id format")
+      (json \ "errors" \ "code").as[String] shouldBe "002"
+      (json \ "errors" \ "text").as[String] shouldBe "PLR Reference is missing or invalid"
     }
 
     "handle InvalidPillar2Id error with None" in {
@@ -105,16 +145,57 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, error)
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
-      (json \ "code").as[String]  shouldBe "INVALID_PILLAR2_ID"
-      (json \ "message").as[String] should include("Pillar2Id is missing")
+      (json \ "errors" \ "code").as[String] shouldBe "002"
+      (json \ "errors" \ "text").as[String] shouldBe "PLR Reference is missing or invalid"
+    }
+
+    "handle DuplicateSubmissionError" in {
+      val error  = DuplicateSubmissionError("XEPLR0000000001")
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "044"
+      (json \ "errors" \ "text").as[String] shouldBe "A submission already exists for this accounting period"
+    }
+
+    "handle SubmissionNotFoundError" in {
+      val error  = SubmissionNotFoundError("XEPLR0000000001")
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String]   should include("No existing submission found to amend for pillar2Id: XEPLR0000000001")
+    }
+
+    "handle DomesticOnlyMTTError" in {
+      val error  = DomesticOnlyMTTError("XEPLR0000000001")
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "093"
+      (json \ "errors" \ "text").as[String] shouldBe "obligationMTT cannot be true for a domestic-only group"
     }
 
     "handle unknown errors" in {
       val result = errorHandler.onServerError(dummyRequest, new RuntimeException("Unexpected error"))
       status(result) shouldBe INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "500"
-      (json \ "message").as[String] shouldBe "Internal Server Error"
+      (json \ "error" \ "code").as[String]    shouldBe "500"
+      (json \ "error" \ "message").as[String] shouldBe "Internal server error"
+    }
+
+    "test consecutive error handling" in {
+      // First error - StubError
+      val stubResult = errorHandler.onServerError(dummyRequest, DatabaseError("Test database error"))
+      status(stubResult) shouldBe INTERNAL_SERVER_ERROR
+      val stubJson = contentAsJson(stubResult)
+      (stubJson \ "code").as[String] shouldBe "DATABASE_ERROR"
+
+      // Second error - Unknown error
+      val unknownResult = errorHandler.onServerError(dummyRequest, new RuntimeException("Test unexpected error"))
+      status(unknownResult) shouldBe INTERNAL_SERVER_ERROR
+      val unknownJson = contentAsJson(unknownResult)
+      (unknownJson \ "error" \ "code").as[String] shouldBe "500"
     }
   }
 }

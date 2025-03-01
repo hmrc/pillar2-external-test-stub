@@ -57,3 +57,18 @@ case class InvalidAccountingPeriod(submittedStart: String, submittedEnd: String,
   override val message: String =
     s"Accounting period ($submittedStart to $submittedEnd) does not match the registered period ($registeredStart to $registeredEnd)"
 }
+
+case class DuplicateSubmissionError(pillar2Id: String) extends StubError {
+  override val code:    String = "DUPLICATE_SUBMISSION"
+  override val message: String = s"A submission already exists for this accounting period for pillar2Id: $pillar2Id"
+}
+
+case class SubmissionNotFoundError(pillar2Id: String) extends StubError {
+  override val code:    String = "SUBMISSION_NOT_FOUND"
+  override val message: String = s"No existing submission found to amend for pillar2Id: $pillar2Id"
+}
+
+case class DomesticOnlyMTTError(pillar2Id: String) extends StubError {
+  override val code:    String = "DOMESTIC_ONLY_MTT_ERROR"
+  override val message: String = s"MTT values are not allowed for domestic-only groups with pillar2Id: $pillar2Id"
+}

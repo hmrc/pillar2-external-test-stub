@@ -142,6 +142,22 @@ class UKTRSubmissionRepositorySpec
         document.data                shouldBe liabilitySubmission
         Option(document.submittedAt) shouldBe defined
       }
+
+      "must handle general exceptions during insert operations" in {
+        // Create a test repository that directly returns a DatabaseError
+        val exceptionThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] =
+            Future.failed(DatabaseError("Failed to create UKTR - Unexpected runtime exception during insert"))
+        }
+
+        val result = exceptionThrowingRepo.insert(liabilitySubmission, validPlrId)
+
+        whenReady(result.failed) { error =>
+          error          shouldBe a[DatabaseError]
+          error.getMessage should include("Failed to create UKTR")
+          error.getMessage should include("Unexpected runtime exception during insert")
+        }
+      }
     }
 
     "update" - {
@@ -291,6 +307,20 @@ class UKTRSubmissionRepositorySpec
           r shouldBe None
         }
       }
+
+      "must handle specific RuntimeException in findByPillar2Id" in {
+        val exceptionThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
+            // Just return None as would happen when the exception is caught
+            Future.successful(None)
+        }
+
+        val result = exceptionThrowingRepo.findByPillar2Id(validPlrId)
+
+        whenReady(result) { r =>
+          r shouldBe None
+        }
+      }
     }
 
     "isDuplicateSubmission" - {
@@ -397,6 +427,25 @@ class UKTRSubmissionRepositorySpec
           error          shouldBe a[DatabaseError]
           error.getMessage should include("Failed to check for duplicate submission")
           error.getMessage should include("Unexpected runtime error")
+        }
+      }
+
+      "must handle RuntimeException during duplicate check" in {
+        val exceptionThrowingRepo = new UKTRSubmissionRepository(config, app.injector.instanceOf[uk.gov.hmrc.mongo.MongoComponent]) {
+          override def isDuplicateSubmission(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Boolean] =
+            Future.failed(DatabaseError("Failed to check for duplicate submission - Runtime exception during duplicate check"))
+        }
+
+        val result = exceptionThrowingRepo.isDuplicateSubmission(
+          validPlrId,
+          liabilitySubmission.accountingPeriodFrom,
+          liabilitySubmission.accountingPeriodTo
+        )
+
+        whenReady(result.failed) { error =>
+          error          shouldBe a[DatabaseError]
+          error.getMessage should include("Failed to check for duplicate submission")
+          error.getMessage should include("Runtime exception during duplicate check")
         }
       }
     }

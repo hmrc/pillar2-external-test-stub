@@ -241,6 +241,7 @@ class AmendUKTRControllerSpec
       status(result) mustBe UNPROCESSABLE_ENTITY
       val jsonResult = contentAsJson(result)
       (jsonResult \ "errors" \ "code").as[String] mustEqual "002"
+      (jsonResult \ "errors" \ "text").as[String] shouldBe "PLR Reference is missing or invalid"
     }
 
     "return UNPROCESSABLE_ENTITY when X-Pillar2-Id format is invalid" in {
@@ -249,6 +250,7 @@ class AmendUKTRControllerSpec
       status(result) mustBe UNPROCESSABLE_ENTITY
       val jsonResult = contentAsJson(result)
       (jsonResult \ "errors" \ "code").as[String] mustEqual "002"
+      (jsonResult \ "errors" \ "text").as[String] shouldBe "PLR Reference is missing or invalid"
     }
 
     "return UNPROCESSABLE_ENTITY when subscription is not found" in {
@@ -258,6 +260,7 @@ class AmendUKTRControllerSpec
       status(result) mustBe UNPROCESSABLE_ENTITY
       val jsonResult = contentAsJson(result)
       (jsonResult \ "errors" \ "code").as[String] mustEqual "007"
+      (jsonResult \ "errors" \ "text").as[String] should include(s"No active subscription found for PLR Reference: $nonExistentPlrId")
     }
 
     "return UNPROCESSABLE_ENTITY when amendment to a submission that does not exist" in {
@@ -267,6 +270,7 @@ class AmendUKTRControllerSpec
       status(result) mustBe UNPROCESSABLE_ENTITY
       val jsonResult = contentAsJson(result)
       (jsonResult \ "errors" \ "code").as[String] mustEqual "003"
+      (jsonResult \ "errors" \ "text").as[String] mustEqual "Request could not be processed"
     }
 
     "return UNPROCESSABLE_ENTITY when accounting period validation fails" in {
@@ -280,6 +284,8 @@ class AmendUKTRControllerSpec
       status(result) mustBe UNPROCESSABLE_ENTITY
       val jsonResult = contentAsJson(result)
       (jsonResult \ "errors" \ "code").as[String] mustEqual "003"
+      (jsonResult \ "errors" \ "text").as[String] should include("Accounting period")
+      (jsonResult \ "errors" \ "text").as[String] should include("does not match the registered period")
     }
 
     "return UNPROCESSABLE_ENTITY when liableEntities array is empty" in {
@@ -289,6 +295,7 @@ class AmendUKTRControllerSpec
       status(result) mustBe UNPROCESSABLE_ENTITY
       val jsonResult = contentAsJson(result)
       (jsonResult \ "errors" \ "code").as[String] mustEqual "093"
+      (jsonResult \ "errors" \ "text").as[String] should include("obligationMTT cannot be true for a domestic-only group")
     }
 
     "return UNPROCESSABLE_ENTITY when database operation fails" in {
@@ -299,10 +306,10 @@ class AmendUKTRControllerSpec
       val request = createRequest(validPlrId, Json.toJson(validRequestBody))
       val result  = route(app, request).value
 
-      status(result) mustBe UNPROCESSABLE_ENTITY
+      status(result) mustBe INTERNAL_SERVER_ERROR
       val jsonResult = contentAsJson(result)
-      (jsonResult \ "errors" \ "code").as[String] mustEqual "003"
-      (jsonResult \ "errors" \ "text").as[String] mustEqual "Request could not be processed"
+      (jsonResult \ "code").as[String] mustEqual "DATABASE_ERROR"
+      (jsonResult \ "message").as[String] mustEqual "Database connection failed"
     }
 
     "return INTERNAL_SERVER_ERROR for unexpected exceptions" in {
@@ -435,6 +442,157 @@ class AmendUKTRControllerSpec
         (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
         (json \ "success" \ "chargeReference").as[String] mustBe "XY123456789012"
       }
+
+      "return UNPROCESSABLE_ENTITY when obligationMTT is true for domestic-only group with no international entities" in {
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
+
+        // Create a request body where obligationMTT is true, but group is domestic-only
+        val domesticOnlyRequest = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "obligationMTT"     -> true,
+              "domesticOnlyGroup" -> true,
+              "liableEntities"    -> Json.arr(validLiableEntity)
+            )
+          )
+        )
+
+        println(s"TEST DEBUG: domesticOnlyRequest = ${Json.prettyPrint(domesticOnlyRequest)}")
+
+        val request = createRequest(validPlrId, domesticOnlyRequest)
+        val result  = route(app, request).value
+
+        status(result) mustBe UNPROCESSABLE_ENTITY
+        val jsonResult = contentAsJson(result)
+        (jsonResult \ "errors" \ "code").as[String] mustEqual "093"
+        (jsonResult \ "errors" \ "text").as[String] should include("obligationMTT cannot be true for a domestic-only group")
+      }
+
+      "return UNPROCESSABLE_ENTITY when obligationMTT is true with non-domestic group but foreign entity indicator is false" in {
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
+
+        // Create a request body where obligationMTT is true, domesticOnlyGroup is false, but no foreign entities
+        val noForeignEntitiesRequest = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "obligationMTT"     -> true,
+              "domesticOnlyGroup" -> false,
+              "liableEntities" -> Json.arr(
+                validLiableEntity.deepMerge(Json.obj("hasForeignEntities" -> false))
+              )
+            )
+          )
+        )
+
+        println(s"TEST DEBUG: noForeignEntitiesRequest = ${Json.prettyPrint(noForeignEntitiesRequest)}")
+
+        val request = createRequest(validPlrId, noForeignEntitiesRequest)
+        val result  = route(app, request).value
+
+        status(result) mustBe UNPROCESSABLE_ENTITY
+        val jsonResult = contentAsJson(result)
+        (jsonResult \ "errors" \ "code").as[String] mustEqual "093"
+        (jsonResult \ "errors" \ "text").as[String] should include("obligationMTT cannot be true for a domestic-only group")
+      }
+
+      "process a NIL return submission properly" in {
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
+
+        val nilReturnSubmission = Json.obj(
+          "submissionType" -> "UKTR",
+          "accountingPeriod" -> Json.obj(
+            "startDate" -> "2024-08-14",
+            "endDate"   -> "2024-12-14"
+          ),
+          "nilReturn" -> true
+        )
+
+        val request = createRequest(validPlrId, Json.toJson(nilReturnSubmission))
+        val result  = route(app, request).value
+
+        status(result) mustBe CREATED
+        val json = contentAsJson(result)
+        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+      }
+
+      "handle exceptions from the organisation service correctly" in {
+        // This specifically tests lines 275-277
+        when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+          Future.failed(new RuntimeException("Database connection error"))
+        )
+
+        val request = createRequest(validPlrId, Json.toJson(validRequestBody))
+        val result  = route(app, request).value
+
+        status(result) mustBe UNPROCESSABLE_ENTITY
+        val jsonResult = contentAsJson(result)
+        (jsonResult \ "errors" \ "code").as[String] mustEqual "003"
+        (jsonResult \ "errors" \ "text").as[String] mustEqual "Request could not be processed"
+      }
+    }
+
+    "ensure proper error structure for INTERNAL_SERVER_ERROR" in {
+      // This specifically tests lines 106-114
+      when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+        Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+      )
+      when(mockRepository.findByPillar2Id(any[String])).thenReturn(
+        Future.successful(
+          Some(
+            UKTRMongoSubmission(
+              _id = new ObjectId(),
+              pillar2Id = validPlrId,
+              isAmendment = false,
+              data = liabilitySubmission,
+              submittedAt = Instant.now()
+            )
+          )
+        )
+      )
+      // Throw a different exception to trigger the general catch block
+      when(mockRepository.update(any[UKTRSubmission], any[String])).thenReturn(
+        Future.failed(new IllegalStateException("Random unexpected error"))
+      )
+
+      val request = createRequest(validPlrId, Json.toJson(validRequestBody))
+      val result  = route(app, request).value
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      val jsonResult = contentAsJson(result)
+      (jsonResult \ "error" \ "code").as[String] mustEqual "500"
+      (jsonResult \ "error" \ "message").as[String] mustEqual "Internal server error"
+      (jsonResult \ "error" \ "logID").as[String] mustEqual "C0000000000000000000000000000500"
+    }
+
+    "process a non-liability return submission correctly" in {
+      when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
+        Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+      )
+
+      // Create a custom submission that's not a liability return
+      val customSubmission = Json.obj(
+        "submissionType" -> "UKTR",
+        "accountingPeriod" -> Json.obj(
+          "startDate" -> "2024-08-14",
+          "endDate"   -> "2024-12-14"
+        ),
+        "customField" -> "customValue" // This makes it not match the UKTRLiabilityReturn pattern
+      )
+
+      val request = createRequest(validPlrId, Json.toJson(customSubmission))
+      val result  = route(app, request).value
+
+      status(result) mustBe CREATED
+      val json = contentAsJson(result)
+      (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
+      (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
     }
   }
 }

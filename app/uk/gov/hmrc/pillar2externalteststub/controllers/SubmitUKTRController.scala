@@ -25,9 +25,6 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSu
 import uk.gov.hmrc.pillar2externalteststub.models.error._
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.SubscriptionNotFound
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.{DuplicateSubmissionError, MissingPLRReference}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes.INTERNAL_SERVER_ERROR_500
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -71,8 +68,38 @@ class SubmitUKTRController @Inject() (
           validateRequest(plr, request)
         }
       }
-      .recover { case _: InvalidPillar2Id =>
-        UnprocessableEntity(Json.toJson(DetailedErrorResponse(MissingPLRReference)))
+      .recover {
+        case _: InvalidPillar2Id =>
+          val error = UKTRDetailedError.MissingPLRReference
+          UnprocessableEntity(Json.obj("errors" -> error))
+        case _: DuplicateSubmissionError =>
+          val error = UKTRDetailedError.DuplicateSubmissionError
+          UnprocessableEntity(Json.obj("errors" -> error))
+        case e: InvalidAccountingPeriod =>
+          val error = UKTRDetailedError(
+            processingDate = nowZonedDateTime,
+            code = UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
+            text = e.getMessage
+          )
+          UnprocessableEntity(Json.obj("errors" -> error))
+        case _: DomesticOnlyMTTError =>
+          val error = UKTRDetailedError(
+            processingDate = nowZonedDateTime,
+            code = UKTRErrorCodes.INVALID_RETURN_093,
+            text = "obligationMTT cannot be true for a domestic-only group"
+          )
+          UnprocessableEntity(Json.obj("errors" -> error))
+        case _: DatabaseError =>
+          val error = UKTRDetailedError.RequestCouldNotBeProcessed
+          UnprocessableEntity(Json.obj("errors" -> error))
+        case e =>
+          logger.error("Unexpected error", e)
+          InternalServerError(
+            Json.obj(
+              "code"    -> "500",
+              "message" -> "Internal Server Error"
+            )
+          )
       }
   }
 
@@ -81,7 +108,9 @@ class SubmitUKTRController @Inject() (
 
     retrieveSubscription(plrReference)._2 match {
       case _: SubscriptionSuccessResponse => processValidRequest(plrReference, request)
-      case _ => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(SubscriptionNotFound(plrReference)))))
+      case _ =>
+        val error = UKTRDetailedError.SubscriptionNotFound(plrReference)
+        Future.successful(UnprocessableEntity(Json.obj("errors" -> error)))
     }
   }
 
@@ -96,7 +125,27 @@ class SubmitUKTRController @Inject() (
             org.organisation.accountingPeriod.startDate.isEqual(submission.accountingPeriodFrom) &&
             org.organisation.accountingPeriod.endDate.isEqual(submission.accountingPeriodTo)
           ) {
-            Future.successful(submission)
+            // Check if the group is domestic-only and validate MTT values
+            if (org.organisation.orgDetails.domesticOnly) {
+              submission match {
+                case liability: UKTRLiabilityReturn =>
+                  if (liability.obligationMTT) {
+                    Future.failed(DomesticOnlyMTTError(plrReference))
+                  } else {
+                    Future.successful(submission)
+                  }
+                case nilReturn: UKTRNilReturn =>
+                  if (nilReturn.obligationMTT) {
+                    Future.failed(DomesticOnlyMTTError(plrReference))
+                  } else {
+                    Future.successful(submission)
+                  }
+                case _ =>
+                  Future.successful(submission)
+              }
+            } else {
+              Future.successful(submission)
+            }
           } else {
             Future.failed(
               InvalidAccountingPeriod(
@@ -109,10 +158,12 @@ class SubmitUKTRController @Inject() (
           }
         }
         .recoverWith {
-          case _: DatabaseError           => Future.failed(DatabaseError("Failed to validate accounting period"))
-          case _: OrganisationNotFound    => Future.failed(OrganisationNotFound(plrReference))
+          case e: DatabaseError           => Future.failed(e)
+          case e: OrganisationNotFound    => Future.failed(e)
           case e: InvalidAccountingPeriod => Future.failed(e)
-          case _: RuntimeException        => Future.failed(new RuntimeException("Request could not be processed"))
+          case e: DomesticOnlyMTTError    => Future.failed(e)
+          case _: RuntimeException =>
+            Future.failed(DatabaseError("Request could not be processed"))
           case _ => Future.failed(DatabaseError("Request could not be processed"))
         }
 
@@ -125,7 +176,7 @@ class SubmitUKTRController @Inject() (
                 case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
                 case Right(_) =>
                   repository.isDuplicateSubmission(plrReference, submission.accountingPeriodFrom, submission.accountingPeriodTo).flatMap {
-                    case true => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
+                    case true => Future.failed(DuplicateSubmissionError(plrReference))
                     case false =>
                       repository.insert(submission, plrReference).map(_ => Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
                   }
@@ -133,51 +184,24 @@ class SubmitUKTRController @Inject() (
             }
           }
           .recoverWith {
-            case e: InvalidAccountingPeriod =>
-              Future.successful(
-                UnprocessableEntity(
-                  Json.obj(
-                    "errors" -> Json.obj(
-                      "code" -> "003",
-                      "text" -> s"Accounting period (${e.submittedStart} to ${e.submittedEnd}) does not match the registered period (${e.registeredStart} to ${e.registeredEnd})"
-                    )
-                  )
-                )
-              )
-            case _: OrganisationNotFound =>
-              Future.successful(
-                UnprocessableEntity(
-                  Json.obj(
-                    "errors" -> Json.obj(
-                      "code" -> "001",
-                      "text" -> s"Organisation not found for PLR reference: $plrReference"
-                    )
-                  )
-                )
-              )
+            case e: DatabaseError            => Future.failed(e)
+            case e: InvalidAccountingPeriod  => Future.failed(e)
+            case e: OrganisationNotFound     => Future.failed(e)
+            case e: DuplicateSubmissionError => Future.failed(e)
+            case e: DomesticOnlyMTTError     => Future.failed(e)
             case _: RuntimeException =>
-              Future.successful(
-                UnprocessableEntity(
-                  Json.obj(
-                    "errors" -> Json.obj(
-                      "code" -> "003",
-                      "text" -> "Request could not be processed"
-                    )
-                  )
-                )
-              )
-            case _ =>
               Future.successful(
                 InternalServerError(
                   Json.obj(
                     "error" -> Json.obj(
-                      "code"    -> INTERNAL_SERVER_ERROR_500,
+                      "code"    -> "500",
                       "message" -> "Internal server error",
                       "logID"   -> "C0000000000000000000000000000500"
                     )
                   )
                 )
               )
+            case _ => Future.failed(DatabaseError("Internal server error"))
           }
 
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
@@ -188,36 +212,31 @@ class SubmitUKTRController @Inject() (
                 case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
                 case Right(_) =>
                   repository.isDuplicateSubmission(plrReference, submission.accountingPeriodFrom, submission.accountingPeriodTo).flatMap {
-                    case true  => Future.successful(UnprocessableEntity(Json.toJson(DetailedErrorResponse(DuplicateSubmissionError))))
+                    case true  => Future.failed(DuplicateSubmissionError(plrReference))
                     case false => repository.insert(submission, plrReference).map(_ => Created(Json.toJson(successfulNilReturnResponse)))
                   }
               }
             }
           }
           .recoverWith {
-            case e: InvalidAccountingPeriod =>
-              Future.successful(
-                UnprocessableEntity(
-                  Json.obj(
-                    "errors" -> Json.obj(
-                      "code" -> "003",
-                      "text" -> s"Accounting period (${e.submittedStart} to ${e.submittedEnd}) does not match the registered period (${e.registeredStart} to ${e.registeredEnd})"
-                    )
-                  )
-                )
-              )
-            case _ =>
+            case e: DatabaseError            => Future.failed(e)
+            case e: InvalidAccountingPeriod  => Future.failed(e)
+            case e: OrganisationNotFound     => Future.failed(e)
+            case e: DuplicateSubmissionError => Future.failed(e)
+            case e: DomesticOnlyMTTError     => Future.failed(e)
+            case _: RuntimeException =>
               Future.successful(
                 InternalServerError(
                   Json.obj(
                     "error" -> Json.obj(
-                      "code"    -> INTERNAL_SERVER_ERROR_500,
+                      "code"    -> "500",
                       "message" -> "Internal server error",
                       "logID"   -> "C0000000000000000000000000000500"
                     )
                   )
                 )
               )
+            case _ => Future.failed(DatabaseError("Internal server error"))
           }
 
       case JsError(errors) =>

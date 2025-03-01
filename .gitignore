@@ -39,3 +39,4 @@ test-result
 tmp
 .vscode/
 run_tests.sh
+delete_mongo_db.sh

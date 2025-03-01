@@ -15,21 +15,19 @@ headers {
 }
 
 body:json {
-  {
-    "orgDetails": {
-      "domesticOnly": true,
-      "organisationName": "DomesticTestCompany",
-      "registrationDate": "2024-01-01"
-    },
-    "accountingPeriod": {
-      "startDate": "2024-01-01",
-      "endDate": "2024-03-31"
-    }
+  "orgDetails": {
+    "domesticOnly": true,
+    "organisationName": "DomesticTestCompany",
+    "registrationDate": "2024-01-01"
+  },
+  "accountingPeriod": {
+    "startDate": "2024-01-01",
+    "endDate": "2024-03-31"
   }
 }
 
 assert {
-  res.status: oneOf [201 409]
+  res.status: eq 201
   res.body.pillar2Id: isDefined
   res.body.organisation: isDefined
   res.body.organisation.orgDetails: isDefined

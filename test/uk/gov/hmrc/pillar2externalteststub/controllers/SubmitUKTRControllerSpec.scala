@@ -439,9 +439,25 @@ class SubmitUKTRControllerSpec
         (json \ "errors" \ "text").as[String] mustBe "Request could not be processed"
       }
 
-      "when a general unexpected exception occurs during submission" in {
-        // This test is intentionally removed as it was causing issues with Mockito matchers
-        pending
+      "when a general unexpected exception occurs" in {
+        when(mockOrganisationService.getOrganisation(mockAny[String])).thenReturn(
+          Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+        )
+        when(mockRepository.isDuplicateSubmission(mockAny[String], mockAny[LocalDate], mockAny[LocalDate]))
+          .thenReturn(Future.successful(false))
+        when(mockRepository.insert(mockAny[UKTRSubmission], mockAny[String], mockAny[Boolean]))
+          .thenReturn(Future.failed(new RuntimeException("Unknown error")))
+
+        val result = route(app, request(body = validRequestBody)).value
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj(
+          "error" -> Json.obj(
+            "code"    -> "500",
+            "message" -> "Internal server error",
+            "logID"   -> "C0000000000000000000000000000500"
+          )
+        )
       }
     }
 
@@ -801,5 +817,41 @@ class SubmitUKTRControllerSpec
         status(result) mustBe expectedStatus
       }
     }
+  }
+
+  "when a duplicate submission is detected" in {
+    setupDuplicateSubmissionBehavior()
+
+    val result = route(app, request(body = validRequestBody)).value
+    status(result) mustBe UNPROCESSABLE_ENTITY
+    val json = contentAsJson(result)
+    (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.DUPLICATE_SUBMISSION_044
+    (json \ "errors" \ "text").as[String] mustBe "A submission already exists for this accounting period"
+  }
+
+  val domesticOnlyWithMTTRequestBody: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2024-08-14",
+    "accountingPeriodTo"   -> "2024-12-14",
+    "obligationMTT"        -> true,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> false,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 4,
+      "numberSubGroupUTPR"       -> 5,
+      "totalLiability"           -> 10000.99,
+      "totalLiabilityDTT"        -> 5000.99,
+      "totalLiabilityIIR"        -> 4000,
+      "totalLiabilityUTPR"       -> 10000.99,
+      "liableEntities"           -> Json.arr(validLiableEntity)
+    )
+  )
+
+  "when a domestic-only group tries to submit with obligationMTT=true" in {
+    val result = route(app, request(body = domesticOnlyWithMTTRequestBody)).value
+    status(result) mustBe UNPROCESSABLE_ENTITY
+    val json = contentAsJson(result)
+    (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
+    (json \ "errors" \ "text").as[String] mustBe "obligationMTT cannot be true for a domestic-only group"
   }
 }

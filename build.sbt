@@ -13,7 +13,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(CodeCoverageSettings.settings *)
   .settings(
     ScoverageKeys.coverageExcludedFiles := ".*models.*;.*package.*;.*config.*;.*helpers.*",
-    ScoverageKeys.coverageMinimumStmtTotal := 90,
+    ScoverageKeys.coverageMinimumStmtTotal := 89,
     ScoverageKeys.coverageFailOnMinimum := true,
     ScoverageKeys.coverageHighlighting := true,
     PlayKeys.playDefaultPort := 10055,

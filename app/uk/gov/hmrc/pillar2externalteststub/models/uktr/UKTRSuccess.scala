@@ -37,7 +37,7 @@ object LiabilityReturnSuccess {
     LiabilitySuccessResponse(
       LiabilityReturnSuccess(
         processingDate = nowZonedDateTime,
-        formBundleNumber = "119000004322",
+        formBundleNumber = "119000004320",
         chargeReference = "XY123456789012"
       )
     )

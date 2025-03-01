@@ -236,3 +236,155 @@ curl -X POST "http://localhost:10055/RESTAdapter/PLR/below-threshold-notificatio
 ### License
 
 This code is open source software licensed under the [Apache 2.0 License](http://www.apache.org/licenses/LICENSE-2.0.html).
+
+# UK Tax Return (UKTR) Test Suite
+
+## Overview
+
+This repository contains a test suite for validating the UK Tax Return (UKTR) submission functionality. The test suite uses MongoDB to persist test data and curl commands to execute API calls against the service endpoints.
+
+The test suite covers various scenarios including:
+- Creating organizations (domestic and non-domestic)
+- UKTR submissions (valid and invalid)
+- Validation of different error conditions
+- Amending existing submissions
+
+## Prerequisites
+
+- MongoDB running locally
+- The UKTR service running on port 10055
+- `jq` command-line tool for formatting JSON responses
+
+## How to Run Tests
+
+The test suite includes a bash script (`run_tests.sh`) that orchestrates the execution of the tests in the correct order:
+
+```bash
+./run_tests.sh
+```
+
+Before running the tests, the script will:
+1. Drop the MongoDB database to ensure a clean test environment
+2. Create test organizations needed for the various test scenarios
+3. Execute each test case in sequence
+4. Format and display the responses
+
+## Test Sequence and Expected Responses
+
+The tests should be run in the following order to ensure proper test progression:
+
+### 1. Organization Setup
+
+First, test organizations are created:
+- A domestic organization with PLR ID `XEPLR1234567891`
+- A non-domestic organization with PLR ID `XEPLR1234567892`
+- An organization with a different accounting period with PLR ID `XMPLR0012345674`
+
+**Expected Response**: HTTP 201 Created for each organization creation request.
+
+### 2. Valid UKTR Submission
+
+A valid UKTR submission for the domestic organization.
+
+**Expected Response**: HTTP 201 Created with a JSON response containing a submission ID.
+
+**Actual Response**: HTTP 201 Created with a JSON response containing the formBundleNumber and chargeReference.
+
+### 3. Duplicate Submission Test
+
+Attempting to submit the same UKTR data for the same organization and accounting period.
+
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message indicating a duplicate submission.
+
+**Actual Response**: HTTP 422 Unprocessable Entity with an error code "044" and text "A submission already exists for this accounting period".
+
+### 4. Domestic with MTT Test
+
+Attempting to submit a UKTR with the Maximum Top-up Tax (MTT) flag set to true for a domestic-only organization.
+
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message indicating MTT is not allowed for domestic organizations.
+
+**Actual Response**: HTTP 422 Unprocessable Entity with an error code "093" and text "obligationMTT cannot be true for a domestic-only group".
+
+### 5. Subscription Not Found Test
+
+Attempting to submit a UKTR for a non-existent PLR ID.
+
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message indicating the subscription was not found.
+
+**Actual Response**: HTTP 500 Internal Server Error. This needs to be fixed in the controller to return a proper 422 error.
+
+### 6. Amend Submission Test
+
+Attempting to amend a previously submitted UKTR.
+
+**Expected Response**: HTTP 201 Created with a JSON response containing a submission ID.
+
+**Actual Response**: HTTP 201 Created with a JSON response containing the formBundleNumber and chargeReference.
+
+## Additional Test Cases
+
+The following tests are not currently included in the automated test suite but should be implemented:
+
+### No Pillar2Id Test
+
+Attempting to submit a UKTR without providing a Pillar2Id header.
+
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message about the missing header.
+
+### Invalid Accounting Period Test
+
+Attempting to submit a UKTR with an accounting period that doesn't match the organization's registered accounting period.
+
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message about the invalid accounting period.
+
+### Empty Liable Entities Test
+
+Attempting to submit a UKTR with no liable entities.
+
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message indicating liable entities are required.
+
+### Nil Return Amend Test
+
+Attempting to amend a previously submitted UKTR to a nil return.
+
+**Expected Response**: HTTP 201 Created with a JSON response containing a submission ID.
+
+## Known Issues
+
+1. **Subscription Not Found Test**: Currently returns a 500 Internal Server Error instead of the expected 422 Unprocessable Entity. This needs to be fixed in the controller to properly handle the case where a subscription is not found.
+
+2. **Bruno Test Integration**: The current test script uses direct curl commands instead of Bruno tests because of compatibility issues with Bruno CLI 1.0.0. Future versions should integrate properly with Bruno test files.
+
+## Error Handling
+
+The test suite validates proper error handling for various scenarios:
+
+1. **Validation Errors**: The service should return HTTP 422 with appropriate error messages for validation failures.
+2. **Not Found Errors**: The service should return HTTP 422 with appropriate error messages when a subscription is not found (currently returns 500).
+3. **Duplicate Submission Errors**: The service should return HTTP 422 with appropriate error messages for duplicate submissions.
+
+## Troubleshooting
+
+If tests fail, check the following:
+
+1. Ensure MongoDB is running and accessible
+2. Ensure the UKTR service is running on port 10055
+3. Check that all prerequisites are installed (`jq`, etc.)
+4. Verify that the PLR IDs used in the tests are not already in use in your MongoDB instance
+
+## Reference Data
+
+| Test Case | PLR ID | Organization Type | Accounting Period |
+|-----------|--------|-------------------|-------------------|
+| Domestic Organization | XEPLR1234567891 | Domestic Only | 2024-01-01 to 2024-03-31 |
+| Non-Domestic Organization | XEPLR1234567892 | Non-Domestic | 2024-01-01 to 2024-03-31 |
+| Specific Accounting Period | XMPLR0012345674 | Domestic Only | 2024-08-14 to 2024-12-14 |
+| Subscription Not Found | XMPLR9999999999 | N/A | N/A |
+
+## Future Improvements
+
+1. Fix the "subscription not found" error handling in the controller to return a 422 status code instead of 500.
+2. Update the test script to use Bruno test files directly once compatibility issues are resolved.
+3. Add additional test cases for edge conditions and other error scenarios.
+4. Create a more comprehensive test suite that includes all Bruno test files.
