@@ -33,6 +33,7 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.models.error.{DatabaseError, OrganisationNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
@@ -517,11 +518,6 @@ class SubmitUKTRControllerSpec
           )
         )
       }
-
-      "when a general unexpected exception occurs" in {
-        // This test is intentionally removed as it was causing issues with Mockito matchers
-        pending
-      }
     }
   }
 
@@ -853,5 +849,84 @@ class SubmitUKTRControllerSpec
     val json = contentAsJson(result)
     (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
     (json \ "errors" \ "text").as[String] mustBe "obligationMTT cannot be true for a domestic-only group"
+  }
+
+  "Error handling during repository operations" - {
+    "should return 422 when findByPillar2Id fails with DatabaseError" in {
+      val _ = when(mockOrganisationService.getOrganisation(mockAny[String])).thenReturn(
+        Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+      )
+      when(mockRepository.isDuplicateSubmission(mockAny[String], mockAny[LocalDate], mockAny[LocalDate])).thenReturn(
+        Future.failed(DatabaseError("Database error during isDuplicateSubmission"))
+      )
+
+      val result = route(app, request(body = validRequestBody)).value
+      status(result) mustBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+    }
+
+    "should return 422 when insert fails with DatabaseError" in {
+      val _ = when(mockOrganisationService.getOrganisation(mockAny[String])).thenReturn(
+        Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+      )
+      when(mockRepository.insert(mockAny[UKTRSubmission], mockAny[String], mockAny[Boolean])).thenReturn(
+        Future.failed(DatabaseError("Database error during insert"))
+      )
+
+      val result = route(app, request(body = validRequestBody)).value
+      status(result) mustBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
+    }
+  }
+
+  "Error handling during organisation retrieval" - {
+    "should return 500 when getOrganisation fails with OrganisationNotFound" in {
+      val _ = when(mockOrganisationService.getOrganisation(mockAny[String])).thenReturn(
+        Future.failed(OrganisationNotFound(validPlrId))
+      )
+
+      val result = route(app, request(body = validRequestBody)).value
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      val json = contentAsJson(result)
+      (json \ "code").as[String] mustBe "500"
+    }
+
+    "should return 400 when nil return validation fails with appropriate error" in {
+      val _ = when(mockOrganisationService.getOrganisation(mockAny[String])).thenReturn(
+        Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+      )
+
+      // Create a nil return with an invalid field to trigger validation error
+      val invalidNilReturnBody = Json.obj(
+        "accountingPeriodFrom" -> "2024-08-14",
+        "accountingPeriodTo"   -> "2024-12-14",
+        "obligationMTT"        -> "not-a-boolean", // Invalid boolean value
+        "electionUKGAAP"       -> true,
+        "returnType"           -> "Nil"
+      )
+
+      val result = route(app, request(body = invalidNilReturnBody)).value
+      status(result) mustBe BAD_REQUEST
+    }
+  }
+
+  "Generic exception handling" - {
+    "should return 500 for unexpected exceptions during nil return processing" in {
+      val _ = when(mockOrganisationService.getOrganisation(mockAny[String])).thenReturn(
+        Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
+      )
+      when(mockRepository.isDuplicateSubmission(mockAny[String], mockAny[LocalDate], mockAny[LocalDate])).thenReturn(
+        Future.failed(new RuntimeException("Unexpected error"))
+      )
+
+      val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
+      status(result) mustBe INTERNAL_SERVER_ERROR
+
+      // Check that we have a valid JSON response with error code 500
+      contentAsJson(result).as[JsObject].keys must contain("error")
+      (contentAsJson(result) \ "error" \ "code").as[String] mustBe "500"
+    }
   }
 }

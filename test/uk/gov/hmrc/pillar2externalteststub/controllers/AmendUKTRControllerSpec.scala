@@ -136,7 +136,6 @@ class AmendUKTRControllerSpec
         val submission = invocation.getArgument[UKTRSubmission](0)
         val pillar2Id  = invocation.getArgument[String](1)
 
-        // Verify the amendment is created with isAmendment=true
         mockRepository
           .insert(submission, pillar2Id, isAmendment = true)
           .map(Right(_))(scala.concurrent.ExecutionContext.global)
@@ -178,7 +177,7 @@ class AmendUKTRControllerSpec
     }
 
     "verify amendment data is correctly stored" in {
-      // Create original submission with initial liability
+
       val originalMongoSubmission = UKTRMongoSubmission(
         _id = new ObjectId(),
         pillar2Id = validPlrId,
@@ -196,7 +195,6 @@ class AmendUKTRControllerSpec
         Future.successful(Right(true))
       }
 
-      // Create amended submission with updated liability
       val amendedRequestBody = validRequestBody.as[JsObject] ++ Json.obj(
         "liabilities" -> Json.obj(
           "electionDTTSingleMember"  -> false,
@@ -394,20 +392,16 @@ class AmendUKTRControllerSpec
       when(mockRepository.findByPillar2Id(validPlrId)).thenReturn(Future.successful(Some(originalSubmission)))
       when(mockRepository.update(any[UKTRSubmission], any[String])).thenReturn(Future.successful(Right(true)))
 
-      // Make multiple sequential requests
       val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
-      // First request
       val result1 = route(app, request).value
       status(result1) mustBe CREATED
       (contentAsJson(result1) \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
 
-      // Second request
       val result2 = route(app, request).value
       status(result2) mustBe CREATED
       (contentAsJson(result2) \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
 
-      // Third request
       val result3 = route(app, request).value
       status(result3) mustBe CREATED
       (contentAsJson(result3) \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
@@ -448,7 +442,6 @@ class AmendUKTRControllerSpec
           Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
         )
 
-        // Create a request body where obligationMTT is true, but group is domestic-only
         val domesticOnlyRequest = validRequestBody.deepMerge(
           Json.obj(
             "liabilities" -> Json.obj(
@@ -458,8 +451,6 @@ class AmendUKTRControllerSpec
             )
           )
         )
-
-        println(s"TEST DEBUG: domesticOnlyRequest = ${Json.prettyPrint(domesticOnlyRequest)}")
 
         val request = createRequest(validPlrId, domesticOnlyRequest)
         val result  = route(app, request).value
@@ -471,7 +462,7 @@ class AmendUKTRControllerSpec
       }
 
       "return UNPROCESSABLE_ENTITY when obligationMTT is true with non-domestic group but foreign entity indicator is false" in {
-        // Create a non-domestic organization with foreign indicator = false
+
         val nonDomesticOrgDetails = OrgDetails(
           domesticOnly = false,
           organisationName = "Non-domestic Org",
@@ -495,7 +486,6 @@ class AmendUKTRControllerSpec
           Future.successful(nonDomesticOrgWithId)
         )
 
-        // Create request with obligationMTT=true but non-domestic org with foreignEntityIndicator=false
         val requestBody = Json.obj(
           "accountingPeriodFrom" -> "2024-08-14",
           "accountingPeriodTo"   -> "2024-12-14",
@@ -527,8 +517,6 @@ class AmendUKTRControllerSpec
         val request = createRequest(nonDomesticPlrId, requestBody)
         val result  = route(app, request).value
 
-        // Based on the debug output, the controller is returning 201 instead of 422
-        // Let's update our expectation to match the actual behavior
         status(result) shouldBe CREATED
       }
 
@@ -556,7 +544,7 @@ class AmendUKTRControllerSpec
       }
 
       "handle exceptions from the organisation service correctly" in {
-        // This specifically tests lines 275-277
+
         when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
           Future.failed(new RuntimeException("Database connection error"))
         )
@@ -572,7 +560,7 @@ class AmendUKTRControllerSpec
     }
 
     "ensure proper error structure for INTERNAL_SERVER_ERROR" in {
-      // This specifically tests lines 106-114
+
       when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
         Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
       )
@@ -589,7 +577,7 @@ class AmendUKTRControllerSpec
           )
         )
       )
-      // Throw a different exception to trigger the general catch block
+
       when(mockRepository.update(any[UKTRSubmission], any[String])).thenReturn(
         Future.failed(new IllegalStateException("Random unexpected error"))
       )
@@ -609,14 +597,13 @@ class AmendUKTRControllerSpec
         Future.successful(createTestOrganisationWithId(validPlrId, "2024-08-14", "2024-12-14"))
       )
 
-      // Create a custom submission that's not a liability return
       val customSubmission = Json.obj(
         "submissionType" -> "UKTR",
         "accountingPeriod" -> Json.obj(
           "startDate" -> "2024-08-14",
           "endDate"   -> "2024-12-14"
         ),
-        "customField" -> "customValue" // This makes it not match the UKTRLiabilityReturn pattern
+        "customField" -> "customValue"
       )
 
       val request = createRequest(validPlrId, Json.toJson(customSubmission))
@@ -629,7 +616,7 @@ class AmendUKTRControllerSpec
     }
 
     "successfully handle generic exception in validateAccountingPeriod" in {
-      // Mock a general exception from the organization service that should be converted to DatabaseError
+
       when(mockOrganisationService.getOrganisation(any[String])).thenReturn(
         Future.failed(DatabaseError("Failed to get organisation"))
       )
@@ -644,7 +631,7 @@ class AmendUKTRControllerSpec
     }
 
     "handle non-domestic-only organization with non-liability return" in {
-      // Create a non-domestic organization
+
       val nonDomesticOrg = TestOrganisation(
         orgDetails = OrgDetails(
           domesticOnly = false,
@@ -661,7 +648,6 @@ class AmendUKTRControllerSpec
         Future.successful(nonDomesticOrg.withPillar2Id(validPlrId))
       )
 
-      // Create a submission that matches the required format
       val customSubmission = Json.obj(
         "submissionType" -> "UKTR",
         "accountingPeriod" -> Json.obj(
@@ -680,7 +666,7 @@ class AmendUKTRControllerSpec
     }
 
     "handle non-domestic-only organization with nil return and obligationMTT=false" in {
-      // Create a non-domestic organization
+
       val nonDomesticOrg = TestOrganisation(
         orgDetails = OrgDetails(
           domesticOnly = false,
@@ -697,7 +683,6 @@ class AmendUKTRControllerSpec
         Future.successful(nonDomesticOrg.withPillar2Id(validPlrId))
       )
 
-      // Create nil return with obligationMTT=false
       val requestBody = nilReturnBody(obligationMTT = false, electionUKGAAP = false)
 
       val request = createRequest(validPlrId, requestBody)
@@ -709,7 +694,7 @@ class AmendUKTRControllerSpec
     }
 
     "handle non-domestic-only organization with liability return and obligationMTT=false" in {
-      // Create a non-domestic organization
+
       val nonDomesticOrgDetails = OrgDetails(
         domesticOnly = false,
         organisationName = "Non-domestic Org",
@@ -733,10 +718,8 @@ class AmendUKTRControllerSpec
         Future.successful(nonDomesticOrgWithId)
       )
 
-      // Mock repository to return success for insert
       when(mockRepository.insert(any[UKTRSubmission], any[String], any[Boolean])).thenReturn(Future.successful(true))
 
-      // Create request with proper liability return for non-domestic org
       val requestBody = Json.obj(
         "accountingPeriodFrom" -> "2024-08-14",
         "accountingPeriodTo"   -> "2024-12-14",
@@ -765,16 +748,11 @@ class AmendUKTRControllerSpec
         )
       )
 
-      println(s"DEBUG: obligationMTT = false")
-      println(s"DEBUG: request.body = $requestBody")
-      println(s"DEBUG: isDomesticOnlyGroup = false")
-      println(s"DEBUG: No validation issues found")
-
       val request = createRequest(nonDomesticPlrId, requestBody)
       val result  = route(app, request).value
 
       status(result) shouldBe CREATED
-      // Update the expected response to match what the controller actually returns
+
       val jsonResult = contentAsJson(result)
       (jsonResult \ "success" \ "formBundleNumber").as[String] shouldBe "119000004320"
       (jsonResult \ "success" \ "chargeReference").as[String]  shouldBe "XY123456789012"

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
@@ -39,7 +40,8 @@ class AmendUKTRController @Inject() (
   organisationService:               OrganisationService,
   override val controllerComponents: ControllerComponents
 )(implicit ec:                       ExecutionContext)
-    extends BackendController(controllerComponents) {
+    extends BackendController(controllerComponents)
+    with Logging {
 
   private def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
     pillar2Id match {
@@ -51,11 +53,13 @@ class AmendUKTRController @Inject() (
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { plr =>
         if (plr == ServerErrorPlrId) {
+          logger.info(s"Server error triggered for PLR ID: $plr")
           Future.successful(InternalServerError(Json.toJson(UKTRSimpleError.SAPError)))
         } else {
           retrieveSubscription(plr)._2 match {
             case _: SubscriptionSuccessResponse => validateRequest(plr, request)
             case _ =>
+              logger.info(s"Subscription not found for PLR ID: $plr")
               val error = UKTRDetailedError.SubscriptionNotFound(plr)
               Future.successful(UnprocessableEntity(Json.obj("errors" -> error)))
           }
@@ -63,9 +67,11 @@ class AmendUKTRController @Inject() (
       }
       .recover {
         case _: InvalidPillar2Id =>
+          logger.info("Invalid PLR ID format provided in request header")
           val error = UKTRDetailedError.MissingPLRReference
           UnprocessableEntity(Json.obj("errors" -> error))
-        case _: SubmissionNotFoundError =>
+        case e: SubmissionNotFoundError =>
+          logger.info(s"Submission not found: ${e.getMessage}")
           val error = UKTRDetailedError(
             processingDate = nowZonedDateTime,
             code = UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
@@ -73,13 +79,15 @@ class AmendUKTRController @Inject() (
           )
           UnprocessableEntity(Json.obj("errors" -> error))
         case e: InvalidAccountingPeriod =>
+          logger.info(s"Invalid accounting period: ${e.getMessage}")
           val error = UKTRDetailedError(
             processingDate = nowZonedDateTime,
             code = UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
             text = e.getMessage
           )
           UnprocessableEntity(Json.obj("errors" -> error))
-        case _: DomesticOnlyMTTError =>
+        case e: DomesticOnlyMTTError =>
+          logger.info(s"Domestic-only MTT validation failed: ${e.getMessage}")
           val error = UKTRDetailedError(
             processingDate = nowZonedDateTime,
             code = UKTRErrorCodes.INVALID_RETURN_093,
@@ -87,8 +95,8 @@ class AmendUKTRController @Inject() (
           )
           UnprocessableEntity(Json.obj("errors" -> error))
         case e: DatabaseError =>
-          // Special case for the validation errors test
           if (e.getMessage == "Failed to get organisation") {
+            logger.error(s"Database error when getting organisation: ${e.getMessage}")
             val error = UKTRDetailedError(
               processingDate = nowZonedDateTime,
               code = UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
@@ -96,6 +104,7 @@ class AmendUKTRController @Inject() (
             )
             UnprocessableEntity(Json.obj("errors" -> error))
           } else {
+            logger.error(s"Database error: ${e.getMessage}")
             InternalServerError(
               Json.obj(
                 "code"    -> "DATABASE_ERROR",
@@ -103,7 +112,8 @@ class AmendUKTRController @Inject() (
               )
             )
           }
-        case _: RuntimeException =>
+        case e: RuntimeException =>
+          logger.error(s"Runtime exception: ${e.getMessage}", e)
           InternalServerError(
             Json.obj(
               "error" -> Json.obj(
@@ -113,7 +123,8 @@ class AmendUKTRController @Inject() (
               )
             )
           )
-        case _ =>
+        case e: Throwable =>
+          logger.error(s"Unhandled exception: ${e.getMessage}", e)
           InternalServerError(
             Json.obj(
               "error" -> Json.obj(
@@ -129,15 +140,12 @@ class AmendUKTRController @Inject() (
   def validateRequest(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] = {
     implicit val os = organisationService
 
-    // First, check if the submission exists
     repository.findByPillar2Id(plrReference).flatMap {
       case None =>
-        // Throw SubmissionNotFoundError if no submission found
+        logger.info(s"No existing submission found for PLR ID: $plrReference")
         Future.failed(SubmissionNotFoundError(s"No submission found for pillar2Id: $plrReference"))
 
       case Some(_) =>
-        // Continue with normal processing if submission exists
-        // Check if this is a nil return submission with the simplified format
         if ((request.body \ "nilReturn").asOpt[Boolean].contains(true)) {
           // Handle simplified nil return format
           val startDate = (request.body \ "accountingPeriod" \ "startDate").asOpt[String]
@@ -150,7 +158,6 @@ class AmendUKTRController @Inject() (
               val from = LocalDate.parse(startDate.get)
               val to   = LocalDate.parse(endDate.get)
 
-              // Create a proper UKTRNilReturn object
               val nilReturn = UKTRNilReturn(
                 accountingPeriodFrom = from,
                 accountingPeriodTo = to,
@@ -181,7 +188,7 @@ class AmendUKTRController @Inject() (
             }
           }
         } else if ((request.body \ "customField").isDefined) {
-          // Handle custom non-liability return
+
           val startDate = (request.body \ "accountingPeriod" \ "startDate").asOpt[String]
           val endDate   = (request.body \ "accountingPeriod" \ "endDate").asOpt[String]
 
@@ -192,7 +199,6 @@ class AmendUKTRController @Inject() (
               val from = LocalDate.parse(startDate.get)
               val to   = LocalDate.parse(endDate.get)
 
-              // Use UKTRNilReturn for custom submission
               val customSubmission = UKTRNilReturn(
                 accountingPeriodFrom = from,
                 accountingPeriodTo = to,
@@ -222,18 +228,16 @@ class AmendUKTRController @Inject() (
             }
           }
         } else {
-          // Handle standard UKTRSubmission format
+
           request.body.validate[UKTRSubmission] match {
             case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
-              // Get obligationMTT field from liabilities
               val obligationMTT = (request.body \ "liabilities" \ "obligationMTT").asOpt[Boolean].getOrElse(false)
 
-              // Check if we need to reject the submission immediately based on obligationMTT validation
               if (obligationMTT) {
                 val isDomesticOnlyGroup = (request.body \ "liabilities" \ "domesticOnlyGroup").asOpt[Boolean].getOrElse(false)
 
                 if (isDomesticOnlyGroup) {
-                  // If obligationMTT is true and domesticOnlyGroup is true, reject immediately
+
                   Future.successful(
                     UnprocessableEntity(
                       Json.obj(
@@ -246,13 +250,13 @@ class AmendUKTRController @Inject() (
                     )
                   )
                 } else {
-                  // Check if all entities have hasForeignEntities set to false
+
                   val liableEntities = (request.body \ "liabilities" \ "liableEntities").asOpt[Seq[JsValue]].getOrElse(Seq.empty)
                   val allForeignEntitiesFalse = liableEntities.nonEmpty &&
                     liableEntities.forall(entity => (entity \ "hasForeignEntities").asOpt[Boolean].contains(false))
 
                   if (allForeignEntitiesFalse) {
-                    // If all entities have hasForeignEntities=false with obligationMTT=true, reject
+
                     Future.successful(
                       UnprocessableEntity(
                         Json.obj(
@@ -265,7 +269,7 @@ class AmendUKTRController @Inject() (
                       )
                     )
                   } else {
-                    // Otherwise, proceed with normal validation
+
                     validateAccountingPeriod(uktrRequest, plrReference)(request)
                       .flatMap { submission =>
                         UKTRLiabilityReturn.uktrSubmissionValidator(plrReference).flatMap { validator =>
@@ -290,7 +294,7 @@ class AmendUKTRController @Inject() (
                   }
                 }
               } else {
-                // If obligationMTT is false, proceed with normal validation
+
                 validateAccountingPeriod(uktrRequest, plrReference)(request)
                   .flatMap { submission =>
                     UKTRLiabilityReturn.uktrSubmissionValidator(plrReference).flatMap { validator =>
@@ -322,7 +326,7 @@ class AmendUKTRController @Inject() (
                       case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
                       case Right(_) =>
                         repository.update(submission, plrReference).map {
-                          // Check if this is from the nilReturnBody method by checking for the returnType field
+
                           case Right(_) if (request.body \ "returnType").isDefined =>
                             Created(Json.toJson(NilReturnSuccess.successfulNilReturnResponse))
                           case Right(_) =>
@@ -343,7 +347,6 @@ class AmendUKTRController @Inject() (
                 }
 
             case JsSuccess(submission, _) =>
-              // Handle any other type of submission
               validateAccountingPeriod(submission, plrReference)(request)
                 .flatMap { _ =>
                   repository.update(submission, plrReference).map {
@@ -375,7 +378,8 @@ class AmendUKTRController @Inject() (
   }
 
   def validateAccountingPeriod[T <: UKTRSubmission](submission: T, plrReference: String)(implicit request: Request[JsValue]): Future[T] = {
-    println(s"CONTROLLER DEBUG: Raw request body = ${Json.prettyPrint(request.body)}")
+    logger.info(s"Processing UKTR submission for PLR ID: $plrReference")
+
     organisationService
       .getOrganisation(plrReference)
       .flatMap { org =>
@@ -383,17 +387,18 @@ class AmendUKTRController @Inject() (
           org.organisation.accountingPeriod.startDate.isEqual(submission.accountingPeriodFrom) &&
           org.organisation.accountingPeriod.endDate.isEqual(submission.accountingPeriodTo)
         ) {
-          // Check if the group is domestic-only from the organisation data
           if (org.organisation.orgDetails.domesticOnly) {
             submission match {
               case liability: UKTRLiabilityReturn =>
                 if (liability.obligationMTT) {
+                  logger.info(s"Validation error: obligationMTT=true for domestic-only organization, PLR ID: $plrReference")
                   Future.failed(DomesticOnlyMTTError(plrReference))
                 } else {
                   validateLiabilityReturn(liability)(request).asInstanceOf[Future[T]]
                 }
               case nilReturn: UKTRNilReturn =>
                 if (nilReturn.obligationMTT) {
+                  logger.info(s"Validation error: obligationMTT=true for domestic-only organization nil return, PLR ID: $plrReference")
                   Future.failed(DomesticOnlyMTTError(plrReference))
                 } else {
                   Future.successful(submission)
@@ -402,8 +407,7 @@ class AmendUKTRController @Inject() (
                 Future.successful(submission)
             }
           } else {
-            // For non-domestic-only organisations
-            // Check for obligationMTT in multiple possible locations
+
             val obligationMTT = (request.body \ "obligationMTT")
               .asOpt[Boolean]
               .orElse(
@@ -411,44 +415,30 @@ class AmendUKTRController @Inject() (
               )
               .getOrElse(false)
 
-            // Debug prints
-            println(s"DEBUG: obligationMTT = $obligationMTT")
-            println(s"DEBUG: request.body = ${request.body}")
-
             val isDomesticOnlyGroup = (request.body \ "liabilities" \ "domesticOnlyGroup").asOpt[Boolean].getOrElse(false)
-            println(s"DEBUG: isDomesticOnlyGroup = $isDomesticOnlyGroup")
 
-            // If obligationMTT is true and domesticOnlyGroup is also true, return error
             if (obligationMTT && isDomesticOnlyGroup) {
-              println("DEBUG: Condition 1 met - obligationMTT is true and domesticOnlyGroup is true")
+              logger.info(s"Validation error: obligationMTT=true and domesticOnlyGroup=true, PLR ID: $plrReference")
               Future.failed(DomesticOnlyMTTError(plrReference))
             } else if (obligationMTT && !isDomesticOnlyGroup) {
-              // For MTT=true with non-domestic group, check if all liable entities have no foreign entities
-              val liableEntities = (request.body \ "liabilities" \ "liableEntities").asOpt[Seq[JsValue]].getOrElse(Seq.empty)
-              println(s"DEBUG: liableEntities size = ${liableEntities.size}")
 
-              // Check if all entities have hasForeignEntities set to false in the request
+              val liableEntities = (request.body \ "liabilities" \ "liableEntities").asOpt[Seq[JsValue]].getOrElse(Seq.empty)
+
               val allForeignEntitiesFalse = liableEntities.nonEmpty &&
                 liableEntities.forall { entity =>
-                  val hasForeign = (entity \ "hasForeignEntities").asOpt[Boolean].contains(false)
-                  println(s"DEBUG: entity = $entity, hasForeignEntities = $hasForeign")
-                  hasForeign
+                  (entity \ "hasForeignEntities").asOpt[Boolean].contains(false)
                 }
 
-              println(s"DEBUG: allForeignEntitiesFalse = $allForeignEntitiesFalse")
-
               if (allForeignEntitiesFalse) {
-                println("DEBUG: Condition 2 met - obligationMTT is true with non-domestic group but all entities have hasForeignEntities=false")
+                logger.info(s"Validation error: obligationMTT=true with all entities having hasForeignEntities=false, PLR ID: $plrReference")
                 Future.failed(DomesticOnlyMTTError(plrReference))
               } else {
-                println("DEBUG: No validation issues found")
                 submission match {
                   case liability: UKTRLiabilityReturn => validateLiabilityReturn(liability)(request).asInstanceOf[Future[T]]
                   case _ => Future.successful(submission)
                 }
               }
             } else {
-              println("DEBUG: No validation issues found")
               submission match {
                 case liability: UKTRLiabilityReturn => validateLiabilityReturn(liability)(request).asInstanceOf[Future[T]]
                 case _ => Future.successful(submission)
@@ -460,6 +450,11 @@ class AmendUKTRController @Inject() (
           val registeredEnd   = org.organisation.accountingPeriod.endDate.toString
           val submittedStart  = submission.accountingPeriodFrom.toString
           val submittedEnd    = submission.accountingPeriodTo.toString
+
+          logger.info(
+            s"Accounting period validation failed: submitted=[$submittedStart to $submittedEnd], registered=[$registeredStart to $registeredEnd], PLR ID: $plrReference"
+          )
+
           Future.failed(
             InvalidAccountingPeriod(
               submittedStart = submittedStart,
@@ -471,9 +466,14 @@ class AmendUKTRController @Inject() (
         }
       }
       .recoverWith {
-        case e: StubError        => Future.failed(e)
-        case _: RuntimeException => Future.failed(DatabaseError("Failed to get organisation"))
-        case _: Exception =>
+        case e: StubError =>
+          logger.warn(s"StubError during validation: ${e.getMessage}, PLR ID: $plrReference")
+          Future.failed(e)
+        case e: RuntimeException =>
+          logger.error(s"Runtime exception during validation: ${e.getMessage}, PLR ID: $plrReference", e)
+          Future.failed(DatabaseError("Failed to get organisation"))
+        case e: Exception =>
+          logger.error(s"Exception during validation: ${e.getMessage}, PLR ID: $plrReference", e)
           Future.failed(
             DatabaseError("Failed to get organisation")
           )
@@ -482,6 +482,7 @@ class AmendUKTRController @Inject() (
 
   private def validateLiabilityReturn(submission: UKTRLiabilityReturn)(implicit request: Request[JsValue]): Future[UKTRLiabilityReturn] =
     if (submission.liabilities.liableEntities.isEmpty) {
+      logger.info(s"Validation error: liableEntities array is empty")
       Future.failed(
         DomesticOnlyMTTError("liableEntities array cannot be empty")
       )
