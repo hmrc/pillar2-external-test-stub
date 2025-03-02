@@ -12,40 +12,42 @@ post {
 
 headers {
   Content-Type: application/json
-  X-Pillar2-Id: XMPLR0012345674
+  X-Pillar2-Id: {{invalidPillar2Id}}
   Authorization: {{validBearerToken}}
 }
 
 body:json {
-  "accountingPeriodFrom": "2024-08-14",
-  "accountingPeriodTo": "2024-12-14",
-  "obligationMTT": true,
-  "electionUKGAAP": false,
-  "liabilities": {
-    "electionDTTSingleMember": false,
-    "electionUTPRSingleMember": false,
-    "numberSubGroupDTT": 1,
-    "numberSubGroupUTPR": 1,
-    "totalLiability": 10000.99,
-    "totalLiabilityDTT": 5000.99,
-    "totalLiabilityIIR": 4000,
-    "totalLiabilityUTPR": 10000.99,
-    "liableEntities": [
-      {
-        "ukChargeableEntityName": "NewcoPLC",
-        "idType": "CRN",
-        "idValue": "12345678",
-        "amountOwedDTT": 5000,
-        "amountOwedIIR": 3400,
-        "amountOwedUTPR": 6000.5
-      }
-    ]
+  {
+    "accountingPeriodFrom": "2024-08-14",
+    "accountingPeriodTo": "2024-12-14",
+    "obligationMTT": true,
+    "electionUKGAAP": false,
+    "liabilities": {
+      "electionDTTSingleMember": false,
+      "electionUTPRSingleMember": false,
+      "numberSubGroupDTT": 1,
+      "numberSubGroupUTPR": 1,
+      "totalLiability": 10000.99,
+      "totalLiabilityDTT": 5000.99,
+      "totalLiabilityIIR": 4000,
+      "totalLiabilityUTPR": 10000.99,
+      "liableEntities": [
+        {
+          "ukChargeableEntityName": "NewcoPLC",
+          "idType": "CRN",
+          "idValue": "12345678",
+          "amountOwedDTT": 5000,
+          "amountOwedIIR": 3400,
+          "amountOwedUTPR": 6000.5
+        }
+      ]
+    }
   }
 }
 
 assert {
   res.status: eq 422
   res.body.errors: isDefined
-  res.body.errors.code: eq "001"
-  res.body.errors.text: eq "Organisation not found for PLR reference: XMPLR0012345674"
+  res.body.errors.code: eq "002"
+  res.body.errors.text: eq "PLR Reference is missing or invalid"
 }

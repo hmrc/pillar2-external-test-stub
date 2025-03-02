@@ -20,7 +20,7 @@ body:json {
   {
     "accountingPeriodFrom": "2024-01-01",
     "accountingPeriodTo": "2024-03-31",
-    "obligationMTT": false,
+    "obligationMTT": true,
     "electionUKGAAP": false,
     "liabilities": {
       "electionDTTSingleMember": false,
@@ -48,6 +48,6 @@ body:json {
 assert {
   res.status: eq 422
   res.body.errors.processingDate: isDefined
-  res.body.errors.code: eq "044"
-  res.body.errors.text: eq "A submission already exists for this accounting period"
+  res.body.errors.code: eq "093"
+  res.body.errors.text: eq "obligationMTT cannot be true for a domestic-only group"
 } 
