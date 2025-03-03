@@ -31,6 +31,31 @@ create_subscription() {
   fi
 }
 
+# Function to create organization using curl
+create_organization() {
+  local plr_id=$1
+  local is_domestic=$2
+  local name=$3
+  local start_date=$4
+  local end_date=$5
+  
+  echo "Creating organisation with ID $plr_id using curl..."
+  local response=$(curl -s -X POST "http://localhost:10055/pillar2/test/organisation/$plr_id" \
+    -H "Content-Type: application/json" \
+    -d "{\"orgDetails\":{\"domesticOnly\":$is_domestic,\"organisationName\":\"$name\",\"registrationDate\":\"2024-01-01\"},\"accountingPeriod\":{\"startDate\":\"$start_date\",\"endDate\":\"$end_date\"}}")
+  
+  if echo "$response" | grep -q "ORGANISATION_EXISTS"; then
+    echo -e "${YELLOW}Organisation with ID $plr_id already exists${NC}"
+  elif echo "$response" | grep -q "pillar2Id"; then
+    echo -e "${GREEN}Successfully created organisation with ID $plr_id${NC}"
+  else
+    echo -e "${RED}Failed to create organisation with ID $plr_id: $response${NC}"
+    return 1
+  fi
+  
+  return 0
+}
+
 # Check if MongoDB is running
 check_mongodb
 
@@ -56,9 +81,6 @@ export BRU_ENV_accountingPeriod3From="2024-07-01"
 export BRU_ENV_accountingPeriod3To="2024-09-30"
 export BRU_ENV_invalidPillar2Id="XMPLR9999999999"
 
-# Create test directory to work from (Bruno requires running from collection root)
-cd "API Testing" || { echo "API Testing directory not found"; exit 1; }
-
 echo "======================================================================================"
 echo -e "${GREEN}Running tests with Bruno CLI 1.0.0...${NC}"
 echo "======================================================================================"
@@ -73,34 +95,29 @@ FAILED_TEST_NAMES=()
 echo "======================================================================================"
 echo -e "${GREEN}Creating test organisations${NC}"
 echo "======================================================================================"
-# Create a domestic organisation
-echo "Creating domestic organisation..."
-curl -X POST "http://localhost:10055/pillar2/test/organisation/XEPLR1234567891" \
-  -H "Content-Type: application/json" \
-  -d '{"orgDetails":{"domesticOnly":true,"organisationName":"DomesticTestCompany","registrationDate":"2024-01-01"},"accountingPeriod":{"startDate":"2024-01-01","endDate":"2024-03-31"}}' | jq .
 
-# Create a non-domestic organisation
-echo "Creating non-domestic organisation..."
-curl -X POST "http://localhost:10055/pillar2/test/organisation/XEPLR1234567892" \
-  -H "Content-Type: application/json" \
-  -d '{"orgDetails":{"domesticOnly":false,"organisationName":"NonDomesticTestCompany","registrationDate":"2024-01-01"},"accountingPeriod":{"startDate":"2024-01-01","endDate":"2024-03-31"}}' | jq .
+# Create organizations using curl instead of Bruno
+create_organization "XEPLR1234567891" "true" "DomesticTestCompany" "2024-01-01" "2024-03-31"
+create_organization "XEPLR1234567892" "false" "NonDomesticTestCompany" "2024-01-01" "2024-03-31"
+create_organization "XMPLR0012345674" "true" "TestCompany" "2024-08-14" "2024-12-14"
 
-# Create an organisation with a different accounting period
-echo "Creating organisation with different accounting period..."
-curl -X POST "http://localhost:10055/pillar2/test/organisation/XMPLR0012345674" \
-  -H "Content-Type: application/json" \
-  -d '{"orgDetails":{"domesticOnly":true,"organisationName":"TestCompany","registrationDate":"2024-01-01"},"accountingPeriod":{"startDate":"2024-08-14","endDate":"2024-12-14"}}' | jq .
+# For display purposes only, try running the Bruno scripts but don't rely on their success
+echo -e "\n${YELLOW}Running Bruno organisation creation scripts (for logging purposes only)...${NC}"
+# Create test directory to work from (Bruno requires running from collection root)
+cd "API Testing" || { echo "API Testing directory not found"; exit 1; }
+
+echo "Attempting domestic organisation creation with Bruno..."
+npx @usebruno/cli run uktr/Create\ Organisation.bru --env local > /dev/null 2>&1
+echo "Attempting non-domestic organisation creation with Bruno..."
+npx @usebruno/cli run uktr/Create\ Non-Domestic\ Organisation.bru --env local > /dev/null 2>&1
+echo "Attempting organisation with different accounting period with Bruno..."
+npx @usebruno/cli run uktr/Create\ Organisation\ Different\ Period.bru --env local > /dev/null 2>&1
 
 # Ensure subscriptions exist for test organisations
 echo -e "${YELLOW}Setting up subscriptions for test organisations...${NC}"
 create_subscription "XEPLR1234567891"
 create_subscription "XEPLR1234567892"
 create_subscription "XMPLR0012345674"
-
-# Step 2: Run submission tests
-echo "======================================================================================"
-echo -e "${GREEN}Running submission tests in specified order${NC}"
-echo "======================================================================================"
 
 # Function to run a test and track its status
 run_test() {
@@ -121,6 +138,11 @@ run_test() {
   TOTAL_TESTS=$((TOTAL_TESTS+1))
   echo ""
 }
+
+# Step 2: Run submission tests
+echo "======================================================================================"
+echo -e "${GREEN}Running submission tests in specified order${NC}"
+echo "======================================================================================"
 
 # Run tests in the specified order
 echo "Running Step 3: No Pillar2Id test"
@@ -203,6 +225,7 @@ else
   echo "3. Check if environment variables are correctly set and used in test files."
   echo "4. Verify accounting periods match what's set in the test organisations."
   echo "5. Make sure your application is running on port 10055."
+  echo "6. Ensure your application is started with: sbt 'run -Dplay.http.router=testOnlyDoNotUseInAppConf.Routes'"
 fi
 
 echo ""
