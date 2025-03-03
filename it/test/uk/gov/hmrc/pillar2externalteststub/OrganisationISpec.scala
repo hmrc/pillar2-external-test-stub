@@ -151,25 +151,25 @@ class OrganisationISpec
 
     "when organisation does not exist" should {
 
-      "return 404 when retrieving a non-existent organisation" in {
+      "return 422 when retrieving a non-existent organisation" in {
         val response = getOrganisation("NONEXISTENT")
-        response.status shouldBe 404
-        val error = Json.parse(response.body).as[StubErrorResponse]
-        error.code shouldBe "ORGANISATION_NOT_FOUND"
+        response.status shouldBe 422
+        val json = Json.parse(response.body)
+        (json \ "errors" \ "code").as[String] shouldBe "002"
       }
 
-      "return 404 when updating a non-existent organisation" in {
+      "return 422 when updating a non-existent organisation" in {
         val response = updateOrganisation("NONEXISTENT", testOrganisationRequest)
-        response.status shouldBe 404
-        val error = Json.parse(response.body).as[StubErrorResponse]
-        error.code shouldBe "ORGANISATION_NOT_FOUND"
+        response.status shouldBe 422
+        val json = Json.parse(response.body)
+        (json \ "errors" \ "code").as[String] shouldBe "002"
       }
 
-      "return 404 when deleting a non-existent organisation" in {
+      "return 422 when deleting a non-existent organisation" in {
         val response = deleteOrganisation("NONEXISTENT")
-        response.status shouldBe 404
-        val error = Json.parse(response.body).as[StubErrorResponse]
-        error.code shouldBe "ORGANISATION_NOT_FOUND"
+        response.status shouldBe 422
+        val json = Json.parse(response.body)
+        (json \ "errors" \ "code").as[String] shouldBe "002"
       }
     }
 

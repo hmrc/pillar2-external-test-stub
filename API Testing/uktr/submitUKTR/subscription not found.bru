@@ -50,4 +50,5 @@ assert {
   res.body.errors: isDefined
   res.body.errors.code: eq "002"
   res.body.errors.text: eq "PLR Reference is missing or invalid"
+  res.body.errors.processingDate: isDefined
 }

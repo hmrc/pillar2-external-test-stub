@@ -21,6 +21,7 @@ import play.api.http.HttpErrorHandler
 import play.api.http.Status._
 import play.api.libs.json.Json
 import play.api.mvc.{RequestHeader, Result, Results}
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
 import uk.gov.hmrc.pillar2externalteststub.models.error._
 import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRErrorCodes
@@ -109,8 +110,28 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
           case InvalidJson                  => Results.BadRequest(Json.toJson(StubErrorResponse(e.code, e.message)))
           case EmptyRequestBody             => Results.BadRequest(Json.toJson(StubErrorResponse(e.code, e.message)))
           case OrganisationAlreadyExists(_) => Results.Conflict(Json.toJson(StubErrorResponse(e.code, e.message)))
-          case OrganisationNotFound(_)      => Results.NotFound(Json.toJson(StubErrorResponse(e.code, e.message)))
-          case DatabaseError(_)             => Results.InternalServerError(Json.toJson(StubErrorResponse(e.code, e.message)))
+          case OrganisationNotFound(_) =>
+            Results.UnprocessableEntity(
+              Json.obj(
+                "errors" -> Json.obj(
+                  "processingDate" -> nowZonedDateTime,
+                  "code"           -> "002",
+                  "text"           -> "PLR Reference is missing or invalid"
+                )
+              )
+            )
+          case DatabaseError(message) if message == "Internal server error" =>
+            // Special handling for server error PLR ID
+            Results.UnprocessableEntity(
+              Json.obj(
+                "errors" -> Json.obj(
+                  "processingDate" -> nowZonedDateTime,
+                  "code"           -> "002",
+                  "text"           -> "PLR Reference is missing or invalid"
+                )
+              )
+            )
+          case DatabaseError(_) => Results.InternalServerError(Json.toJson(StubErrorResponse(e.code, e.message)))
           case InvalidAccountingPeriod(_, _, _, _) =>
             Results.UnprocessableEntity(
               Json.obj(

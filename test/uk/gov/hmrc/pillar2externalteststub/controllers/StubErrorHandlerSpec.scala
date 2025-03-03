@@ -102,10 +102,11 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
 
     "handle OrganisationNotFound error" in {
       val result = errorHandler.onServerError(dummyRequest, OrganisationNotFound("TEST123"))
-      status(result) shouldBe NOT_FOUND
+      status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "ORGANISATION_NOT_FOUND"
-      (json \ "message").as[String] shouldBe "No organisation found with pillar2Id: TEST123"
+      (json \ "errors" \ "code").as[String]          shouldBe "002"
+      (json \ "errors" \ "text").as[String]          shouldBe "PLR Reference is missing or invalid"
+      (json \ "errors" \ "processingDate").isDefined shouldBe true
     }
 
     "handle DatabaseError" in {
@@ -114,6 +115,15 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val json = contentAsJson(result)
       (json \ "code").as[String]    shouldBe "DATABASE_ERROR"
       (json \ "message").as[String] shouldBe "Connection failed"
+    }
+
+    "handle DatabaseError with 'Internal server error' message specifically" in {
+      val result = errorHandler.onServerError(dummyRequest, DatabaseError("Internal server error"))
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String]          shouldBe "002"
+      (json \ "errors" \ "text").as[String]          shouldBe "PLR Reference is missing or invalid"
+      (json \ "errors" \ "processingDate").isDefined shouldBe true
     }
 
     "handle InvalidAccountingPeriod error" in {
@@ -196,6 +206,29 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(unknownResult) shouldBe INTERNAL_SERVER_ERROR
       val unknownJson = contentAsJson(unknownResult)
       (unknownJson \ "error" \ "code").as[String] shouldBe "500"
+    }
+
+    "handle additional error cases in sequence" in {
+      // Check consecutive error handling
+      val errors = Seq(
+        InvalidJson,
+        EmptyRequestBody,
+        OrganisationAlreadyExists("TEST123"),
+        OrganisationNotFound("TEST456"),
+        DatabaseError("Internal server error"),
+        InvalidAccountingPeriod("2023-01-01", "2023-12-31", "2022-01-01", "2022-12-31"),
+        InvalidPillar2Id(Some("invalid")),
+        DuplicateSubmissionError("XEPLR0000000001"),
+        SubmissionNotFoundError("XEPLR0000000002"),
+        DomesticOnlyMTTError("XEPLR0000000003")
+      )
+
+      // Process each error and verify correct handling
+      errors.foreach { error =>
+        val result = errorHandler.onServerError(dummyRequest, error)
+        status(result)                                                                   should (be >= 400 and be <= 599)
+        contentAsJson(result).asInstanceOf[play.api.libs.json.JsObject].value.nonEmpty shouldBe true
+      }
     }
   }
 }

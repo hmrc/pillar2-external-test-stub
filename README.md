@@ -381,10 +381,3 @@ If tests fail, check the following:
 | Non-Domestic Organization | XEPLR1234567892 | Non-Domestic | 2024-01-01 to 2024-03-31 |
 | Specific Accounting Period | XMPLR0012345674 | Domestic Only | 2024-08-14 to 2024-12-14 |
 | Subscription Not Found | XMPLR9999999999 | N/A | N/A |
-
-## Future Improvements
-
-1. Fix the "subscription not found" error handling in the controller to return a 422 status code instead of 500.
-2. Update the test script to use Bruno test files directly once compatibility issues are resolved.
-3. Add additional test cases for edge conditions and other error scenarios.
-4. Create a more comprehensive test suite that includes all Bruno test files.
