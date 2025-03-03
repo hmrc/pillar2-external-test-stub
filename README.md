@@ -241,7 +241,7 @@ This code is open source software licensed under the [Apache 2.0 License](http:/
 
 ## Overview
 
-This repository contains a test suite for validating the UK Tax Return (UKTR) submission functionality. The test suite uses MongoDB to persist test data and curl commands to execute API calls against the service endpoints.
+This repository contains a test suite for validating the UK Tax Return (UKTR) submission functionality. The test suite uses MongoDB to persist test data and Bruno API client to execute API calls against the service endpoints.
 
 The test suite covers various scenarios including:
 - Creating organizations (domestic and non-domestic)
@@ -253,21 +253,50 @@ The test suite covers various scenarios including:
 
 - MongoDB running locally
 - The UKTR service running on port 10055
-- `jq` command-line tool for formatting JSON responses
+- Start the application with test router enabled: `sbt 'run -Dplay.http.router=testOnlyDoNotUseInAppConf.Routes'`
+- Bruno CLI tool installed (`npm install -g @usebruno/cli`)
 
 ## How to Run Tests
 
-The test suite includes a bash script (`run_tests.sh`) that orchestrates the execution of the tests in the correct order:
+### Using the Bruno Scripts
+
+You can run the tests individually in the correct order using the Bruno CLI:
 
 ```bash
-./run_tests.sh
+# Setup: Create organizations
+npx @usebruno/cli run API Testing/uktr/Create\ Organisation.bru --env local
+npx @usebruno/cli run API Testing/uktr/Create\ Non-Domestic\ Organisation.bru --env local
+npx @usebruno/cli run API Testing/uktr/Create\ Organisation\ Different\ Period.bru --env local
+
+# Submission Tests
+npx @usebruno/cli run API Testing/uktr/submitUKTR/No\ Pillar2Id.bru --env local
+npx @usebruno/cli run API Testing/uktr/submitUKTR/subscription\ not\ found.bru --env local
+npx @usebruno/cli run API Testing/uktr/submitUKTR/valid\ request.bru --env local
+npx @usebruno/cli run API Testing/uktr/submitUKTR/nilreturn\ -\ valid\ request.bru --env local
+npx @usebruno/cli run API Testing/uktr/submitUKTR/duplicate\ submission.bru --env local
+npx @usebruno/cli run API Testing/uktr/submitUKTR/invalid\ accounting\ period.bru --env local
+npx @usebruno/cli run API Testing/uktr/submitUKTR/domestic\ with\ MTT.bru --env local
+npx @usebruno/cli run API Testing/uktr/submitUKTR/empty\ liable\ entities.bru --env local
+
+# Amendment Tests
+npx @usebruno/cli run API Testing/uktr/submitUKTR/amend\ submission.bru --env local
+npx @usebruno/cli run API Testing/uktr/submitUKTR/nilreturn\ -\ amend.bru --env local
+```
+
+### Using the Automated Script
+
+For development and testing purposes, a bash script is provided that runs all tests in sequence:
+
+```bash
+./run_bruno_tests.sh
 ```
 
 Before running the tests, the script will:
-1. Drop the MongoDB database to ensure a clean test environment
-2. Create test organizations needed for the various test scenarios
-3. Execute each test case in sequence
-4. Format and display the responses
+1. Check if MongoDB is running
+2. Drop the MongoDB database to ensure a clean test environment
+3. Create test organizations needed for the various test scenarios
+4. Execute each test case in sequence
+5. Format and display the responses with pass/fail status
 
 ## Test Sequence and Expected Responses
 
@@ -282,7 +311,25 @@ First, test organizations are created:
 
 **Expected Response**: HTTP 201 Created for each organization creation request.
 
-### 2. Valid UKTR Submission
+**Actual Response**: HTTP 201 Created with a JSON response containing the organization details and pillar2Id.
+
+### 2. No Pillar2Id Test
+
+Attempting to submit a UKTR without providing a Pillar2Id header.
+
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message about the missing header.
+
+**Actual Response**: HTTP 422 Unprocessable Entity with an error code "002" and text "PLR Reference is missing or invalid".
+
+### 3. Subscription Not Found Test
+
+Attempting to submit a UKTR for a non-existent PLR ID.
+
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message indicating the subscription was not found.
+
+**Actual Response**: HTTP 422 Unprocessable Entity with an error code "002" and text "PLR Reference is missing or invalid".
+
+### 4. Valid UKTR Submission
 
 A valid UKTR submission for the domestic organization.
 
@@ -290,7 +337,15 @@ A valid UKTR submission for the domestic organization.
 
 **Actual Response**: HTTP 201 Created with a JSON response containing the formBundleNumber and chargeReference.
 
-### 3. Duplicate Submission Test
+### 5. NIL_RETURN Valid Request
+
+A valid NIL_RETURN submission.
+
+**Expected Response**: HTTP 201 Created with a JSON response.
+
+**Actual Response**: HTTP 201 Created with a JSON response containing the formBundleNumber.
+
+### 6. Duplicate Submission Test
 
 Attempting to submit the same UKTR data for the same organization and accounting period.
 
@@ -298,7 +353,15 @@ Attempting to submit the same UKTR data for the same organization and accounting
 
 **Actual Response**: HTTP 422 Unprocessable Entity with an error code "044" and text "A submission already exists for this accounting period".
 
-### 4. Domestic with MTT Test
+### 7. Invalid Accounting Period Test
+
+Attempting to submit a UKTR with an accounting period that doesn't match the organization's registered accounting period.
+
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message about the invalid accounting period.
+
+**Actual Response**: HTTP 422 Unprocessable Entity with an error code "003" and text containing "Accounting period".
+
+### 8. Domestic with MTT Test
 
 Attempting to submit a UKTR with the Maximum Top-up Tax (MTT) flag set to true for a domestic-only organization.
 
@@ -306,15 +369,15 @@ Attempting to submit a UKTR with the Maximum Top-up Tax (MTT) flag set to true f
 
 **Actual Response**: HTTP 422 Unprocessable Entity with an error code "093" and text "obligationMTT cannot be true for a domestic-only group".
 
-### 5. Subscription Not Found Test
+### 9. Empty Liable Entities Test
 
-Attempting to submit a UKTR for a non-existent PLR ID.
+Attempting to submit a UKTR with no liable entities.
 
-**Expected Response**: HTTP 422 Unprocessable Entity with an error message indicating the subscription was not found.
+**Expected Response**: HTTP 422 Unprocessable Entity with an error message indicating liable entities are required.
 
-**Actual Response**: HTTP 500 Internal Server Error. This needs to be fixed in the controller to return a proper 422 error.
+**Actual Response**: HTTP 422 Unprocessable Entity with an error code "093" and text "liabilityEntity cannot be empty".
 
-### 6. Amend Submission Test
+### 10. Amend Submission Test
 
 Attempting to amend a previously submitted UKTR.
 
@@ -322,47 +385,21 @@ Attempting to amend a previously submitted UKTR.
 
 **Actual Response**: HTTP 201 Created with a JSON response containing the formBundleNumber and chargeReference.
 
-## Additional Test Cases
-
-The following tests are not currently included in the automated test suite but should be implemented:
-
-### No Pillar2Id Test
-
-Attempting to submit a UKTR without providing a Pillar2Id header.
-
-**Expected Response**: HTTP 422 Unprocessable Entity with an error message about the missing header.
-
-### Invalid Accounting Period Test
-
-Attempting to submit a UKTR with an accounting period that doesn't match the organization's registered accounting period.
-
-**Expected Response**: HTTP 422 Unprocessable Entity with an error message about the invalid accounting period.
-
-### Empty Liable Entities Test
-
-Attempting to submit a UKTR with no liable entities.
-
-**Expected Response**: HTTP 422 Unprocessable Entity with an error message indicating liable entities are required.
-
-### Nil Return Amend Test
+### 11. Nil Return Amend Test
 
 Attempting to amend a previously submitted UKTR to a nil return.
 
 **Expected Response**: HTTP 201 Created with a JSON response containing a submission ID.
 
-## Known Issues
-
-1. **Subscription Not Found Test**: Currently returns a 500 Internal Server Error instead of the expected 422 Unprocessable Entity. This needs to be fixed in the controller to properly handle the case where a subscription is not found.
-
-2. **Bruno Test Integration**: The current test script uses direct curl commands instead of Bruno tests because of compatibility issues with Bruno CLI 1.0.0. Future versions should integrate properly with Bruno test files.
+**Actual Response**: HTTP 201 Created with a JSON response containing the formBundleNumber.
 
 ## Error Handling
 
 The test suite validates proper error handling for various scenarios:
 
-1. **Validation Errors**: The service should return HTTP 422 with appropriate error messages for validation failures.
-2. **Not Found Errors**: The service should return HTTP 422 with appropriate error messages when a subscription is not found (currently returns 500).
-3. **Duplicate Submission Errors**: The service should return HTTP 422 with appropriate error messages for duplicate submissions.
+1. **Validation Errors**: The service returns HTTP 422 with appropriate error messages for validation failures.
+2. **Not Found Errors**: The service returns HTTP 422 with appropriate error messages when a subscription is not found.
+3. **Duplicate Submission Errors**: The service returns HTTP 422 with appropriate error messages for duplicate submissions.
 
 ## Troubleshooting
 
@@ -370,8 +407,10 @@ If tests fail, check the following:
 
 1. Ensure MongoDB is running and accessible
 2. Ensure the UKTR service is running on port 10055
-3. Check that all prerequisites are installed (`jq`, etc.)
-4. Verify that the PLR IDs used in the tests are not already in use in your MongoDB instance
+3. Make sure the application is started with the test router: `sbt 'run -Dplay.http.router=testOnlyDoNotUseInAppConf.Routes'`
+4. Check that all prerequisites are installed (Bruno CLI, etc.)
+5. Verify that the PLR IDs used in the tests are not already in use in your MongoDB instance
+6. Check the application logs in `logs/pillar2-external-test-stub.log` for detailed error information
 
 ## Reference Data
 
@@ -381,3 +420,21 @@ If tests fail, check the following:
 | Non-Domestic Organization | XEPLR1234567892 | Non-Domestic | 2024-01-01 to 2024-03-31 |
 | Specific Accounting Period | XMPLR0012345674 | Domestic Only | 2024-08-14 to 2024-12-14 |
 | Subscription Not Found | XMPLR9999999999 | N/A | N/A |
+
+## Bruno Environment Setup
+
+When running Bruno tests, ensure the following environment variables are set:
+
+```
+BRU_ENV_baseUrl=http://localhost:10055
+BRU_ENV_validBearerToken=Bearer valid_token
+BRU_ENV_test1PlrId=XEPLR1234567891
+BRU_ENV_test2PlrId=XEPLR1234567892
+BRU_ENV_domesticOnlyPlrId=XEPLR1234567891
+BRU_ENV_nonDomesticPlrId=XEPLR1234567892
+BRU_ENV_accountingPeriodFrom=2024-01-01
+BRU_ENV_accountingPeriodTo=2024-03-31
+BRU_ENV_invalidPillar2Id=XMPLR9999999999
+```
+
+You can set these in the Bruno GUI, or pass them as environment variables when using the CLI with the `--env local` parameter.
