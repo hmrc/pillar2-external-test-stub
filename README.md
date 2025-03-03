@@ -283,13 +283,6 @@ npx @usebruno/cli run API Testing/uktr/submitUKTR/amend\ submission.bru --env lo
 npx @usebruno/cli run API Testing/uktr/submitUKTR/nilreturn\ -\ amend.bru --env local
 ```
 
-### Using the Automated Script
-
-For development and testing purposes, a bash script is provided that runs all tests in sequence:
-
-```bash
-./run_bruno_tests.sh
-```
 
 Before running the tests, the script will:
 1. Check if MongoDB is running
