@@ -21,6 +21,7 @@ import play.api.http.HttpErrorHandler
 import play.api.libs.json.Json
 import play.api.mvc.{RequestHeader, Result, Results}
 import uk.gov.hmrc.pillar2externalteststub.models.error._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
 
 import javax.inject.Singleton
@@ -44,8 +45,25 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
         }
         logger.warn(s"Caught StubError. Returning ${ret.header.status} statuscode", exception)
         Future.successful(ret)
+      case e: ETMPError =>
+        val ret = e match {
+          case ETMPBadRequest          => Results.BadRequest(Json.toJson(StubErrorResponse(e.code, e.message)))
+          case ETMPInternalServerError => Results.InternalServerError(Json.toJson(StubErrorResponse(e.code, e.message)))
+        }
+        logger.warn(s"Caught ETMPError. Returning ${ret.header.status} statuscode", exception)
+        Future.successful(ret)
       case _ =>
         logger.error("Unhandled exception. Returning 500 statuscode", exception)
-        Future.successful(Results.InternalServerError(Json.toJson(StubErrorResponse("500", "Internal Server Error"))))
+        Future.successful(
+          Results.InternalServerError(
+            Json.obj(
+              "error" -> Json.obj(
+                "code"    -> "500",
+                "message" -> "Internal server error",
+                "logID"   -> "C0000000000000000000000000000500"
+              )
+            )
+          )
+        )
     }
 }

@@ -22,6 +22,8 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.pillar2externalteststub.models.error._
 
+import java.time.LocalDate
+
 class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
 
   private val errorHandler = new StubErrorHandler
@@ -32,8 +34,48 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onClientError(dummyRequest, BAD_REQUEST, "Bad Request Message")
       status(result) shouldBe BAD_REQUEST
       val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "400"
-      (json \ "message").as[String] shouldBe "Bad Request Message"
+      (json \ "error" \ "code").as[String]    shouldBe "400"
+      (json \ "error" \ "message").as[String] shouldBe "Bad request"
+    }
+
+    "handle client errors with UNAUTHORIZED status" in {
+      val result = errorHandler.onClientError(dummyRequest, UNAUTHORIZED, "Unauthorized Message")
+      status(result) shouldBe UNAUTHORIZED
+      val json = contentAsJson(result)
+      (json \ "error" \ "code").as[String]    shouldBe "401"
+      (json \ "error" \ "message").as[String] shouldBe "Unauthorized"
+    }
+
+    "handle client errors with FORBIDDEN status" in {
+      val result = errorHandler.onClientError(dummyRequest, FORBIDDEN, "Forbidden Message")
+      status(result) shouldBe FORBIDDEN
+      val json = contentAsJson(result)
+      (json \ "error" \ "code").as[String]    shouldBe "403"
+      (json \ "error" \ "message").as[String] shouldBe "Forbidden"
+    }
+
+    "handle client errors with NOT_FOUND status" in {
+      val result = errorHandler.onClientError(dummyRequest, NOT_FOUND, "Not Found Message")
+      status(result) shouldBe NOT_FOUND
+      val json = contentAsJson(result)
+      (json \ "error" \ "code").as[String]    shouldBe "404"
+      (json \ "error" \ "message").as[String] shouldBe "Not found"
+    }
+
+    "handle client errors with UNPROCESSABLE_ENTITY status" in {
+      val result = errorHandler.onClientError(dummyRequest, UNPROCESSABLE_ENTITY, "Validation Failed Message")
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String] shouldBe "Validation Failed Message"
+    }
+
+    "handle client errors with other status codes" in {
+      val result = errorHandler.onClientError(dummyRequest, PAYMENT_REQUIRED, "Payment Required Message")
+      status(result) shouldBe PAYMENT_REQUIRED
+      val json = contentAsJson(result)
+      (json \ "error" \ "code").as[String]    shouldBe "402"
+      (json \ "error" \ "message").as[String] shouldBe "Payment Required Message"
     }
 
     "handle InvalidJson error" in {
@@ -64,8 +106,8 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, OrganisationNotFound("TEST123"))
       status(result) shouldBe NOT_FOUND
       val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "ORGANISATION_NOT_FOUND"
-      (json \ "message").as[String] shouldBe "No organisation found with pillar2Id: TEST123"
+      (json \ "error" \ "code").as[String]    shouldBe "404"
+      (json \ "error" \ "message").as[String] shouldBe "Not found"
     }
 
     "handle DatabaseError" in {
@@ -76,12 +118,122 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       (json \ "message").as[String] shouldBe "Connection failed"
     }
 
+    "handle DatabaseError with 'Internal server error' message specifically" in {
+      val result = errorHandler.onServerError(dummyRequest, DatabaseError("Internal server error"))
+      status(result) shouldBe INTERNAL_SERVER_ERROR
+      val json = contentAsJson(result)
+      (json \ "error" \ "code").as[String]    shouldBe "500"
+      (json \ "error" \ "message").as[String] shouldBe "Internal server error"
+    }
+
+    "handle InvalidAccountingPeriod error" in {
+      val error = InvalidAccountingPeriod(
+        submittedStart = LocalDate.parse("2024-01-01"),
+        submittedEnd = LocalDate.parse("2024-12-31"),
+        registeredStart = LocalDate.parse("2023-01-01"),
+        registeredEnd = LocalDate.parse("2023-12-31")
+      )
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String]   should include("Submitted accounting period")
+      (json \ "errors" \ "text").as[String]   should include("does not match registered accounting period")
+    }
+
+    "handle InvalidPillar2Id error" in {
+      val error  = InvalidPillar2Id(Some("invalid-id"))
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "002"
+      (json \ "errors" \ "text").as[String] shouldBe "PLR Reference is missing or invalid"
+    }
+
+    "handle InvalidPillar2Id error with None" in {
+      val error  = InvalidPillar2Id(None)
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "002"
+      (json \ "errors" \ "text").as[String] shouldBe "PLR Reference is missing or invalid"
+    }
+
+    "handle DuplicateSubmissionError" in {
+      val error  = DuplicateSubmissionError("XEPLR0000000001")
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "044"
+      (json \ "errors" \ "text").as[String] shouldBe "A submission already exists for this accounting period"
+    }
+
+    "handle SubmissionNotFoundError" in {
+      val error  = SubmissionNotFoundError("XEPLR0000000001")
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String] shouldBe "No existing submission found to amend"
+    }
+
+    "handle DomesticOnlyMTTError" in {
+      val error  = DomesticOnlyMTTError("XEPLR0000000001")
+      val result = errorHandler.onServerError(dummyRequest, error)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "093"
+      (json \ "errors" \ "text").as[String] shouldBe "obligationMTT cannot be true for a domestic-only group"
+    }
+
     "handle unknown errors" in {
       val result = errorHandler.onServerError(dummyRequest, new RuntimeException("Unexpected error"))
       status(result) shouldBe INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "500"
-      (json \ "message").as[String] shouldBe "Internal Server Error"
+      (json \ "error" \ "code").as[String]    shouldBe "500"
+      (json \ "error" \ "message").as[String] shouldBe "Internal server error"
+    }
+
+    "test consecutive error handling" in {
+      // First error - StubError
+      val stubResult = errorHandler.onServerError(dummyRequest, DatabaseError("Test database error"))
+      status(stubResult) shouldBe INTERNAL_SERVER_ERROR
+      val stubJson = contentAsJson(stubResult)
+      (stubJson \ "code").as[String] shouldBe "DATABASE_ERROR"
+
+      // Second error - Unknown error
+      val unknownResult = errorHandler.onServerError(dummyRequest, new RuntimeException("Test unexpected error"))
+      status(unknownResult) shouldBe INTERNAL_SERVER_ERROR
+      val unknownJson = contentAsJson(unknownResult)
+      (unknownJson \ "error" \ "code").as[String] shouldBe "500"
+    }
+
+    "handle additional error cases in sequence" in {
+      // Check consecutive error handling
+      val errors = Seq(
+        InvalidJson,
+        EmptyRequestBody,
+        OrganisationAlreadyExists("TEST123"),
+        OrganisationNotFound("TEST456"),
+        DatabaseError("Internal server error"),
+        InvalidAccountingPeriod(
+          LocalDate.parse("2023-01-01"),
+          LocalDate.parse("2023-12-31"),
+          LocalDate.parse("2022-01-01"),
+          LocalDate.parse("2022-12-31")
+        ),
+        InvalidPillar2Id(Some("invalid")),
+        DuplicateSubmissionError("XEPLR0000000001"),
+        SubmissionNotFoundError("XEPLR0000000002"),
+        DomesticOnlyMTTError("XEPLR0000000003")
+      )
+
+      // Process each error and verify correct handling
+      errors.foreach { error =>
+        val result = errorHandler.onServerError(dummyRequest, error)
+        status(result)                                                                   should (be >= 400 and be <= 599)
+        contentAsJson(result).asInstanceOf[play.api.libs.json.JsObject].value.nonEmpty shouldBe true
+      }
     }
   }
 }

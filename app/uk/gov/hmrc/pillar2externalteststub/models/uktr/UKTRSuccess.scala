@@ -34,7 +34,7 @@ object LiabilityReturnSuccess {
     )
 }
 
-case class NilReturnSuccess(processingDate: String, formBundleNumber: String)
+case class NilReturnSuccess(processingDate: String, formBundleNumber: String, chargeReference: String)
 
 object NilReturnSuccess {
   implicit val format: OFormat[NilReturnSuccess] = Json.format[NilReturnSuccess]
@@ -42,7 +42,8 @@ object NilReturnSuccess {
   def successfulNilReturnResponse: NilSuccessResponse = NilSuccessResponse(
     NilReturnSuccess(
       processingDate = nowZonedDateTime,
-      formBundleNumber = "119000004320"
+      formBundleNumber = "119000004320",
+      chargeReference = "XTC01234123412"
     )
   )
 }

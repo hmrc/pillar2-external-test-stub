@@ -26,6 +26,7 @@ import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate
 import scala.concurrent.Future
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPErrorCodes
 
 trait UKTRSubmission {
   val accountingPeriodFrom: LocalDate
@@ -33,17 +34,32 @@ trait UKTRSubmission {
   val obligationMTT:        Boolean
   val electionUKGAAP:       Boolean
   val liabilities:          Liabilities
+  def isNilReturn: Boolean
+
+  def isValidAccountingPeriod: Boolean = {
+    val from = accountingPeriodFrom
+    val to   = accountingPeriodTo
+    !from.isAfter(to) &&
+    from.getYear >= 1900 && from.getYear <= 9999 &&
+    to.getYear >= 1900 && to.getYear <= 9999
+  }
 }
 
 object UKTRSubmission {
 
   implicit val formatUKTRSubmission: Format[UKTRSubmission] = new Format[UKTRSubmission] {
-    override def reads(json: JsValue): JsResult[UKTRSubmission] =
-      if ((json \ "liabilities" \ "returnType").isDefined) {
+    override def reads(json: JsValue): JsResult[UKTRSubmission] = {
+      val result = if ((json \ "liabilities" \ "returnType").isDefined) {
         Json.fromJson[UKTRNilReturn](json)
       } else {
         Json.fromJson[UKTRLiabilityReturn](json)
       }
+
+      result.flatMap { submission =>
+        if (submission.isValidAccountingPeriod) JsSuccess(submission)
+        else JsError("Invalid accounting period dates")
+      }
+    }
 
     override def writes(o: UKTRSubmission): JsValue = o match {
       case nil:       UKTRNilReturn       => Json.toJson(nil)(Json.format[UKTRNilReturn])
@@ -53,7 +69,7 @@ object UKTRSubmission {
   }
 }
 
-case class UKTRSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
+case class UKTRSubmissionError(errorCode: ETMPErrorCodes) extends ValidationError
 
 object UKTRErrorTransformer {
   def from422ToJson(errors: NonEmptyChain[ValidationError]): Future[Result] =
