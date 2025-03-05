@@ -23,7 +23,7 @@ import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPErrorCodes
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 
 case class UKTRLiabilityReturn(
   accountingPeriodFrom: LocalDate,
@@ -40,7 +40,6 @@ object UKTRLiabilityReturn {
   implicit val uktrSubmissionDataFormat: OFormat[UKTRLiabilityReturn] = Json.format[UKTRLiabilityReturn]
 
   private val boundaryUKTRAmount = BigDecimal("9999999999999.99")
-  private val amountErrorMessage = s"must be a number between 0 and $boundaryUKTRAmount with up to 2 decimal places"
   private def isValidUKTRAmount(number: BigDecimal) =
     number >= 0 &&
       number <= boundaryUKTRAmount &&
@@ -56,9 +55,7 @@ object UKTRLiabilityReturn {
         if (data.obligationMTT && isDomestic) {
           invalid(
             UKTRSubmissionError(
-              INVALID_RETURN_093,
-              "obligationMTT",
-              "obligationMTT cannot be true for a domestic-only group"
+              InvalidReturn
             )
           )
         } else valid[UKTRLiabilityReturn](data)
@@ -74,11 +71,7 @@ object UKTRLiabilityReturn {
         (data.electionUKGAAP, isDomestic) match {
           case (true, false) =>
             invalid(
-              UKTRSubmissionError(
-                ETMPErrorCodes.InvalidReturn,
-                "electionUKGAAP",
-                "electionUKGAAP can be true only for a domestic-only group"
-              )
+              UKTRSubmissionError(InvalidReturn)
             )
           case _ => valid[UKTRLiabilityReturn](data)
         }
@@ -96,7 +89,7 @@ object UKTRLiabilityReturn {
         ) {
           invalid(
             UKTRSubmissionError(
-              ETMPErrorCodes.InvalidReturn
+              InvalidReturn
             )
           )
         } else valid[UKTRLiabilityReturn](data)
@@ -107,11 +100,7 @@ object UKTRLiabilityReturn {
     if (isValidUKTRAmount(data.liabilities.totalLiability)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(
-          INVALID_TOTAL_LIABILITY_096,
-          "totalLiability",
-          s"totalLiability $amountErrorMessage"
-        )
+        UKTRSubmissionError(InvalidTotalLiability)
       )
   }
 
@@ -120,9 +109,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          INVALID_TOTAL_LIABILITY_DTT_098,
-          "totalLiabilityDTT",
-          s"totalLiabilityDTT $amountErrorMessage"
+          InvalidTotalLiabilityDTT
         )
       )
   }
@@ -131,11 +118,7 @@ object UKTRLiabilityReturn {
     if (isValidUKTRAmount(data.liabilities.totalLiabilityIIR)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(
-          INVALID_TOTAL_LIABILITY_IIR_097,
-          "totalLiabilityIIR",
-          s"totalLiabilityIIR $amountErrorMessage"
-        )
+        UKTRSubmissionError(InvalidTotalLiabilityIIR)
       )
   }
 
@@ -144,9 +127,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          INVALID_TOTAL_LIABILITY_UTPR_099,
-          "totalLiabilityUTPR",
-          s"totalLiabilityUTPR $amountErrorMessage"
+          InvalidTotalLiabilityUTPR
         )
       )
   }
@@ -156,9 +137,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          INVALID_RETURN_093,
-          "liabilityEntity",
-          "liabilityEntity cannot be empty"
+          InvalidReturn
         )
       )
   }
@@ -168,9 +147,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "ukChargeableEntityName",
-          "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
+          InvalidReturn
         )
       )
   }
@@ -180,9 +157,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "idType",
-          "idType must be either UTR or CRN."
+          InvalidReturn
         )
       )
   }
@@ -192,9 +167,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "idValue",
-          "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
+          InvalidReturn
         )
       )
   }
@@ -204,9 +177,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "amountOwedDTT",
-          "amountOwedDTT " + amountErrorMessage
+          InvalidTotalLiabilityDTT
         )
       )
   }
@@ -216,9 +187,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "amountOwedIIR",
-          "amountOwedIIR " + amountErrorMessage
+          InvalidTotalLiabilityIIR
         )
       )
   }
@@ -228,14 +197,12 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "amountOwedUTPR",
-          "amountOwedUTPR " + amountErrorMessage
+          InvalidTotalLiabilityUTPR
         )
       )
   }
 
-  implicit def uktrSubmissionValidator(
+  def uktrSubmissionValidator(
     plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
     for {

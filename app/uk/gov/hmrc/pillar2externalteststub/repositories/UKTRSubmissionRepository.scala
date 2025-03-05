@@ -16,20 +16,23 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
+import cats.implicits.toTraverseOps
 import org.bson.types.ObjectId
-import org.mongodb.scala.model._
-import play.api.Logging
+import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.model.Indexes.descending
+import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import java.time.Instant
 
 @Singleton
 class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
@@ -53,10 +56,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
         )
       ),
       replaceIndexes = true
-    )
-    with Logging {
-
-  private def byPillar2Id(pillar2Id: String) = Filters.eq("pillar2Id", pillar2Id)
+    ) {
 
   def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] = {
     val document = UKTRMongoSubmission(
@@ -72,28 +72,19 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .toFuture()
       .map(_ => true)
       .recoverWith { case e: Exception =>
-        logger.error(s"Failed to ${if (isAmendment) "amend" else "create"} UKTR", e)
         Future.failed(DatabaseError(s"Failed to ${if (isAmendment) "amend" else "create"} UKTR - ${e.getMessage}"))
       }
   }
 
-  def update(submission: UKTRSubmission, pillar2Id: String): Future[Boolean] =
-    findByPillar2Id(pillar2Id).flatMap { maybeSubmission =>
-      maybeSubmission match {
-        case Some(_) =>
-          insert(submission, pillar2Id, isAmendment = true)
-        case None =>
-          Future.failed(DatabaseError("Submission not found"))
-      }
-    }
+  def update(submission: UKTRSubmission, pillar2Id: String): Future[Either[DetailedErrorResponse, Boolean]] =
+    findByPillar2Id(pillar2Id).flatMap(
+      _.toRight(RequestCouldNotBeProcessed)
+        .traverse(_ => insert(submission, pillar2Id, isAmendment = true))
+    )
 
   def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
     collection
-      .find(byPillar2Id(pillar2Id))
-      .sort(Sorts.descending("submittedAt"))
+      .find(equal("pillar2Id", pillar2Id))
+      .sort(descending("submittedAt"))
       .headOption()
-      .recoverWith { case e: Exception =>
-        logger.error(s"Failed to check for duplicate submission", e)
-        Future.failed(DatabaseError(s"Failed to check for duplicate submission - ${e.getMessage}"))
-      }
 }

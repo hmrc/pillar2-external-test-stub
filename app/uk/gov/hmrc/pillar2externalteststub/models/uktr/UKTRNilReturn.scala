@@ -17,12 +17,13 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError
+import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
-import scala.concurrent.{ExecutionContext, Future}
 
 case class UKTRNilReturn(
   accountingPeriodFrom: LocalDate,
@@ -30,38 +31,53 @@ case class UKTRNilReturn(
   obligationMTT:        Boolean,
   electionUKGAAP:       Boolean,
   liabilities:          LiabilityNilReturn
-) extends UKTRSubmission {
-  def isNilReturn: Boolean = true
-}
+) extends UKTRSubmission
 
 object UKTRNilReturn {
-  import UKTRError.UKTRErrorCodes._
-
   implicit val UKTRSubmissionNilReturnFormat: OFormat[UKTRNilReturn] = Json.format[UKTRNilReturn]
 
-  def uktrNilReturnValidator(plrReference: String)(implicit os: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRNilReturn]] =
-    os.getOrganisation(plrReference).map { org =>
+  private def obligationMTTRule(
+    plrReference:                 String
+  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRNilReturn]] =
+    organisationService.getOrganisation(plrReference).map { org =>
       val isDomestic = org.organisation.orgDetails.domesticOnly
-      ValidationRule[UKTRNilReturn] { nilReturn =>
-        if (isDomestic && nilReturn.obligationMTT) {
+      ValidationRule[UKTRNilReturn] { data =>
+        if (data.obligationMTT && isDomestic) {
           invalid(
             UKTRSubmissionError(
-              INVALID_RETURN_093,
-              "obligationMTT",
-              "obligationMTT cannot be true for a domestic-only group"
+              ETMPError.InvalidReturn
             )
           )
-        } else if (!isDomestic && nilReturn.electionUKGAAP) {
-          invalid(
-            UKTRSubmissionError(
-              INVALID_RETURN_093,
-              "electionUKGAAP",
-              "electionUKGAAP can be true only for a domestic-only group"
+        } else valid[UKTRNilReturn](data)
+      }
+    }
+
+  private def electionUKGAAPRule(
+    plrReference:                 String
+  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRNilReturn]] =
+    organisationService.getOrganisation(plrReference).map { org =>
+      val isDomestic = org.organisation.orgDetails.domesticOnly
+      ValidationRule[UKTRNilReturn] { data =>
+        (data.electionUKGAAP, isDomestic) match {
+          case (true, false) =>
+            invalid(
+              UKTRSubmissionError(
+                ETMPError.InvalidReturn
+              )
             )
-          )
-        } else {
-          valid(nilReturn)
+          case _ => valid[UKTRNilReturn](data)
         }
       }
     }
+
+  def uktrNilReturnValidator(
+    plrReference:                 String
+  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRNilReturn]] =
+    for {
+      obligationMTTRule  <- obligationMTTRule(plrReference)(organisationService, ec)
+      electionUKGAAPRule <- electionUKGAAPRule(plrReference)(organisationService, ec)
+    } yield ValidationRule.compose(
+      obligationMTTRule,
+      electionUKGAAPRule
+    )(FailFast)
 }

@@ -24,7 +24,6 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -86,64 +85,6 @@ class AmendUKTRController @Inject() (
     }
   }
 
-  // private def validateAccountingPeriod[T <: UKTRSubmission](submission: T, plrReference: String): Future[T] =
-  //   organisationService
-  //     .getOrganisation(plrReference)
-  //     .flatMap { org =>
-  //       logger.debug(s"Retrieved organisation for PLR: $plrReference")
-  //       if (
-  //         org.organisation.accountingPeriod.startDate.isEqual(submission.accountingPeriodFrom) &&
-  //         org.organisation.accountingPeriod.endDate.isEqual(submission.accountingPeriodTo)
-  //       ) {
-  //         logger.debug(s"Accounting period validated for PLR: $plrReference")
-
-  //         if (org.organisation.orgDetails.domesticOnly) {
-  //           logger.debug(s"Organisation is domestic-only for PLR: $plrReference")
-  //           submission match {
-  //             case liability: UKTRLiabilityReturn =>
-  //               if (liability.obligationMTT) {
-  //                 logger.warn(s"Invalid obligationMTT=true for domestic-only group, PLR: $plrReference")
-  //                 Future.failed(InvalidReturn)
-  //               } else if (liability.liabilities.liableEntities.isEmpty) {
-  //                 logger.warn(s"Empty liableEntities for liability return, PLR: $plrReference")
-  //                 Future.failed(InvalidReturn)
-  //               } else {
-  //                 Future.successful(submission)
-  //               }
-  //             case nilReturn: UKTRNilReturn =>
-  //               if (nilReturn.obligationMTT) {
-  //                 logger.warn(s"Invalid obligationMTT=true for domestic-only group, PLR: $plrReference")
-  //                 Future.failed(InvalidReturn)
-  //               } else {
-  //                 Future.successful(submission)
-  //               }
-  //             case _ =>
-  //               Future.successful(submission)
-  //           }
-  //         } else {
-  //           logger.debug(s"Organisation is not domestic-only for PLR: $plrReference")
-  //           submission match {
-  //             case liability: UKTRLiabilityReturn =>
-  //               if (liability.liabilities.liableEntities.isEmpty) {
-  //                 logger.warn(s"Empty liableEntities for liability return, PLR: $plrReference")
-  //                 Future.failed(InvalidReturn)
-  //               } else {
-  //                 Future.successful(submission)
-  //               }
-  //             case _ =>
-  //               Future.successful(submission)
-  //           }
-  //         }
-  //       } else {
-  //         logger.warn(
-  //           s"Accounting period mismatch for PLR: $plrReference. " +
-  //             s"Submitted: ${submission.accountingPeriodFrom} to ${submission.accountingPeriodTo}, " +
-  //             s"Expected: ${org.organisation.accountingPeriod.startDate} to ${org.organisation.accountingPeriod.endDate}"
-  //         )
-  //         Future.failed(InvalidReturn)
-  //       }
-  //     }
-
   private def processValidRequest(plrReference: String, request: Request[JsValue])(implicit
     ec:                                         ExecutionContext
   ): Future[Result] = {
@@ -154,22 +95,19 @@ class AmendUKTRController @Inject() (
         logger.info(s"Processing liability return amendment for PLR: $plrReference")
         import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRLiabilityReturn._
         (for {
-          validator           <- uktrSubmissionValidator(plrReference)(organisationService, ec)
-          validatedSubmission <- validateAccountingPeriod(uktrRequest, plrReference)
-          validationResult = validator.validate(validatedSubmission)
-          result <- validationResult.toEither match {
-                      case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-                      case Right(_) =>
-                        repository.update(validatedSubmission, plrReference).flatMap {
-                          case true =>
-                            logger.info(s"Liability return successfully amended for PLR: $plrReference")
-                            Future.successful(Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
-                          case false =>
-                            logger.error(s"Failed to update liability return for PLR: $plrReference")
-                            Future.failed(ETMPInternalServerError)
-                        }
-                    }
-        } yield result).recoverWith { case e: Exception =>
+          validator <- uktrSubmissionValidator(plrReference)(organisationService, ec)
+        } yield {
+          val validationResult = validator.validate(uktrRequest)
+          validationResult.toEither match {
+            case Left(errors) =>
+              errors.head match {
+                case UKTRSubmissionError(error) => Future.failed(error)
+                case _                          => Future.failed(ETMPInternalServerError)
+              }
+            case Right(_) =>
+              repository.update(uktrRequest, plrReference).map(_ => Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
+          }
+        }).flatten.recoverWith { case e: Exception =>
           logger.error(s"Error validating request: ${e.getMessage}", e)
           Future.failed(ETMPInternalServerError)
         }
@@ -178,22 +116,19 @@ class AmendUKTRController @Inject() (
         logger.info(s"Processing nil return amendment for PLR: $plrReference")
         import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRNilReturn._
         (for {
-          validator           <- uktrNilReturnValidator(plrReference)(organisationService, ec)
-          validatedSubmission <- validateAccountingPeriod(nilReturnRequest, plrReference)
-          validationResult = validator.validate(validatedSubmission)
-          result <- validationResult.toEither match {
-                      case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-                      case Right(_) =>
-                        repository.update(validatedSubmission, plrReference).flatMap {
-                          case true =>
-                            logger.info(s"Nil return successfully amended for PLR: $plrReference")
-                            Future.successful(Ok(Json.toJson(successfulNilReturnResponse)))
-                          case false =>
-                            logger.error(s"Failed to update nil return for PLR: $plrReference")
-                            Future.failed(ETMPInternalServerError)
-                        }
-                    }
-        } yield result).recoverWith { case e: Exception =>
+          validator <- uktrNilReturnValidator(plrReference)(organisationService, ec)
+        } yield {
+          val validationResult = validator.validate(nilReturnRequest)
+          validationResult.toEither match {
+            case Left(errors) =>
+              errors.head match {
+                case UKTRSubmissionError(error) => Future.failed(error)
+                case _                          => Future.failed(ETMPInternalServerError)
+              }
+            case Right(_) =>
+              repository.update(nilReturnRequest, plrReference).map(_ => Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
+          }
+        }).flatten.recoverWith { case e: Exception =>
           logger.error(s"Error validating request: ${e.getMessage}", e)
           Future.failed(ETMPInternalServerError)
         }

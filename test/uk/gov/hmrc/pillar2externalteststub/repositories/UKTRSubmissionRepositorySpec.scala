@@ -28,9 +28,7 @@ import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.DetailedErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn}
 
-import java.time.LocalDate
 import scala.concurrent.ExecutionContext
 
 class UKTRSubmissionRepositorySpec
@@ -63,47 +61,6 @@ class UKTRSubmissionRepositorySpec
 
         repository.update(nilSubmission, validPlrId).futureValue.isRight shouldBe true
       }
-
-      "find a submission by pillar2Id" in {
-        repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
-
-        val result = repository.findByPillar2Id(validPlrId).futureValue
-        result.isDefined     shouldBe true
-        result.get.pillar2Id shouldBe validPlrId
-        result.get.data      shouldBe liabilitySubmission
-      }
-
-      "correctly check for duplicate submissions" in {
-        // Testing with the specific type of submission we have available
-        val submission = liabilitySubmission
-
-        // Create a duplicate submission to check
-        repository.insert(submission, validPlrId).futureValue shouldBe true
-
-        // Get the accounting periods from the liabilitySubmission
-        val submissionPeriodFrom = liabilitySubmission match {
-          case l: UKTRLiabilityReturn => l.accountingPeriodFrom
-          case n: UKTRNilReturn       => n.accountingPeriodFrom
-          case _ => LocalDate.of(2024, 1, 1) // Default fallback for exhaustiveness
-        }
-
-        val submissionPeriodTo = liabilitySubmission match {
-          case l: UKTRLiabilityReturn => l.accountingPeriodTo
-          case n: UKTRNilReturn       => n.accountingPeriodTo
-          case _ => LocalDate.of(2024, 12, 31) // Default fallback for exhaustiveness
-        }
-
-        // Check if it's a duplicate
-        repository.isDuplicateSubmission(validPlrId, submissionPeriodFrom, submissionPeriodTo).futureValue shouldBe true
-
-        // Check with different period (should not be a duplicate)
-        val differentPeriodFrom = LocalDate.of(2025, 1, 1)
-        val differentPeriodTo   = LocalDate.of(2025, 12, 31)
-        repository.isDuplicateSubmission(validPlrId, differentPeriodFrom, differentPeriodTo).futureValue shouldBe false
-
-        // Check with different pillar2Id (should not be a duplicate)
-        repository.isDuplicateSubmission("DIFFERENTID", submissionPeriodFrom, submissionPeriodTo).futureValue shouldBe false
-      }
     }
 
     "handling invalid submissions" should {
@@ -111,24 +68,6 @@ class UKTRSubmissionRepositorySpec
         val result: Either[DetailedErrorResponse, Boolean] = repository.update(liabilitySubmission, validPlrId).futureValue
 
         result.isLeft shouldBe true
-      }
-
-      "handle database errors during findByPillar2Id" in {
-        // We'll test the error handling by using a non-existent ID (this won't trigger the error path but
-        // will confirm the method works correctly with non-existent data)
-        val result = repository.findByPillar2Id("NON_EXISTENT_ID").futureValue
-        result.isDefined shouldBe false
-      }
-
-      "handle database errors during isDuplicateSubmission" in {
-        // Setup - insert an invalid document to cause a query failure
-        // For simplicity we'll just test the method works with non-existent data
-        val nonExistentPlrId = "NONEXISTENTID"
-        val testPeriodFrom   = LocalDate.of(2024, 1, 1)
-        val testPeriodTo     = LocalDate.of(2024, 12, 31)
-
-        val result = repository.isDuplicateSubmission(nonExistentPlrId, testPeriodFrom, testPeriodTo).futureValue
-        result shouldBe false
       }
     }
   }

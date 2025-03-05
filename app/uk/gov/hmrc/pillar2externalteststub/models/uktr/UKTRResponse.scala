@@ -30,10 +30,23 @@ case class NilSuccessResponse(success: NilReturnSuccess) extends UKTRResponse
 object NilSuccessResponse {
   implicit val format: OFormat[NilSuccessResponse] = Json.format[NilSuccessResponse]
 }
+case class SimpleErrorResponse(error: UKTRSimpleError) extends UKTRResponse
+
+object SimpleErrorResponse {
+  implicit val format: OFormat[SimpleErrorResponse] = Json.format[SimpleErrorResponse]
+}
+
+case class DetailedErrorResponse(errors: UKTRDetailedError) extends UKTRResponse
+
+object DetailedErrorResponse {
+  implicit val format: OFormat[DetailedErrorResponse] = Json.format[DetailedErrorResponse]
+}
 
 object UKTRResponse {
   implicit val writes: Writes[UKTRResponse] = Writes {
     case l: LiabilitySuccessResponse => Json.obj("success" -> l.success)
     case n: NilSuccessResponse       => Json.obj("success" -> n.success)
+    case s: SimpleErrorResponse      => Json.obj("errors" -> s.error)
+    case d: DetailedErrorResponse    => Json.obj("errors" -> d.errors)
   }
 }

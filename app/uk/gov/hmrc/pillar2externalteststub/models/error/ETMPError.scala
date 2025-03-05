@@ -22,41 +22,74 @@ sealed trait ETMPError extends Exception {
   override def getMessage: String = message
 }
 
-sealed trait ETMPErrorCodes {
-  val Pillar2IdMissing: ETMPError = ETMPError.Pillar2IdMissing
-  val RequestCouldNotBeProcessed: ETMPError = ETMPError.RequestCouldNotBeProcessed
-  val DuplicateSubmissionError: ETMPError = ETMPError.DuplicateSubmissionError
-  val InvalidReturn: ETMPError = ETMPError.InvalidReturn
-}
-
 object ETMPError {
   case object Pillar2IdMissing extends ETMPError {
     override val code:    String = "002"
     override val message: String = s"Pillar2 ID Missing or Invalid"
   }
 
-case object RequestCouldNotBeProcessed extends ETMPError {
-  override val code:    String = "003"
-  override val message: String = s"Request could not be processed"
-}
+  case object RequestCouldNotBeProcessed extends ETMPError {
+    override val code:    String = "003"
+    override val message: String = s"Request could not be processed"
+  }
 
-case object DuplicateSubmissionError extends ETMPError {
-  override val code:    String = "004"
-  override val message: String = s"Duplicate submission acknowledgment reference"
-}
+  case object DuplicateSubmissionError extends ETMPError {
+    override val code:    String = "004"
+    override val message: String = s"Duplicate submission acknowledgment reference"
+  }
 
-case object InvalidReturn extends ETMPError {
-  override val code:    String = "093"
-  override val message: String = "Invalid return"
-}
+  case object NoActiveSubscription extends ETMPError {
+    override val code:    String = "007"
+    override val message: String = s"Business partner does not have an Active subscription"
+  }
 
-case object ETMPBadRequest extends ETMPError {
-  override val code:    String = "400"
-  override val message: String = "Bad request"
-} 
+  case object TaxObligationAlreadyFulfilled extends ETMPError {
+    override val code:    String = "044"
+    override val message: String = s"Tax obligation already fulfilled"
+  }
 
-case object ETMPInternalServerError extends ETMPError {
-  override val code:    String = "500"
-  override val message: String = "Internal server error"
-}
+  case object InvalidReturn extends ETMPError {
+    override val code:    String = "093"
+    override val message: String = "Invalid return"
+  }
+
+  case object InvalidDTTElection extends ETMPError {
+    override val code:    String = "094"
+    override val message: String = "Invalid DTT election"
+  }
+
+  case object InvalidUTPRElection extends ETMPError {
+    override val code:    String = "095"
+    override val message: String = "Invalid UTPR election"
+  }
+
+  case object InvalidTotalLiability extends ETMPError {
+    override val code:    String = "096"
+    override val message: String = "Invalid total liability"
+  }
+
+  case object InvalidTotalLiabilityIIR extends ETMPError {
+    override val code:    String = "097"
+    override val message: String = "Invalid total liability IIR"
+  }
+
+  case object InvalidTotalLiabilityDTT extends ETMPError {
+    override val code:    String = "098"
+    override val message: String = "Invalid total liability DTT"
+  }
+
+  case object InvalidTotalLiabilityUTPR extends ETMPError {
+    override val code:    String = "099"
+    override val message: String = "Invalid total liability UTPR"
+  }
+
+  case object ETMPBadRequest extends ETMPError {
+    override val code:    String = "400"
+    override val message: String = "Bad request"
+  }
+
+  case object ETMPInternalServerError extends ETMPError {
+    override val code:    String = "500"
+    override val message: String = "Internal server error"
+  }
 }

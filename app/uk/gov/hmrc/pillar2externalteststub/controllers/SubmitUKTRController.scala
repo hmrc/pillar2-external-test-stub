@@ -112,13 +112,18 @@ class SubmitUKTRController @Inject() (
         import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRLiabilityReturn._
         (for {
           validator <- uktrSubmissionValidator(plrReference)(organisationService, ec)
-          validationResult = validator.validate(uktrRequest)
-          result <- validationResult.toEither match {
-                      case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-                      case Right(_) =>
-                        repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
-                    }
-        } yield result).recoverWith { case e: Exception =>
+        } yield {
+          val validationResult = validator.validate(uktrRequest)
+          validationResult.toEither match {
+            case Left(errors) =>
+              errors.head match {
+                case UKTRSubmissionError(error) => Future.failed(error)
+                case _                          => Future.failed(ETMPInternalServerError)
+              }
+            case Right(_) =>
+              repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
+          }
+        }).flatten.recoverWith { case e: Exception =>
           logger.error(s"Error validating request: ${e.getMessage}", e)
           Future.failed(ETMPInternalServerError)
         }
@@ -126,13 +131,18 @@ class SubmitUKTRController @Inject() (
         import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRNilReturn._
         (for {
           validator <- uktrNilReturnValidator(plrReference)(organisationService, ec)
-          validationResult = validator.validate(nilReturnRequest)
-          result <- validationResult.toEither match {
-                      case Left(errors) => UKTRErrorTransformer.from422ToJson(errors)
-                      case Right(_) =>
-                        repository.insert(nilReturnRequest, plrReference).map(_ => Created(Json.toJson(NilReturnSuccess.successfulNilReturnResponse)))
-                    }
-        } yield result).recoverWith { case e: Exception =>
+        } yield {
+          val validationResult = validator.validate(nilReturnRequest)
+          validationResult.toEither match {
+            case Left(errors) =>
+              errors.head match {
+                case UKTRSubmissionError(error) => Future.failed(error)
+                case _                          => Future.failed(ETMPInternalServerError)
+              }
+            case Right(_) =>
+              repository.insert(nilReturnRequest, plrReference).map(_ => Created(Json.toJson(NilReturnSuccess.successfulNilReturnResponse)))
+          }
+        }).flatten.recoverWith { case e: Exception =>
           logger.error(s"Error validating request: ${e.getMessage}", e)
           Future.failed(ETMPInternalServerError)
         }
