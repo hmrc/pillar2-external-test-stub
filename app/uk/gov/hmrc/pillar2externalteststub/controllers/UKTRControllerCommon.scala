@@ -28,11 +28,11 @@ import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import scala.concurrent.{ExecutionContext, Future}
 
 trait UKTRControllerCommon extends Logging {
-  
-  protected def repository: UKTRSubmissionRepository
+
+  protected def repository:          UKTRSubmissionRepository
   protected def organisationService: OrganisationService
-  implicit def ec: ExecutionContext
-  
+  implicit def ec:                   ExecutionContext
+
   // Common validation for Pillar2Id
   protected def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
     pillar2Id match {
@@ -43,25 +43,24 @@ trait UKTRControllerCommon extends Logging {
         logger.warn(s"Invalid Pillar2Id received: $other")
         Future.failed(Pillar2IdMissing)
     }
-  
+
   // Check for server error PLR ID
-  protected def checkForServerErrorId(pillar2Id: String): Future[String] = {
+  protected def checkForServerErrorId(pillar2Id: String): Future[String] =
     if (pillar2Id == ServerErrorPlrId) {
       logger.warn("Server error triggered by special PLR ID")
       Future.failed(ETMPInternalServerError)
     } else {
       Future.successful(pillar2Id)
     }
-  }
-  
+
   // Common processing logic for validating UKTRSubmission
   protected def processUKTRSubmission(
-    plrReference: String, 
-    request: Request[JsValue],
+    plrReference:  String,
+    request:       Request[JsValue],
     successAction: (UKTRSubmission, String) => Future[Result]
-  )(implicit ec: ExecutionContext): Future[Result] = {
+  )(implicit ec:   ExecutionContext): Future[Result] = {
     logger.info(s"Processing UKTR submission for PLR: $plrReference")
-    
+
     request.body.validate[UKTRSubmission] match {
       case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
         logger.info(s"Processing liability return for PLR: $plrReference")
@@ -117,7 +116,7 @@ trait UKTRControllerCommon extends Logging {
           .mkString(", ")
         logger.warn(s"JSON validation failed: $errorMessage")
         Future.failed(ETMPBadRequest)
-        
+
       case JsSuccess(submission: UKTRSubmission, _) =>
         logger.warn(s"Unsupported UKTRSubmission type: ${submission.getClass.getSimpleName}")
         Future.failed(ETMPBadRequest)

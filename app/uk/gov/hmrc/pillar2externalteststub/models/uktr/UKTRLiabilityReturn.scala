@@ -39,65 +39,8 @@ object UKTRLiabilityReturn {
 
   implicit val uktrSubmissionDataFormat: OFormat[UKTRLiabilityReturn] = Json.format[UKTRLiabilityReturn]
 
-  private val boundaryUKTRAmount = BigDecimal("9999999999999.99")
-  private def isValidUKTRAmount(number: BigDecimal) =
-    number >= 0 &&
-      number <= boundaryUKTRAmount &&
-      number.scale <= 2 &&
-      number.toString.matches("^\\d+(\\.\\d{1,2})?$")
-
-  private def obligationMTTRule(
-    plrReference:                 String
-  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
-    organisationService.getOrganisation(plrReference).map { org =>
-      val isDomestic = org.organisation.orgDetails.domesticOnly
-      ValidationRule[UKTRLiabilityReturn] { data =>
-        if (data.obligationMTT && isDomestic) {
-          invalid(
-            UKTRSubmissionError(
-              InvalidReturn
-            )
-          )
-        } else valid[UKTRLiabilityReturn](data)
-      }
-    }
-
-  private def electionUKGAAPRule(
-    plrReference:                 String
-  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
-    organisationService.getOrganisation(plrReference).map { org =>
-      val isDomestic = org.organisation.orgDetails.domesticOnly
-      ValidationRule[UKTRLiabilityReturn] { data =>
-        (data.electionUKGAAP, isDomestic) match {
-          case (true, false) =>
-            invalid(
-              UKTRSubmissionError(InvalidReturn)
-            )
-          case _ => valid[UKTRLiabilityReturn](data)
-        }
-      }
-    }
-
-  private def accountingPeriodRule(
-    plrReference:                 String
-  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
-    organisationService.getOrganisation(plrReference).map { org =>
-      ValidationRule[UKTRLiabilityReturn] { data =>
-        if (
-          data.accountingPeriodFrom.isBefore(org.organisation.accountingPeriod.startDate) || data.accountingPeriodTo
-            .isAfter(org.organisation.accountingPeriod.endDate)
-        ) {
-          invalid(
-            UKTRSubmissionError(
-              InvalidReturn
-            )
-          )
-        } else valid[UKTRLiabilityReturn](data)
-      }
-    }
-
   private val totalLiabilityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (isValidUKTRAmount(data.liabilities.totalLiability)) valid[UKTRLiabilityReturn](data)
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiability)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(InvalidTotalLiability)
@@ -105,7 +48,7 @@ object UKTRLiabilityReturn {
   }
 
   private val totalLiabilityDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (isValidUKTRAmount(data.liabilities.totalLiabilityDTT)) valid[UKTRLiabilityReturn](data)
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityDTT)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -115,7 +58,7 @@ object UKTRLiabilityReturn {
   }
 
   private val totalLiabilityIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (isValidUKTRAmount(data.liabilities.totalLiabilityIIR)) valid[UKTRLiabilityReturn](data)
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityIIR)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(InvalidTotalLiabilityIIR)
@@ -123,7 +66,7 @@ object UKTRLiabilityReturn {
   }
 
   private val totalLiabilityUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (isValidUKTRAmount(data.liabilities.totalLiabilityUTPR)) valid[UKTRLiabilityReturn](data)
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityUTPR)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -173,7 +116,7 @@ object UKTRLiabilityReturn {
   }
 
   private val amountOwedDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => isValidUKTRAmount(f.amountOwedDTT))) valid[UKTRLiabilityReturn](data)
+    if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedDTT))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -183,7 +126,7 @@ object UKTRLiabilityReturn {
   }
 
   private val amountOwedIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => isValidUKTRAmount(f.amountOwedIIR))) valid[UKTRLiabilityReturn](data)
+    if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedIIR))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -193,7 +136,7 @@ object UKTRLiabilityReturn {
   }
 
   private val amountOwedUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => isValidUKTRAmount(f.amountOwedUTPR))) valid[UKTRLiabilityReturn](data)
+    if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedUTPR))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -206,12 +149,13 @@ object UKTRLiabilityReturn {
     plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
     for {
-      obligationMTTRule    <- obligationMTTRule(plrReference)
-      electionUKGAAPRule   <- electionUKGAAPRule(plrReference)
-      accountingPeriodRule <- accountingPeriodRule(plrReference)
+      obligationMTTRule    <- UKTRValidationRules.obligationMTTRule[UKTRLiabilityReturn](plrReference)
+      electionUKGAAPRule   <- UKTRValidationRules.electionUKGAAPRule[UKTRLiabilityReturn](plrReference)
+      accountingPeriodRule <- UKTRValidationRules.accountingPeriodRule[UKTRLiabilityReturn](plrReference)
     } yield ValidationRule.compose(
       obligationMTTRule,
       electionUKGAAPRule,
+      accountingPeriodRule,
       totalLiabilityRule,
       totalLiabilityDTTRule,
       totalLiabilityIIRRule,
