@@ -21,9 +21,8 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
-import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
+import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -60,50 +59,48 @@ class SubmitUKTRController @Inject() (
           logger.warn("Server error triggered by special PLR ID")
           Future.failed(ETMPInternalServerError)
         } else {
-          retrieveSubscription(pillar2Id)._2 match {
-            case _: SubscriptionSuccessResponse =>
-              // Validate the request first
-              organisationService
-                .getOrganisation(pillar2Id)
-                .flatMap { org =>
-                  // Check if valid organisation
-                  val orgAccountingPeriod = org.organisation.accountingPeriod
-                  logger.warn(s"Organization accounting period: ${orgAccountingPeriod.startDate} to ${orgAccountingPeriod.endDate}")
+          organisationService
+            .getOrganisation(pillar2Id)
+            .flatMap { org =>
+              // Check if valid organisation
+              val orgAccountingPeriod = org.organisation.accountingPeriod
+              logger.warn(s"Organization accounting period: ${orgAccountingPeriod.startDate} to ${orgAccountingPeriod.endDate}")
 
-                  request.body.validate[UKTRSubmission] match {
-                    case JsSuccess(uktrSubmission, _) =>
-                      // Check accounting period matches
-                      logger.warn(s"Submission accounting period: ${uktrSubmission.accountingPeriodFrom} to ${uktrSubmission.accountingPeriodTo}")
+              request.body.validate[UKTRSubmission] match {
+                case JsSuccess(uktrSubmission, _) =>
+                  logger.warn(s"Submission accounting period: ${uktrSubmission.accountingPeriodFrom} to ${uktrSubmission.accountingPeriodTo}")
 
-                      if (
-                        uktrSubmission.accountingPeriodFrom.isEqual(orgAccountingPeriod.startDate) &&
-                        uktrSubmission.accountingPeriodTo.isEqual(orgAccountingPeriod.endDate)
-                      ) {
-                        logger.warn("Accounting periods match, proceeding with validation")
-                        validateRequest(pillar2Id, request)
-                      } else {
-                        logger.warn(
-                          s"Accounting period mismatch for PLR: $pillar2Id. " +
-                            s"Submitted: ${uktrSubmission.accountingPeriodFrom} to ${uktrSubmission.accountingPeriodTo}, " +
-                            s"Expected: ${orgAccountingPeriod.startDate} to ${orgAccountingPeriod.endDate}"
-                        )
-                        Future.failed(
-                          InvalidReturn
-                        )
-                      }
-                    case JsError(_) => validateRequest(pillar2Id, request) // Let the validateRequest handle the JSON error
+                  if (
+                    uktrSubmission.accountingPeriodFrom.isEqual(orgAccountingPeriod.startDate) &&
+                    uktrSubmission.accountingPeriodTo.isEqual(orgAccountingPeriod.endDate)
+                  ) {
+                    logger.warn("Accounting periods match, proceeding with validation")
+                    validateRequest(pillar2Id, request)
+                  } else {
+                    logger.warn(
+                      s"Accounting period mismatch for PLR: $pillar2Id. " +
+                        s"Submitted: ${uktrSubmission.accountingPeriodFrom} to ${uktrSubmission.accountingPeriodTo}, " +
+                        s"Expected: ${orgAccountingPeriod.startDate} to ${orgAccountingPeriod.endDate}"
+                    )
+                    Future.failed(
+                      InvalidReturn
+                    )
                   }
-                }
-                .recoverWith { case e: Exception =>
-                  logger.error(s"Error validating organisation: ${e.getMessage}", e)
-                  Future.failed(ETMPInternalServerError)
-                }
-            case _ =>
-              logger.warn(s"Subscription not found for pillar2Id: $pillar2Id")
-              Future.failed(ETMPInternalServerError)
-          }
+                case JsError(_) => validateRequest(pillar2Id, request) // Let the validateRequest handle the JSON error
+              }
+            }
+            .recoverWith {
+              case OrganisationNotFound(_) =>
+                logger.warn(s"Organisation not found for pillar2Id: $pillar2Id")
+                Future.failed(NoActiveSubscription)
+
+              case e: Exception =>
+                logger.error(s"Error validating organisation: ${e.getMessage}", e)
+                Future.failed(e)
+            }
         }
       }
+
   }
 
   def validateRequest(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] =
@@ -124,10 +121,7 @@ class SubmitUKTRController @Inject() (
               logger.info(s"UKTR request validated successfully for PLR: $plrReference")
               repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
           }
-        }).flatten.recoverWith { case e: Exception =>
-          logger.error(s"Error validating request: ${e.getMessage}", e)
-          Future.failed(ETMPInternalServerError)
-        }
+        }).flatten
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRNilReturn._
         (for {
@@ -143,10 +137,7 @@ class SubmitUKTRController @Inject() (
             case Right(_) =>
               repository.insert(nilReturnRequest, plrReference).map(_ => Created(Json.toJson(NilReturnSuccess.successfulNilReturnResponse)))
           }
-        }).flatten.recoverWith { case e: Exception =>
-          logger.error(s"Error validating request: ${e.getMessage}", e)
-          Future.failed(ETMPInternalServerError)
-        }
+        }).flatten
       case JsError(errors) =>
         val errorMessage = errors
           .map { case (path, validationErrors) =>

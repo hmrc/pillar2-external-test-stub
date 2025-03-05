@@ -4,20 +4,28 @@
   "type": "collection",
   "collections": [
     {
-      "name": "Authentication",
-      "path": "auth"
-    },
-    {
-      "name": "UKTR Submissions",
-      "path": "uktr"
-    },
-    {
-      "name": "Below Threshold Notification",
-      "path": "btn"
+      "name": "Setup",
+        "path": "01-setup"
     },
     {
       "name": "Organisation Management",
-      "path": "organisation"
+      "path": "02-organisation"
+    },
+    {
+      "name": "Authentication",
+      "path": "02-auth"
+    },
+    {
+      "name": "UKTR Submissions",
+      "path": "02-uktr"
+    },
+    {
+      "name": "Below Threshold Notification",
+      "path": "02-btn"
+    },
+    {
+      "name": "Cleanup",
+      "path": "09-cleanup"
     }
   ],
   "ignore": [

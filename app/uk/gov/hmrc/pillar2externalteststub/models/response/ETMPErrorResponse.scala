@@ -19,14 +19,26 @@ package uk.gov.hmrc.pillar2externalteststub.models.response
 import play.api.libs.json.OFormat
 import play.api.libs.json.Json
 
-case class ETMPSimpleErrorResponse(code: String, message: String, logID: Option[String] = None)
+case class ETMPErrorResponse(error: ETMPSimpleError)
 
-object ETMPSimpleErrorResponse {
-  implicit val format: OFormat[ETMPSimpleErrorResponse] = Json.format[ETMPSimpleErrorResponse]
+object ETMPErrorResponse {
+  implicit val format: OFormat[ETMPErrorResponse] = Json.format[ETMPErrorResponse]
 }
 
-case class ETMPDetailedErrorResponse(processingDate: String, code: String, text: String)
+case class ETMPSimpleError(code: String, message: String, logID: Option[String] = None)
 
-object ETMPDetailedErrorResponse {
-  implicit val format: OFormat[ETMPDetailedErrorResponse] = Json.format[ETMPDetailedErrorResponse]
+object ETMPSimpleError {
+  implicit val format: OFormat[ETMPSimpleError] = Json.format[ETMPSimpleError]
+}
+
+case class ETMPFailureResponse(errors: ETMPDetailedError)
+
+object ETMPFailureResponse {
+  implicit val format: OFormat[ETMPFailureResponse] = Json.format[ETMPFailureResponse]
+}
+
+case class ETMPDetailedError(processingDate: String, code: String, text: String)
+
+object ETMPDetailedError {
+  implicit val format: OFormat[ETMPDetailedError] = Json.format[ETMPDetailedError]
 }
