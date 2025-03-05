@@ -16,14 +16,10 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
-import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.retrieveSubscription
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -34,118 +30,52 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class AmendUKTRController @Inject() (
-  cc:                  ControllerComponents,
-  authActionFilter:    AuthActionFilter,
-  repository:          UKTRSubmissionRepository,
-  organisationService: OrganisationService
-)(implicit ec:         ExecutionContext)
+  cc:                               ControllerComponents,
+  authActionFilter:                 AuthActionFilter,
+  override val repository:          UKTRSubmissionRepository,
+  override val organisationService: OrganisationService
+)(implicit override val ec:         ExecutionContext)
     extends BackendController(cc)
-    with Logging {
-
-  private def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
-    pillar2Id match {
-      case Some(id) if pillar2Regex.matches(id) =>
-        logger.info(s"Valid Pillar2Id received: $id")
-        Future.successful(id)
-      case other =>
-        logger.warn(s"Invalid Pillar2Id received: $other")
-        Future.failed(Pillar2IdMissing)
-    }
+    with UKTRControllerCommon {
 
   def amendUKTR: Action[JsValue] = (Action andThen authActionFilter).async(parse.json) { implicit request =>
     logger.info("UKTR amendment request received")
+
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+      .flatMap(checkForServerErrorId)
       .flatMap { pillar2Id =>
-        if (pillar2Id == ServerErrorPlrId) {
-          logger.error("Error triggered by special PLR ID")
-          Future.failed(ETMPInternalServerError)
-        } else {
-          retrieveSubscription(pillar2Id)._2 match {
-            case _: SubscriptionSuccessResponse =>
-              logger.info(s"Valid subscription found for PLR: $pillar2Id")
-              validateRequest(pillar2Id, request)
-            case _ =>
-              logger.warn(s"Subscription not found for pillar2Id: $pillar2Id")
-              Future.failed(RequestCouldNotBeProcessed)
-          }
+        organisationService.getOrganisation(pillar2Id).flatMap { org =>
+          checkExistingSubmission(pillar2Id, request)
         }
       }
   }
 
-  def validateRequest(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] = {
-    logger.info(s"Validating amendment request for PLR: $plrReference")
+  private def checkExistingSubmission(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] = {
+    logger.info(s"Checking for existing submission for PLR: $plrReference")
 
     repository.findByPillar2Id(plrReference).flatMap {
       case Some(_) =>
         logger.info(s"Existing submission found for PLR: $plrReference, proceeding with validation")
-        processValidRequest(plrReference, request)
+        processAmendment(plrReference, request)
       case None =>
         logger.warn(s"No existing submission found to amend for pillar2Id: $plrReference")
         Future.failed(RequestCouldNotBeProcessed)
     }
   }
 
-  private def processValidRequest(plrReference: String, request: Request[JsValue])(implicit
-    ec:                                         ExecutionContext
-  ): Future[Result] = {
-    logger.info(s"Processing valid amendment request for PLR: $plrReference")
+  private def processAmendment(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] = {
+    // Define the success action for amendment
+    val successAction: (UKTRSubmission, String) => Future[Result] = (submission, plrRef) =>
+      submission match {
+        case nilReturn: UKTRNilReturn =>
+          repository.update(nilReturn, plrRef).map(_ => Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
+        case liability: UKTRLiabilityReturn =>
+          repository.update(liability, plrRef).map(_ => Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
+        case _ =>
+          Future.failed(ETMPBadRequest)
+      }
 
-    request.body.validate[UKTRSubmission] match {
-      case JsSuccess(uktrRequest: UKTRLiabilityReturn, _) =>
-        logger.info(s"Processing liability return amendment for PLR: $plrReference")
-        import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRLiabilityReturn._
-        (for {
-          validator <- uktrSubmissionValidator(plrReference)(organisationService, ec)
-        } yield {
-          val validationResult = validator.validate(uktrRequest)
-          validationResult.toEither match {
-            case Left(errors) =>
-              errors.head match {
-                case UKTRSubmissionError(error) => Future.failed(error)
-                case _                          => Future.failed(ETMPInternalServerError)
-              }
-            case Right(_) =>
-              repository.update(uktrRequest, plrReference).map(_ => Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
-          }
-        }).flatten.recoverWith { case e: Exception =>
-          logger.error(s"Error validating request: ${e.getMessage}", e)
-          Future.failed(ETMPInternalServerError)
-        }
-
-      case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
-        logger.info(s"Processing nil return amendment for PLR: $plrReference")
-        import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRNilReturn._
-        (for {
-          validator <- uktrNilReturnValidator(plrReference)(organisationService, ec)
-        } yield {
-          val validationResult = validator.validate(nilReturnRequest)
-          validationResult.toEither match {
-            case Left(errors) =>
-              errors.head match {
-                case UKTRSubmissionError(error) => Future.failed(error)
-                case _                          => Future.failed(ETMPInternalServerError)
-              }
-            case Right(_) =>
-              repository.update(nilReturnRequest, plrReference).map(_ => Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
-          }
-        }).flatten.recoverWith { case e: Exception =>
-          logger.error(s"Error validating request: ${e.getMessage}", e)
-          Future.failed(ETMPInternalServerError)
-        }
-
-      case JsError(errors) =>
-        val errorMessage = errors
-          .map { case (path, validationErrors) =>
-            val fieldName     = path.toJsonString
-            val errorMessages = validationErrors.map(_.message).mkString(", ")
-            s"Field: $fieldName: $errorMessages"
-          }
-          .mkString(", ")
-        logger.warn(s"JSON validation failed: $errorMessage")
-        Future.failed(ETMPBadRequest)
-      case JsSuccess(submission: UKTRSubmission, _) =>
-        logger.warn(s"Unsupported UKTRSubmission type: ${submission.getClass.getSimpleName}")
-        Future.failed(ETMPBadRequest)
-    }
+    // Use the common validation and processing logic
+    processUKTRSubmission(plrReference, request, successAction)
   }
 }
