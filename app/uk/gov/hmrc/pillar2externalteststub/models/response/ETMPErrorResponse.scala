@@ -30,5 +30,3 @@ case class ETMPDetailedErrorResponse(processingDate: String, code: String, text:
 object ETMPDetailedErrorResponse {
   implicit val format: OFormat[ETMPDetailedErrorResponse] = Json.format[ETMPDetailedErrorResponse]
 }
-
-

@@ -121,6 +121,7 @@ class SubmitUKTRController @Inject() (
                 case _                          => Future.failed(ETMPInternalServerError)
               }
             case Right(_) =>
+              logger.info(s"UKTR request validated successfully for PLR: $plrReference")
               repository.insert(uktrRequest, plrReference).map(_ => Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
           }
         }).flatten.recoverWith { case e: Exception =>
