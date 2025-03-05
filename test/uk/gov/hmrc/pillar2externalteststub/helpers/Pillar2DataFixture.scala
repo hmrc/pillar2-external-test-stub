@@ -16,11 +16,14 @@
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
+import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.AccountingPeriod
 
 import java.time.LocalDate
 
 trait Pillar2DataFixture {
+
+  val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
 
   val validPlrId       = "XMPLR0000000000"
   val nonDomesticPlrId = "XEPLR1234567890"

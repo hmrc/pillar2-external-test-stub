@@ -18,7 +18,6 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 
 import org.bson.types.ObjectId
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
@@ -28,8 +27,7 @@ import java.time.LocalDate
 
 trait UKTRDataFixture extends Pillar2DataFixture {
 
-  val authHeader:         (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
-  val invalidUKTRAmounts: Seq[BigDecimal]  = Seq(-5, 1e+13, 10.999)
+  val invalidUKTRAmounts: Seq[BigDecimal] = Seq(-5, 1e+13, 10.999)
 
   val validLiableEntity: JsObject = Json.obj(
     "ukChargeableEntityName" -> "New Company",

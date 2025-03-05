@@ -25,17 +25,18 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
-
-import java.time.LocalDate
 
 class OrganisationRepositorySpec
     extends AnyWordSpec
     with Matchers
     with DefaultPlayMongoRepositorySupport[TestOrganisationWithId]
     with ScalaFutures
-    with IntegrationPatience {
+    with IntegrationPatience
+    with UKTRDataFixture
+    with BTNDataFixture {
 
   override protected val databaseName: String = "test-organisation-repository"
 
@@ -60,17 +61,6 @@ class OrganisationRepositorySpec
 
   override protected val repository: OrganisationRepository =
     app.injector.instanceOf[OrganisationRepository]
-
-  private val orgDetails = OrgDetails(
-    domesticOnly = false,
-    organisationName = "Test Org",
-    registrationDate = LocalDate.of(2024, 1, 1)
-  )
-
-  private val accountingPeriod = AccountingPeriod(
-    startDate = LocalDate.of(2024, 1, 1),
-    endDate = LocalDate.of(2024, 12, 31)
-  )
 
   private val organisation = TestOrganisation(
     orgDetails = orgDetails,
@@ -131,10 +121,20 @@ class OrganisationRepositorySpec
   }
 
   "delete" should {
-    "successfully delete an existing organisation" in {
-      repository.insert(organisationWithId).futureValue shouldBe true
-      repository.delete("TEST123").futureValue          shouldBe true
-      repository.findByPillar2Id("TEST123").futureValue shouldBe None
+    "successfully delete an organisation and its associated submissions" in {
+      val btnRepository:  BTNSubmissionRepository  = app.injector.instanceOf[BTNSubmissionRepository]
+      val uktrRepository: UKTRSubmissionRepository = app.injector.instanceOf[UKTRSubmissionRepository]
+      btnRepository.ensureIndexes().futureValue
+      uktrRepository.ensureIndexes().futureValue
+      repository.insert(organisationWithId).futureValue
+      btnRepository.insert(validPlrId, validBTNRequest).futureValue
+      uktrRepository.insert(nilSubmission, validPlrId).futureValue
+
+      repository.delete(validPlrId).futureValue
+
+      repository.findByPillar2Id(validPlrId).futureValue     shouldBe empty
+      btnRepository.findByPillar2Id(validPlrId).futureValue  shouldBe empty
+      uktrRepository.findByPillar2Id(validPlrId).futureValue shouldBe empty
     }
 
     "return true when deleting a non-existent organisation" in {

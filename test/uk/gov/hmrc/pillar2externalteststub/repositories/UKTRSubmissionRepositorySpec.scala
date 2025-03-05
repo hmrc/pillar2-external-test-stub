@@ -70,5 +70,22 @@ class UKTRSubmissionRepositorySpec
         result.isLeft shouldBe true
       }
     }
+
+    "handling deletions" should {
+      "successfully delete all submissions for a given pillar2Id" in {
+        repository.insert(liabilitySubmission, validPlrId).futureValue
+        repository.insert(nilSubmission, validPlrId, isAmendment = true).futureValue
+
+        repository.findByPillar2Id(validPlrId).futureValue.isDefined shouldBe true
+
+        repository.deleteByPillar2Id(validPlrId).futureValue         shouldBe true
+        repository.findByPillar2Id(validPlrId).futureValue.isDefined shouldBe false
+      }
+
+      "return true when attempting to delete non-existent pillar2Id" in {
+        val deleteResult = repository.deleteByPillar2Id("NONEXISTENT").futureValue
+        deleteResult shouldBe true
+      }
+    }
   }
 }

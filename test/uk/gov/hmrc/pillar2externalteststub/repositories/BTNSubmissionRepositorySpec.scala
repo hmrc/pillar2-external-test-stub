@@ -133,4 +133,21 @@ class BTNSubmissionRepositorySpec
       submissions.map(_.accountingPeriodFrom) should contain theSameElementsAs requests.map(_.accountingPeriodFrom)
     }
   }
+
+  "deleteByPillar2Id" should {
+    "successfully delete all submissions for a given pillar2Id" in {
+      repository.insert(testPillar2Id, testRequest).futureValue
+      repository.insert(testPillar2Id, testRequest).futureValue
+
+      repository.findByPillar2Id(testPillar2Id).futureValue.size shouldBe 2
+
+      repository.deleteByPillar2Id(testPillar2Id).futureValue shouldBe true
+      repository.findByPillar2Id(testPillar2Id).futureValue   shouldBe empty
+    }
+
+    "return true when attempting to delete non-existent pillar2Id" in {
+      val deleteResult = repository.deleteByPillar2Id("NONEXISTENT").futureValue
+      deleteResult shouldBe true
+    }
+  }
 }

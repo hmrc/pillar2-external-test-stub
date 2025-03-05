@@ -87,4 +87,10 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .find(equal("pillar2Id", pillar2Id))
       .sort(descending("submittedAt"))
       .headOption()
+
+  def deleteByPillar2Id(pillar2Id: String): Future[Boolean] =
+    collection
+      .deleteMany(equal("pillar2Id", pillar2Id))
+      .toFuture()
+      .map(_.wasAcknowledged())
 }
