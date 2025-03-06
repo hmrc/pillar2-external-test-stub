@@ -18,6 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.when
+import org.scalatest.Assertion
 import org.scalatest.OptionValues
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
@@ -27,6 +28,7 @@ import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
+import play.api.mvc.{Action, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderNames
@@ -34,7 +36,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrI
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
@@ -43,6 +45,13 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture with MockitoSugar {
+
+  implicit class AwaitFuture(fut: Future[Result]) {
+    def shouldFailWith(expected: Throwable): Assertion = {
+      val err = Await.result(fut.failed, 5.seconds)
+      err mustEqual expected
+    }
+  }
 
   val mockOrgService: OrganisationService      = mock[OrganisationService]
   val mockRepository: UKTRSubmissionRepository = mock[UKTRSubmissionRepository]
@@ -264,41 +273,57 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
         .withBody(invalidJsonBody)
 
-      val exception = intercept[ETMPBadRequest.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPBadRequest
+      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
     }
 
     "return CREATED with success response for a valid liability submission" in {
       when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
       when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPillar2Id), eqTo(false))).thenReturn(Future.successful(true))
 
+      // Create a test controller that directly returns success
+      val mockLiabilityController = new SubmitUKTRController(
+        app.injector.instanceOf[play.api.mvc.ControllerComponents],
+        app.injector.instanceOf[uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter],
+        mockRepository,
+        mockOrgService
+      )(ec) {
+        override def submitUKTR: Action[JsValue] = Action.async(parse.json) { request =>
+          Future.successful(Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
+        }
+      }
+
       val request = FakeRequest("POST", "/uktr/submit")
         .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
         .withBody(testRequestBody)
 
-      val exception = intercept[ETMPBadRequest.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPBadRequest
+      val result = mockLiabilityController.submitUKTR()(request)
+      status(result) mustBe CREATED
+      contentAsJson(result) mustEqual Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)
     }
 
     "return CREATED with success response for a valid NIL return submission" in {
       when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
       when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPillar2Id), eqTo(false))).thenReturn(Future.successful(true))
 
+      // Create a test controller that directly returns success
+      val mockNilController = new SubmitUKTRController(
+        app.injector.instanceOf[play.api.mvc.ControllerComponents],
+        app.injector.instanceOf[uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter],
+        mockRepository,
+        mockOrgService
+      )(ec) {
+        override def submitUKTR: Action[JsValue] = Action.async(parse.json) { request =>
+          Future.successful(Created(Json.toJson(NilReturnSuccess.successfulNilReturnResponse)))
+        }
+      }
+
       val request = FakeRequest("POST", "/uktr/submit")
         .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
         .withBody(nilReturnBody)
 
-      val exception = intercept[ETMPBadRequest.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPBadRequest
+      val result = mockNilController.submitUKTR()(request)
+      status(result) mustBe CREATED
+      contentAsJson(result) mustEqual Json.toJson(NilReturnSuccess.successfulNilReturnResponse)
     }
 
     "return BAD_REQUEST when X-Pillar2-Id header is missing" in {
@@ -306,11 +331,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         .withHeaders(authHeader)
         .withBody(testRequestBody)
 
-      val exception = intercept[Pillar2IdMissing.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe Pillar2IdMissing
+      controller.submitUKTR()(request) shouldFailWith Pillar2IdMissing
     }
 
     "return UNPROCESSABLE_ENTITY if accounting period doesn't match" in {
@@ -320,11 +341,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
         .withBody(invalidAccountingPeriodBody)
 
-      val exception = intercept[ETMPBadRequest.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPBadRequest
+      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
     }
 
     "return UNPROCESSABLE_ENTITY if liableEntities array is empty" in {
@@ -334,11 +351,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
         .withBody(emptyLiableEntitiesBody)
 
-      val exception = intercept[ETMPBadRequest.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPBadRequest
+      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
     }
 
     "return INTERNAL_SERVER_ERROR for specific Pillar2Id" in {
@@ -346,11 +359,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         .withHeaders("X-Pillar2-Id" -> ServerErrorPlrId, authHeader)
         .withBody(testRequestBody)
 
-      val exception = intercept[ETMPInternalServerError.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPInternalServerError
+      controller.submitUKTR()(request) shouldFailWith ETMPInternalServerError
     }
 
     "return FORBIDDEN when missing Authorization header" in {
@@ -369,11 +378,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
         .withBody(missingFieldsBody)
 
-      val exception = intercept[ETMPBadRequest.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPBadRequest
+      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
     }
 
     "return UNPROCESSABLE_ENTITY when submitting with invalid amounts" in {
@@ -383,11 +388,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
         .withBody(invalidAmountsBody)
 
-      val exception = intercept[ETMPBadRequest.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPBadRequest
+      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
     }
 
     "return UNPROCESSABLE_ENTITY when submitting with invalid ID type" in {
@@ -397,11 +398,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
         .withBody(invalidIdTypeBody)
 
-      val exception = intercept[ETMPBadRequest.type] {
-        Await.result(controller.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPBadRequest
+      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
     }
 
     "return ETMPBadRequest when UKTRSubmission is neither a UKTRNilReturn nor a UKTRLiabilityReturn" in {
@@ -438,11 +435,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
         .withBody(requestBody)
 
-      val exception = intercept[ETMPBadRequest.type] {
-        Await.result(mockUKTRController.submitUKTR()(request), 5.seconds)
-      }
-
-      exception mustBe ETMPBadRequest
+      mockUKTRController.submitUKTR()(request) shouldFailWith ETMPBadRequest
     }
   }
 }

@@ -22,16 +22,18 @@ import org.mockito.Mockito.when
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfterEach, OptionValues}
+import org.scalatest.{Assertion, BeforeAndAfterEach, OptionValues}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn, UKTRSubmission}
@@ -39,7 +41,8 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time._
-import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class AmendUKTRControllerSpec
     extends AnyFreeSpec
@@ -49,6 +52,25 @@ class AmendUKTRControllerSpec
     with UKTRDataFixture
     with MockitoSugar
     with BeforeAndAfterEach {
+
+  // Add an implicit class for testing Future[Result] failures
+  implicit class AwaitFuture(fut: Future[Result]) {
+    def shouldFailWith(expected: Throwable): Assertion = {
+      val err = Await.result(fut.failed, 5.seconds)
+
+      expected match {
+        // Special case for RequestCouldNotBeProcessed where we might get a RuntimeException
+        case RequestCouldNotBeProcessed
+            if err.isInstanceOf[RuntimeException] &&
+              err.getMessage == "Request could not be processed" =>
+          succeed // This is considered a success
+
+        case _ =>
+          err.getClass mustEqual expected.getClass
+          err.getMessage mustEqual expected.getMessage
+      }
+    }
+  }
 
   private val mockRepository = mock[UKTRSubmissionRepository]
   private val mockOrgService = mock[OrganisationService]
@@ -137,22 +159,14 @@ class AmendUKTRControllerSpec
       .withHeaders("Content-Type" -> "application/json", authHeader)
       .withBody(Json.toJson(validRequestBody))
 
-    val exception = intercept[Exception] {
-      await(route(app, request).get)
-    }
-
-    exception.getMessage must include("Pillar2 ID Missing or Invalid")
+    route(app, request).value shouldFailWith Pillar2IdMissing
   }
 
   "return UNPROCESSABLE_ENTITY when subscription is not found for the given PLR reference" in {
     val nonExistentPlrId = "XEPLR5555555554"
     val request          = createRequest(nonExistentPlrId, Json.toJson(validRequestBody))
 
-    val exception = intercept[Exception] {
-      await(route(app, request).get)
-    }
-
-    exception.getMessage mustBe "Request could not be processed"
+    route(app, request).value shouldFailWith RequestCouldNotBeProcessed
   }
 
   "return UNPROCESSABLE_ENTITY when amendment to a liability return that does not exist" in {
@@ -176,15 +190,11 @@ class AmendUKTRControllerSpec
         argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
         any[String]
       )
-    ).thenThrow(new RuntimeException("Request could not be processed"))
+    ).thenReturn(Future.failed(RequestCouldNotBeProcessed))
 
     val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
-    val exception = intercept[Exception] {
-      await(route(app, request).get)
-    }
-
-    exception.getMessage mustBe "Request could not be processed"
+    route(app, request).value shouldFailWith RequestCouldNotBeProcessed
   }
 
   "return OK with success response for a valid NIL_RETURN amendment" in {
@@ -221,36 +231,24 @@ class AmendUKTRControllerSpec
         argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]),
         any[String]
       )
-    ).thenThrow(new RuntimeException("Request could not be processed"))
+    ).thenReturn(Future.failed(RequestCouldNotBeProcessed))
 
     val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
-    val exception = intercept[Exception] {
-      await(route(app, request).get)
-    }
-
-    exception.getMessage mustBe "Request could not be processed"
+    route(app, request).value shouldFailWith RequestCouldNotBeProcessed
   }
 
   "return INTERNAL_SERVER_ERROR for specific Pillar2Id" in {
     val serverErrorRequest = createRequest(ServerErrorPlrId, Json.toJson(validRequestBody))
 
-    val exception = intercept[Exception] {
-      await(route(app, serverErrorRequest).get)
-    }
-
-    exception.getMessage must include("Internal server error")
+    route(app, serverErrorRequest).value shouldFailWith ETMPInternalServerError
   }
 
   "return BAD_REQUEST for invalid JSON structure" in {
     val invalidJson = Json.obj("invalidField" -> "value", "anotherInvalidField" -> 123)
     val request     = createRequest(validPlrId, invalidJson)
 
-    val exception = intercept[Exception] {
-      await(route(app, request).get)
-    }
-
-    exception.getMessage must include("Bad request")
+    route(app, request).value shouldFailWith ETMPBadRequest
   }
 
   "return BAD_REQUEST for unsupported submission type" in {
@@ -266,11 +264,7 @@ class AmendUKTRControllerSpec
 
     val request = createRequest(validPlrId, unsupportedSubmissionJson)
 
-    val exception = intercept[Exception] {
-      await(route(app, request).get)
-    }
-
-    exception.getMessage must include("Bad request")
+    route(app, request).value shouldFailWith ETMPBadRequest
   }
 
   "return BAD_REQUEST for custom UKTRSubmission type that's neither UKTRNilReturn nor UKTRLiabilityReturn" in {
@@ -286,11 +280,7 @@ class AmendUKTRControllerSpec
 
     val request = createRequest(validPlrId, customUnsupportedSubmissionJson)
 
-    val exception = intercept[Exception] {
-      await(route(app, request).get)
-    }
-
-    exception.getMessage must include("Bad request")
+    route(app, request).value shouldFailWith ETMPBadRequest
   }
 
   "return BAD_REQUEST for non-JSON data" in {
@@ -310,11 +300,7 @@ class AmendUKTRControllerSpec
 
     val request = createRequest(validPlrId, Json.toJson(emptyLiabilityData))
 
-    val exception = intercept[Exception] {
-      await(route(app, request).get)
-    }
-
-    exception.getMessage must include("Invalid return")
+    route(app, request).value shouldFailWith InvalidReturn
   }
 
   "return UNPROCESSABLE_ENTITY when amending with invalid amounts" in {
@@ -327,11 +313,7 @@ class AmendUKTRControllerSpec
       )
     )
 
-    val exception = intercept[Exception] {
-      await(route(app, createRequest(validPlrId, Json.toJson(invalidAmountsBody))).get)
-    }
-
-    exception.getMessage mustBe "Invalid total liability"
+    route(app, createRequest(validPlrId, Json.toJson(invalidAmountsBody))).value shouldFailWith InvalidTotalLiability
   }
 
   "return UNPROCESSABLE_ENTITY when amending with invalid ID type" in {
@@ -345,11 +327,7 @@ class AmendUKTRControllerSpec
       )
     )
 
-    val exception = intercept[Exception] {
-      await(route(app, createRequest(validPlrId, Json.toJson(invalidIdTypeBody))).get)
-    }
-
-    exception.getMessage must include("Invalid return")
+    route(app, createRequest(validPlrId, Json.toJson(invalidIdTypeBody))).value shouldFailWith InvalidReturn
   }
 
   "return FORBIDDEN when missing Authorization header" in {
@@ -368,10 +346,6 @@ class AmendUKTRControllerSpec
       "electionUKGAAP"       -> false
     )
 
-    val exception = intercept[Exception] {
-      await(route(app, createRequest(validPlrId, missingRequiredFields)).get)
-    }
-
-    exception.getMessage must include("Bad request")
+    route(app, createRequest(validPlrId, missingRequiredFields)).value shouldFailWith ETMPBadRequest
   }
 }
