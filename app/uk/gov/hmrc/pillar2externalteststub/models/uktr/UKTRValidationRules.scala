@@ -16,26 +16,26 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
-import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object UKTRValidationRules {
-  
-  val boundaryUKTRAmount = BigDecimal("9999999999999.99")
-  
+
+  val boundaryUKTRAmount: BigDecimal = BigDecimal("9999999999999.99")
+
   def isValidUKTRAmount(number: BigDecimal): Boolean =
     number >= 0 &&
       number <= boundaryUKTRAmount &&
       number.scale <= 2 &&
       number.toString.matches("^\\d+(\\.\\d{1,2})?$")
-  
+
   // Common validation for obligationMTT - checks if domestic organizations can have obligationMTT set to true
   def obligationMTTRule[T <: UKTRSubmission](
-    plrReference: String
+    plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[T]] =
     organisationService.getOrganisation(plrReference).map { org =>
       val isDomestic = org.organisation.orgDetails.domesticOnly
@@ -49,10 +49,10 @@ object UKTRValidationRules {
         } else valid[T](data)
       }
     }
-  
+
   // Common validation for electionUKGAAP - checks if non-domestic organizations can have electionUKGAAP set to true
   def electionUKGAAPRule[T <: UKTRSubmission](
-    plrReference: String
+    plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[T]] =
     organisationService.getOrganisation(plrReference).map { org =>
       val isDomestic = org.organisation.orgDetails.domesticOnly
@@ -68,10 +68,10 @@ object UKTRValidationRules {
         }
       }
     }
-  
+
   // Common validation for accounting period
   def accountingPeriodRule[T <: UKTRSubmission](
-    plrReference: String
+    plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[T]] =
     organisationService.getOrganisation(plrReference).map { org =>
       ValidationRule[T] { data =>
@@ -79,7 +79,7 @@ object UKTRValidationRules {
           data.accountingPeriodFrom == org.organisation.accountingPeriod.startDate &&
           data.accountingPeriodTo == org.organisation.accountingPeriod.endDate
         ) {
-            valid[T](data)
+          valid[T](data)
         } else {
           invalid(
             UKTRSubmissionError(
@@ -90,4 +90,3 @@ object UKTRValidationRules {
       }
     }
 }
-

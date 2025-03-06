@@ -20,15 +20,15 @@ import play.api.Logging
 import play.api.http.HttpErrorHandler
 import play.api.libs.json.Json
 import play.api.mvc.{RequestHeader, Result, Results}
-import uk.gov.hmrc.pillar2externalteststub.models.error._
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
-
-import javax.inject.Singleton
-import scala.concurrent.Future
+import uk.gov.hmrc.pillar2externalteststub.models.error._
 import uk.gov.hmrc.pillar2externalteststub.models.response.ETMPDetailedError
 import uk.gov.hmrc.pillar2externalteststub.models.response.ETMPFailureResponse
+import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
+
 import java.time.LocalDateTime
+import javax.inject.Singleton
+import scala.concurrent.Future
 
 @Singleton
 class StubErrorHandler extends HttpErrorHandler with Logging {

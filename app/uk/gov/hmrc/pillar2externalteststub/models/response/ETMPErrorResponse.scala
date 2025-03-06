@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.response
 
-import play.api.libs.json.OFormat
 import play.api.libs.json.Json
+import play.api.libs.json.OFormat
 
 case class ETMPErrorResponse(error: ETMPSimpleError)
 

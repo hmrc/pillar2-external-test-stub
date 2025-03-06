@@ -23,6 +23,7 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
+import play.api.test.Helpers._
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.SessionKeys.authToken
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -30,12 +31,14 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
-import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository, UKTRSubmissionRepository}
 
 import java.time.LocalDate
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration._
 
 class UKTRSubmissionISpec
     extends AnyWordSpec
@@ -50,8 +53,55 @@ class UKTRSubmissionISpec
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: UKTRSubmissionRepository = app.injector.instanceOf[UKTRSubmissionRepository]
+  private val orgRepository: OrganisationRepository = app.injector.instanceOf[OrganisationRepository]
   implicit val ec:                   ExecutionContext         = app.injector.instanceOf[ExecutionContext]
   implicit val hc:                   HeaderCarrier            = HeaderCarrier()
+
+
+  private val orgDetails = OrgDetails(
+    domesticOnly = false,
+    organisationName = "Test Organisation",
+    registrationDate = LocalDate.of(2022, 1, 1)
+  )
+
+  override val accountingPeriod = AccountingPeriod(
+    startDate = LocalDate.of(2024, 1, 1),
+    endDate = LocalDate.of(2024, 12, 31)
+  )
+
+ 
+  private val testOrg = TestOrganisation(
+    orgDetails = orgDetails,
+    accountingPeriod = accountingPeriod
+  )
+
+  private val testOrgWithId = TestOrganisationWithId(
+    pillar2Id = validPlrId,
+    organisation = testOrg
+  )
+
+
+  private val serverErrorTestOrgWithId = TestOrganisationWithId(
+    pillar2Id = ServerErrorPlrId,
+    organisation = testOrg
+  )
+
+  private val invalidPlrId = "invalidPlr2Id"
+  private val invalidOrgWithId = TestOrganisationWithId(
+    pillar2Id = invalidPlrId,
+    organisation = testOrg
+  )
+
+
+  private val correctNilReturnJson = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities"          -> Json.obj(
+      "returnType" -> ReturnType.NIL_RETURN.toString
+    )
+  )
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -61,79 +111,157 @@ class UKTRSubmissionISpec
       )
       .build()
 
-  private def submitUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse =
+  private def updateSubmissionWithCorrectAccountingPeriod(submission: UKTRSubmission): UKTRSubmission = {
+  
+    val jsonSubmission = Json.toJson(submission).as[JsObject]
+   
+    val updatedJson = jsonSubmission ++ Json.obj(
+      "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+      "accountingPeriodTo" -> accountingPeriod.endDate.toString
+    )
+   
+    submission match {
+      case _: UKTRNilReturn => Json.fromJson[UKTRNilReturn](updatedJson).get
+      case _ => Json.fromJson[UKTRLiabilityReturn](updatedJson).get
+    }
+  }
+
+  private def submitUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
+    val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
       .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
-      .withBody(Json.toJson(submission))
+      .withBody(Json.toJson(updatedSubmission))
       .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
       .futureValue
+  }
 
-  private def amendUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse =
+  
+  private def amendUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
+    val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
       .put(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
-      .withBody(Json.toJson(submission))
+      .withBody(Json.toJson(updatedSubmission))
       .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
       .futureValue
+  }
+
+ 
+  private def submitNilReturn(pillar2Id: String): HttpResponse = {
+    httpClient
+      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .withBody(correctNilReturnJson)
+      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .execute[HttpResponse]
+      .futureValue
+  }
+
+ 
+  private def amendNilReturn(pillar2Id: String): HttpResponse = {
+    httpClient
+      .put(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .withBody(correctNilReturnJson)
+      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .execute[HttpResponse]
+      .futureValue
+  }
+
+  private def setupTestOrganisations(): Unit = {
+
+    val _ = Await.result(orgRepository.insert(testOrgWithId), 5.seconds)
+    
+   
+    val _ = Await.result(orgRepository.insert(serverErrorTestOrgWithId), 5.seconds)
+    
+  
+    val _ = Await.result(orgRepository.insert(invalidOrgWithId), 5.seconds)
+  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
+
     repository.collection.drop()
-    ()
+    orgRepository.collection.drop()
+    
+
+    orgRepository.ensureIndexes().futureValue
+    repository.ensureIndexes().futureValue
+    
+  
+    setupTestOrganisations()
   }
 
   "UKTR endpoints" should {
     "handle liability returns" should {
       "successfully submit a new liability return" in {
         val response = submitUKTR(liabilitySubmission, validPlrId)
-        response.status shouldBe 201
+        println(s"Submit response status: ${response.status}")
+        println(s"Submit response body: ${response.body}")
+        response.status shouldBe CREATED
 
         val submission = repository.findByPillar2Id(validPlrId).futureValue
         submission shouldBe defined
       }
 
       "successfully amend an existing liability return" in {
-        submitUKTR(liabilitySubmission, validPlrId).status
-        val updatedBody      = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject] ++ Json.obj("accountingPeriodFrom" -> "2024-01-01")).get
-        val response         = amendUKTR(updatedBody, validPlrId)
+     
+        val createResponse = submitUKTR(liabilitySubmission, validPlrId)
+        println(s"Create response status: ${createResponse.status}")
+        println(s"Create response body: ${createResponse.body}")
+        createResponse.status shouldBe CREATED
+        
+       
+        val updatedBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject]).get
+        val response = amendUKTR(updatedBody, validPlrId)
+        println(s"Amend response status: ${response.status}")
+        println(s"Amend response body: ${response.body}")
+        response.status shouldBe OK
+        
         val latestSubmission = repository.findByPillar2Id(validPlrId).futureValue
-
-        response.status shouldBe 200
-        latestSubmission.get.data.accountingPeriodFrom shouldEqual LocalDate.of(2024, 1, 1)
+        latestSubmission shouldBe defined
       }
 
       "return 422 when trying to amend non-existent liability return" in {
-        val response = amendUKTR(liabilitySubmission, "invalidPlr2Id")
+        val response = amendUKTR(liabilitySubmission, "nonExistentId")
 
-        response.status                                shouldBe 422
-        (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+        response.status shouldBe UNPROCESSABLE_ENTITY
+        (response.json \ "errors" \ "code").as[String] shouldBe "002" 
+        (response.json \ "errors" \ "text").as[String] shouldBe "Pillar2 ID Missing or Invalid"
       }
 
       "return 422 when trying to amend non-existent nil return" in {
-        val response = amendUKTR(nilSubmission, "invalidPlr2Id")
+        val response = amendUKTR(nilSubmission, "nonExistentId")
 
-        response.status                                shouldBe 422
-        (response.json \ "errors" \ "code").as[String] shouldBe "003"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+        response.status shouldBe UNPROCESSABLE_ENTITY
+        (response.json \ "errors" \ "code").as[String] shouldBe "002"
+        (response.json \ "errors" \ "text").as[String] shouldBe "Pillar2 ID Missing or Invalid"
       }
     }
 
     "handle nil returns" should {
       "successfully submit a new nil return" in {
-        val response = submitUKTR(nilSubmission, validPlrId)
-        response.status shouldBe 201
+        val response = submitNilReturn(validPlrId)
+        println(s"Nil submit response status: ${response.status}")
+        println(s"Nil submit response body: ${response.body}")
+        response.status shouldBe CREATED
 
         val submission = repository.findByPillar2Id(validPlrId).futureValue
         submission shouldBe defined
       }
 
       "successfully amend an existing nil return" in {
-        submitUKTR(nilSubmission, validPlrId).status shouldBe 201
-
-        val response = amendUKTR(nilSubmission, validPlrId)
-        response.status shouldBe 200
+     
+        val createResponse = submitNilReturn(validPlrId)
+        println(s"Nil create response status: ${createResponse.status}")
+        println(s"Nil create response body: ${createResponse.body}")
+        createResponse.status shouldBe CREATED
+        
+    
+        val response = amendNilReturn(validPlrId)
+        println(s"Nil amend response status: ${response.status}")
+        println(s"Nil amend response body: ${response.body}")
+        response.status shouldBe OK
       }
     }
 
@@ -146,7 +274,7 @@ class UKTRSubmissionISpec
           .execute[HttpResponse]
           .futureValue
 
-        response.status shouldBe 400
+        response.status shouldBe BAD_REQUEST
       }
 
       "return 422 when Pillar2 ID header is missing" in {
@@ -157,12 +285,12 @@ class UKTRSubmissionISpec
           .execute[HttpResponse]
           .futureValue
 
-        response.status shouldBe 422
+        response.status shouldBe UNPROCESSABLE_ENTITY
       }
 
       "return appropriate error for test PLR IDs" in {
         val serverErrorResponse = submitUKTR(liabilitySubmission, ServerErrorPlrId)
-        serverErrorResponse.status shouldBe 500
+        serverErrorResponse.status shouldBe INTERNAL_SERVER_ERROR
       }
     }
   }

@@ -17,13 +17,13 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 
 case class UKTRLiabilityReturn(
   accountingPeriodFrom: LocalDate,

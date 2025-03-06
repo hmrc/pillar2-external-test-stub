@@ -17,11 +17,11 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
+import scala.concurrent.{ExecutionContext, Future}
 
 case class UKTRNilReturn(
   accountingPeriodFrom: LocalDate,

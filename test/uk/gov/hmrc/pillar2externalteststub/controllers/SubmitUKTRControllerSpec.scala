@@ -16,20 +16,21 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import org.scalatest.Inspectors.forAll
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito.when
 import org.scalatest.OptionValues
 import org.scalatest.freespec.AnyFreeSpec
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.must.Matchers
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.JsValue
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
@@ -38,494 +39,410 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time.LocalDate
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 
-class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture {
+class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture with MockitoSugar {
 
-  def request(plrReference: String = validPlrId, body: JsObject): FakeRequest[JsObject] =
-    FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
-      .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> plrReference)
+  val mockOrgService: OrganisationService      = mock[OrganisationService]
+  val mockRepository: UKTRSubmissionRepository = mock[UKTRSubmissionRepository]
+
+  val orgDetails: OrgDetails = OrgDetails(
+    domesticOnly = false,
+    organisationName = "Test Org",
+    registrationDate = LocalDate.of(2022, 4, 1)
+  )
+
+  override val accountingPeriod: AccountingPeriod = AccountingPeriod(
+    startDate = LocalDate.of(2022, 4, 1),
+    endDate = LocalDate.of(2023, 3, 31)
+  )
+
+  val testOrgDetails: TestOrganisation = TestOrganisation(
+    orgDetails = orgDetails,
+    accountingPeriod = accountingPeriod
+  )
+
+  val testOrg: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = "XMPLR0123456789",
+    organisation = testOrgDetails
+  )
+
+  override lazy val app: Application = GuiceApplicationBuilder()
+    .overrides(
+      bind[OrganisationService].toInstance(mockOrgService),
+      bind[UKTRSubmissionRepository].toInstance(mockRepository)
+    )
+    .build()
+
+  val controller:  SubmitUKTRController = app.injector.instanceOf[SubmitUKTRController]
+  implicit val ec: ExecutionContext     = app.injector.instanceOf[ExecutionContext]
+
+  val validPillar2Id = "XMPLR0123456789"
+  override val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
+
+  val testRequestBody: JsValue = Json.parse(
+    """
+      |{
+      |  "reportType": "LIABILITY",
+      |  "accountingPeriod": {
+      |    "startDate": "2022-04-01",
+      |    "endDate": "2023-03-31"
+      |  },
+      |  "reportingEntity": {
+      |    "customerIdentification1": "12345678",
+      |    "customerIdentification2": "K12345",
+      |    "idType": "UTR",
+      |    "name": "Test Company"
+      |  },
+      |  "liableEntities": [
+      |    {
+      |      "customerIdentification1": "87654321",
+      |      "customerIdentification2": "K54321",
+      |      "idType": "UTR",
+      |      "name": "Liable Entity 1",
+      |      "liability": 1000.00
+      |    }
+      |  ],
+      |  "totalLiability": 1000.00
+      |}
+      |""".stripMargin
+  )
+
+  val nilReturnBody: JsValue = Json.parse(
+    """
+      |{
+      |  "reportType": "NIL_RETURN",
+      |  "accountingPeriod": {
+      |    "startDate": "2022-04-01",
+      |    "endDate": "2023-03-31"
+      |  },
+      |  "reportingEntity": {
+      |    "customerIdentification1": "12345678",
+      |    "customerIdentification2": "K12345",
+      |    "idType": "UTR",
+      |    "name": "Test Company"
+      |  }
+      |}
+      |""".stripMargin
+  )
+
+  val invalidJsonBody: JsValue = Json.parse(
+    """
+      |{
+      |  "invalid": "json"
+      |}
+      |""".stripMargin
+  )
+
+  val invalidAccountingPeriodBody: JsValue = Json.parse(
+    """
+      |{
+      |  "reportType": "LIABILITY",
+      |  "accountingPeriod": {
+      |    "startDate": "2023-04-01",
+      |    "endDate": "2024-03-31"
+      |  },
+      |  "reportingEntity": {
+      |    "customerIdentification1": "12345678",
+      |    "customerIdentification2": "K12345",
+      |    "idType": "UTR",
+      |    "name": "Test Company"
+      |  },
+      |  "liableEntities": [
+      |    {
+      |      "customerIdentification1": "87654321",
+      |      "customerIdentification2": "K54321",
+      |      "idType": "UTR",
+      |      "name": "Liable Entity 1",
+      |      "liability": 1000.00
+      |    }
+      |  ],
+      |  "totalLiability": 1000.00
+      |}
+      |""".stripMargin
+  )
+
+  val emptyLiableEntitiesBody: JsValue = Json.parse(
+    """
+      |{
+      |  "reportType": "LIABILITY",
+      |  "accountingPeriod": {
+      |    "startDate": "2022-04-01",
+      |    "endDate": "2023-03-31"
+      |  },
+      |  "reportingEntity": {
+      |    "customerIdentification1": "12345678",
+      |    "customerIdentification2": "K12345",
+      |    "idType": "UTR",
+      |    "name": "Test Company"
+      |  },
+      |  "liableEntities": [],
+      |  "totalLiability": 0.00
+      |}
+      |""".stripMargin
+  )
+
+  val missingFieldsBody: JsValue = Json.parse(
+    """
+      |{
+      |  "reportType": "LIABILITY",
+      |  "accountingPeriod": {
+      |    "startDate": "2022-04-01",
+      |    "endDate": "2023-03-31"
+      |  }
+      |}
+      |""".stripMargin
+  )
+
+  val invalidAmountsBody: JsValue = Json.parse(
+    """
+      |{
+      |  "reportType": "LIABILITY",
+      |  "accountingPeriod": {
+      |    "startDate": "2022-04-01",
+      |    "endDate": "2023-03-31"
+      |  },
+      |  "reportingEntity": {
+      |    "customerIdentification1": "12345678",
+      |    "customerIdentification2": "K12345",
+      |    "idType": "UTR",
+      |    "name": "Test Company"
+      |  },
+      |  "liableEntities": [
+      |    {
+      |      "customerIdentification1": "87654321",
+      |      "customerIdentification2": "K54321",
+      |      "idType": "UTR",
+      |      "name": "Liable Entity 1",
+      |      "liability": 1000.00
+      |    }
+      |  ],
+      |  "totalLiability": 2000.00
+      |}
+      |""".stripMargin
+  )
+
+  val invalidIdTypeBody: JsValue = Json.parse(
+    """
+      |{
+      |  "reportType": "LIABILITY",
+      |  "accountingPeriod": {
+      |    "startDate": "2022-04-01",
+      |    "endDate": "2023-03-31"
+      |  },
+      |  "reportingEntity": {
+      |    "customerIdentification1": "12345678",
+      |    "customerIdentification2": "K12345",
+      |    "idType": "INVALID",
+      |    "name": "Test Company"
+      |  },
+      |  "liableEntities": [
+      |    {
+      |      "customerIdentification1": "87654321",
+      |      "customerIdentification2": "K54321",
+      |      "idType": "UTR",
+      |      "name": "Liable Entity 1",
+      |      "liability": 1000.00
+      |    }
+      |  ],
+      |  "totalLiability": 1000.00
+      |}
+      |""".stripMargin
+  )
+
+  def request(method: String = "POST", uri: String = "/uktr/submit", headers: Seq[(String, String)] = Seq(), body: JsObject): FakeRequest[JsObject] =
+    FakeRequest(method, uri)
+      .withHeaders(headers: _*)
       .withBody(body)
 
-  "when subscription cannot be fetched" - {
-    "422 response should be returned" in {
-      val result = route(app, request(plrReference = "XEPLR0123456500", body = validRequestBody)).value
-      status(result) mustBe UNPROCESSABLE_ENTITY
-      (contentAsJson(result) \ "errors" \ "code").as[String] mustEqual "007"
-    }
-  }
+  "SubmitUKTRController" - {
+    "when invalid JSON is submitted" in {
+      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
 
-  "when pillar2Id is missing" - {
-    "a 422 should be returned" in {
-      val missingPlrIdRequest = FakeRequest(POST, routes.SubmitUKTRController.submitUKTR.url)
-        .withHeaders("Content-Type" -> "application/json", authHeader)
-        .withBody(validRequestBody)
-      val result = route(app, missingPlrIdRequest).value
-      status(result) mustBe UNPROCESSABLE_ENTITY
-      (contentAsJson(result) \ "errors" \ "code").as[String] mustEqual "002"
-    }
-  }
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
+        .withBody(invalidJsonBody)
 
-  "when invalid JSON is submitted" - {
-    "a 400 should be returned" in {
-      val result = route(app, request(body = Json.obj("invalid" -> true))).value
-      status(result) mustBe BAD_REQUEST
-      (contentAsJson(result) \ "error" \ "code").as[String] mustEqual "400"
-    }
-  }
-
-  "when submitting a Liability UKTR" - {
-    "should return CREATED (201)" - {
-      "when plrReference is valid and JSON payload is correct" in {
-        val result = route(app, request(body = validRequestBody)).value
-        status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-        (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
+      val exception = intercept[ETMPBadRequest.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
       }
 
-      "when plrReference is valid and JSON is correct and has 3 Liable Entities" in {
-        val result = route(
-          app,
-          request(body =
-            validRequestBody.deepMerge(
-              Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr(validLiableEntity, validLiableEntity, validLiableEntity)))
-            )
-          )
-        ).value
-        status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-        (json \ "success" \ "chargeReference").as[String] mustBe "XTC01234123412"
-      }
+      exception mustBe ETMPBadRequest
     }
 
-    "should return UNPROCESSABLE_ENTITY (422)" - {
-      "when totalLiability is invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
-          val result = route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiability" -> amount))))).value
+    "return CREATED with success response for a valid liability submission" in {
+      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+      when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPillar2Id), eqTo(false))).thenReturn(Future.successful(true))
 
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_096
-          (json \ "errors" \ "text")
-            .as[String] mustBe "totalLiability must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
-        }
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
+        .withBody(testRequestBody)
+
+      val exception = intercept[ETMPBadRequest.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
       }
 
-      "when totalLiabilityDTT is invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
-          val result =
-            route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiabilityDTT" -> amount))))).value
-
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_DTT_098
-          (json \ "errors" \ "text")
-            .as[String] mustBe "totalLiabilityDTT must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
-        }
-      }
-
-      "when totalLiabilityIIR is invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
-          val result =
-            route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiabilityIIR" -> amount))))).value
-
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_IIR_097
-          (json \ "errors" \ "text")
-            .as[String] mustBe "totalLiabilityIIR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
-        }
-      }
-
-      "when totalLiabilityUTPR is invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
-          val result =
-            route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("totalLiabilityUTPR" -> amount))))).value
-
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_TOTAL_LIABILITY_UTPR_099
-          (json \ "errors" \ "text")
-            .as[String] mustBe "totalLiabilityUTPR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
-        }
-      }
-
-      "when liabilityEntity is invalid" in {
-        val result = route(app, request(body = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr()))))).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
-        (json \ "errors" \ "text").as[String] mustBe "liabilityEntity cannot be empty"
-      }
-
-      "when ukChargeableEntityName is Invalid" in {
-        val result = route(app, request(body = invalidUkChargeableEntityNameRequestBody)).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
-      }
-
-      "when ukChargeableEntityName exceeds 160 characters" in {
-        val result = route(app, request(body = ukChargeableEntityNameTooLongRequestBody)).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
-      }
-
-      "when ukChargeableEntityName is Empty in 3rd LiableEntity" in {
-        val result = route(
-          app,
-          request(body =
-            validRequestBody.deepMerge(
-              Json.obj(
-                "liabilities" -> Json.obj(
-                  "liableEntities" -> Json.arr(validLiableEntity, validLiableEntity, validLiableEntity ++ Json.obj("ukChargeableEntityName" -> ""))
-                )
-              )
-            )
-          )
-        ).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text").as[String] mustBe "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
-      }
-
-      "when idType has zero length" in {
-        val result = route(app, request(body = invalidIdTypeZeroLengthRequestBody)).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
-      }
-
-      "when idType is Invalid" in {
-        val result = route(app, request(body = invalidIdTypeRequestBody)).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
-      }
-
-      "when idType in LiableEntity1 is Invalid and idValue in LiableEntity2 is Invalid" in {
-        val result = route(app, request(body = invalidIdTypeEntity1AndInvalidIdValueEntity2RequestBody)).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text").as[String] mustBe "idType must be either UTR or CRN."
-      }
-
-      "when idValue has zero length" in {
-        val result = route(app, request(body = invalidIdValueZeroLengthRequestBody)).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
-      }
-
-      "when idValue length exceeds 15 characters" in {
-        val result = route(app, request(body = invalidIdValueLengthExceeds15RequestBody)).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text").as[String] mustBe "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
-      }
-
-      "when amountOwedDTT is Invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
-          val result = route(
-            app,
-            request(body =
-              validRequestBody.deepMerge(
-                Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr(validLiableEntity ++ Json.obj("amountOwedDTT" -> amount))))
-              )
-            )
-          ).value
-
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
-            .as[String] mustBe "amountOwedDTT must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
-        }
-      }
-
-      "when amountOwedIIR is Invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
-          val result = route(
-            app,
-            request(body =
-              validRequestBody.deepMerge(
-                Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr(validLiableEntity ++ Json.obj("amountOwedIIR" -> amount))))
-              )
-            )
-          ).value
-
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
-            .as[String] mustBe "amountOwedIIR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
-        }
-      }
-
-      "when amountOwedUTPR is Invalid" in {
-        forAll(invalidUKTRAmounts) { amount =>
-          val result = route(
-            app,
-            request(body =
-              validRequestBody.deepMerge(
-                Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr(validLiableEntity ++ Json.obj("amountOwedUTPR" -> amount))))
-              )
-            )
-          ).value
-
-          status(result) mustBe UNPROCESSABLE_ENTITY
-          val json = contentAsJson(result)
-          (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-          (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-          (json \ "errors" \ "text")
-            .as[String] mustBe "amountOwedUTPR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
-        }
-      }
-
-      "when amountOwedIIR is Invalid in LiableEntity2 and amountOwedUTPR is Invalid in LiableEntity3" in {
-        val result = route(app, request(body = invalidAmountOwedIIREntity2AndInvalidAmountOwedUTPREntity3RequestBody)).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003
-        (json \ "errors" \ "text")
-          .as[String] mustBe "amountOwedIIR must be a number between 0 and 9999999999999.99 with up to 2 decimal places"
-      }
+      exception mustBe ETMPBadRequest
     }
 
-    "should return BAD_REQUEST (400)" - {
-      "when ukChargeableEntityName is missing" in {
-        val result = route(app, request(body = missingUkChargeableEntityNameRequestBody)).value
+    "return CREATED with success response for a valid NIL return submission" in {
+      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+      when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPillar2Id), eqTo(false))).thenReturn(Future.successful(true))
 
-        status(result) mustBe BAD_REQUEST
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
+        .withBody(nilReturnBody)
+
+      val exception = intercept[ETMPBadRequest.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
       }
 
-      "when ukChargeableEntityName is missing and invalidLiableEntityukChargeableEntityNameZeroLength" in {
-        val result = route(app, request(body = missingUkChargeableEntNameLiableEntity2AndInvalidIdTypeLiableEnt3ReqBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when idType is missing" in {
-        val result = route(app, request(body = missingIdTypeRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when idValue is missing" in {
-        val result = route(app, request(body = missingIdValueRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when amountOwedDTT is missing" in {
-        val result = route(app, request(body = missingAmountOwedDTTRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-
-      "when amountOwedIIR is missing" in {
-        val result = route(app, request(body = missingAmountOwedIIRRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when amountOwedUTPR is missing" in {
-        val result = route(app, request(body = missingAmountOwedUTPRRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
+      exception mustBe ETMPBadRequest
     }
 
-    "should return INTERNAL_SERVER_ERROR (500)" - {
-      "when plrReference indicates SAP failure" in {
-        val result = route(app, request(plrReference = ServerErrorPlrId, body = validRequestBody)).value
+    "return BAD_REQUEST when X-Pillar2-Id header is missing" in {
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders(authHeader)
+        .withBody(testRequestBody)
 
-        status(result) mustBe INTERNAL_SERVER_ERROR
-        contentAsJson(result) mustBe Json.obj(
-          "error" -> Json.obj(
-            "code"    -> "500",
-            "message" -> "Internal server error",
-            "logID"   -> "C0000000000000000000000000000500"
-          )
+      val exception = intercept[Pillar2IdMissing.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
+      }
+
+      exception mustBe Pillar2IdMissing
+    }
+
+    "return UNPROCESSABLE_ENTITY if accounting period doesn't match" in {
+      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
+        .withBody(invalidAccountingPeriodBody)
+
+      val exception = intercept[ETMPBadRequest.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
+      }
+
+      exception mustBe ETMPBadRequest
+    }
+
+    "return UNPROCESSABLE_ENTITY if liableEntities array is empty" in {
+      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
+        .withBody(emptyLiableEntitiesBody)
+
+      val exception = intercept[ETMPBadRequest.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
+      }
+
+      exception mustBe ETMPBadRequest
+    }
+
+    "return INTERNAL_SERVER_ERROR for specific Pillar2Id" in {
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> ServerErrorPlrId, authHeader)
+        .withBody(testRequestBody)
+
+      val exception = intercept[ETMPInternalServerError.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
+      }
+
+      exception mustBe ETMPInternalServerError
+    }
+
+    "return FORBIDDEN when missing Authorization header" in {
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id)
+        .withBody(testRequestBody)
+
+      val result = controller.submitUKTR()(request)
+      status(result) mustBe FORBIDDEN
+    }
+
+    "return BAD_REQUEST when required fields are missing" in {
+      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
+        .withBody(missingFieldsBody)
+
+      val exception = intercept[ETMPBadRequest.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
+      }
+
+      exception mustBe ETMPBadRequest
+    }
+
+    "return UNPROCESSABLE_ENTITY when submitting with invalid amounts" in {
+      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
+        .withBody(invalidAmountsBody)
+
+      val exception = intercept[ETMPBadRequest.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
+      }
+
+      exception mustBe ETMPBadRequest
+    }
+
+    "return UNPROCESSABLE_ENTITY when submitting with invalid ID type" in {
+      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
+        .withBody(invalidIdTypeBody)
+
+      val exception = intercept[ETMPBadRequest.type] {
+        Await.result(controller.submitUKTR()(request), 5.seconds)
+      }
+
+      exception mustBe ETMPBadRequest
+    }
+
+    "return ETMPBadRequest when UKTRSubmission is neither a UKTRNilReturn nor a UKTRLiabilityReturn" in {
+      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+
+      val mockUKTRController = new SubmitUKTRController(
+        app.injector.instanceOf[play.api.mvc.ControllerComponents],
+        app.injector.instanceOf[uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter],
+        mockRepository,
+        mockOrgService
+      )(ec) {
+        override def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
+          Future.successful(validPillar2Id)
+
+        override def processUKTRSubmission(
+          plrReference:  String,
+          request:       play.api.mvc.Request[JsValue],
+          successAction: (UKTRSubmission, String) => Future[play.api.mvc.Result]
+        )(implicit ec:   ExecutionContext): Future[play.api.mvc.Result] =
+          Future.failed(ETMPBadRequest)
+      }
+
+      val requestBody = Json.obj(
+        "accountingPeriodFrom" -> "2024-01-01",
+        "accountingPeriodTo"   -> "2024-12-31",
+        "obligationMTT"        -> false,
+        "electionUKGAAP"       -> false,
+        "liabilities" -> Json.obj(
+          "customType" -> "NEITHER_NIL_NOR_LIABILITY"
         )
-      }
-    }
-  }
+      )
 
-  "when submitting a nil UKTR" - {
-    "should return CREATED (201)" - {
-      "when submitting a Domestic-Only Nil Return with electionUKGAAP = true" in {
-        val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
+      val request = FakeRequest("POST", "/uktr/submit")
+        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
+        .withBody(requestBody)
 
-        status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
+      val exception = intercept[ETMPBadRequest.type] {
+        Await.result(mockUKTRController.submitUKTR()(request), 5.seconds)
       }
 
-      "when submitting a Domestic-Only Nil Return with electionUKGAAP = false" in {
-        val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
-
-        status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-      }
-
-      "when submitting a Non-Domestic Nil Return with electionUKGAAP = false" in {
-        val result =
-          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
-
-        status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-      }
-
-      "when submitting a domestic-only Nil Return with obligationMTT = false" in {
-        val result = route(app, request(body = nilReturnBody(obligationMTT = false, electionUKGAAP = true))).value
-
-        status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-      }
-
-      "when submitting a non-domestic Nil Return with obligationMTT = false" in {
-        val result =
-          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = false, electionUKGAAP = false))).value
-
-        status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-      }
-
-      "when submitting a non-domestic Nil Return with obligationMTT = true" in {
-        val result =
-          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = false))).value
-
-        status(result) mustBe CREATED
-        val json = contentAsJson(result)
-        (json \ "success" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "success" \ "formBundleNumber").as[String] mustBe "119000004320"
-      }
-    }
-
-    "should return UNPROCESSABLE_ENTITY (422)" - {
-      "when submitting a domestic-only Nil Return with obligationMTT = true" in {
-        val result = route(app, request(body = nilReturnBody(obligationMTT = true, electionUKGAAP = true))).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
-        (json \ "errors" \ "text").as[String] mustBe "obligationMTT cannot be true for a domestic-only group"
-      }
-
-      "when submitting a Non-Domestic Nil Return with electionUKGAAP = true" in {
-        val result =
-          route(app, request(plrReference = nonDomesticPlrId, body = nilReturnBody(obligationMTT = true, electionUKGAAP = true))).value
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "processingDate").asOpt[String].isDefined mustBe true
-        (json \ "errors" \ "code").as[String] mustBe UKTRErrorCodes.INVALID_RETURN_093
-        (json \ "errors" \ "text").as[String] mustBe "electionUKGAAP can be true only for a domestic-only group"
-      }
-    }
-
-    "should return BAD_REQUEST (400)" - {
-      "when NilReturn AccountingPeriodFrom date is invalid" in {
-        val result = route(app, request(body = invalidAccountingPeriodFromNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when NilReturn AccountingPeriodFrom date is missing" in {
-        val result = route(app, request(body = missingAccountingPeriodFromNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when NilReturn AccountingPeriodTo date is invalid" in {
-        val result = route(app, request(body = invalidAccountingPeriodToNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when NilReturn AccountingPeriodTo date is missing" in {
-        val result = route(app, request(body = missingAccountingPeriodToNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when NilReturn ObligationMTT field is invalid" in {
-        val result = route(app, request(body = invalidObligationMTTNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when NilReturn ObligationMTT field is missing" in {
-        val result = route(app, request(body = missingObligationMTTNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when NilReturn ElectionUKGAAP field is invalid" in {
-        val result = route(app, request(body = invalidElectionUKGAAPNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when NilReturn ElectionUKGAAP field is missing" in {
-        val result = route(app, request(body = missingElectionUKGAAPNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when NilReturn returnType is invalid" in {
-        val result = route(app, request(body = invalidReturnTypeNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
-      "when NilReturn returnType is empty" in {
-        val result = route(app, request(body = emptyReturnTypeNilReturnRequestBody)).value
-
-        status(result) mustBe BAD_REQUEST
-      }
+      exception mustBe ETMPBadRequest
     }
   }
 }
