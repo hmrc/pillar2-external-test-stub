@@ -36,7 +36,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository, UKTRSubmissionRepository}
 
-import java.time.LocalDate
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 
@@ -56,18 +55,6 @@ class UKTRSubmissionISpec
   private val orgRepository: OrganisationRepository = app.injector.instanceOf[OrganisationRepository]
   implicit val ec:                   ExecutionContext         = app.injector.instanceOf[ExecutionContext]
   implicit val hc:                   HeaderCarrier            = HeaderCarrier()
-
-
-  private val orgDetails = OrgDetails(
-    domesticOnly = false,
-    organisationName = "Test Organisation",
-    registrationDate = LocalDate.of(2022, 1, 1)
-  )
-
-  override val accountingPeriod = AccountingPeriod(
-    startDate = LocalDate.of(2024, 1, 1),
-    endDate = LocalDate.of(2024, 12, 31)
-  )
 
  
   private val testOrg = TestOrganisation(
@@ -100,6 +87,80 @@ class UKTRSubmissionISpec
     "electionUKGAAP"       -> false,
     "liabilities"          -> Json.obj(
       "returnType" -> ReturnType.NIL_RETURN.toString
+    )
+  )
+
+  private val invalidAccountingPeriodJson = Json.obj(
+    "accountingPeriodFrom" -> "2023-01-01",
+    "accountingPeriodTo"   -> "2023-12-31",
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> false,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 4,
+      "numberSubGroupUTPR"       -> 5,
+      "totalLiability"           -> 10000.99,
+      "totalLiabilityDTT"        -> 5000.99,
+      "totalLiabilityIIR"        -> 4000,
+      "totalLiabilityUTPR"       -> 10000.99,
+      "liableEntities"           -> Json.arr(validLiableEntity)
+    )
+  )
+
+  private val emptyLiableEntitiesJson = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> false,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 4,
+      "numberSubGroupUTPR"       -> 5,
+      "totalLiability"           -> 10000.99,
+      "totalLiabilityDTT"        -> 5000.99,
+      "totalLiabilityIIR"        -> 4000,
+      "totalLiabilityUTPR"       -> 10000.99,
+      "liableEntities"           -> Json.arr()
+    )
+  )
+
+  private val invalidAmountsJson = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> false,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 4,
+      "numberSubGroupUTPR"       -> 5,
+      "totalLiability"           -> -500,
+      "totalLiabilityDTT"        -> 10000000000000.99,
+      "totalLiabilityIIR"        -> 4000,
+      "totalLiabilityUTPR"       -> 10000.99,
+      "liableEntities"           -> Json.arr(validLiableEntity)
+    )
+  )
+
+  private val invalidIdTypeJson = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> false,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 4,
+      "numberSubGroupUTPR"       -> 5,
+      "totalLiability"           -> 10000.99,
+      "totalLiabilityDTT"        -> 5000.99,
+      "totalLiabilityIIR"        -> 4000,
+      "totalLiabilityUTPR"       -> 10000.99,
+      "liableEntities"           -> Json.arr(
+        validLiableEntity.as[JsObject] ++ Json.obj("idType" -> "INVALID")
+      )
     )
   )
 
@@ -136,6 +197,24 @@ class UKTRSubmissionISpec
       .futureValue
   }
 
+  private def submitUKTRWithoutAuth(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
+    val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
+    httpClient
+      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .withBody(Json.toJson(updatedSubmission))
+      .setHeader("X-Pillar2-Id" -> pillar2Id)
+      .execute[HttpResponse]
+      .futureValue
+  }
+
+  private def submitCustomPayload(payload: JsObject, pillar2Id: String): HttpResponse = {
+    httpClient
+      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .withBody(payload)
+      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .execute[HttpResponse]
+      .futureValue
+  }
   
   private def amendUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
     val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
@@ -147,6 +226,15 @@ class UKTRSubmissionISpec
       .futureValue
   }
 
+  private def amendUKTRWithoutAuth(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
+    val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
+    httpClient
+      .put(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .withBody(Json.toJson(updatedSubmission))
+      .setHeader("X-Pillar2-Id" -> pillar2Id)
+      .execute[HttpResponse]
+      .futureValue
+  }
  
   private def submitNilReturn(pillar2Id: String): HttpResponse = {
     httpClient
@@ -288,9 +376,45 @@ class UKTRSubmissionISpec
         response.status shouldBe UNPROCESSABLE_ENTITY
       }
 
+      "return 403 when Authorization header is missing for submission" in {
+        val response = submitUKTRWithoutAuth(liabilitySubmission, validPlrId)
+        response.status shouldBe FORBIDDEN
+      }
+
+      "return 403 when Authorization header is missing for amendment" in {
+        val response = amendUKTRWithoutAuth(liabilitySubmission, validPlrId)
+        response.status shouldBe FORBIDDEN
+      }
+
+      "return 422 for invalid accounting period" in {
+        val response = submitCustomPayload(invalidAccountingPeriodJson, validPlrId)
+        response.status shouldBe UNPROCESSABLE_ENTITY
+      }
+
+      "return 422 for empty liableEntities array" in {
+        val response = submitCustomPayload(emptyLiableEntitiesJson, validPlrId)
+        response.status shouldBe UNPROCESSABLE_ENTITY
+      }
+
+      "return 422 for invalid amounts" in {
+        val response = submitCustomPayload(invalidAmountsJson, validPlrId)
+        response.status shouldBe UNPROCESSABLE_ENTITY
+      }
+
+      "return 422 for invalid ID type" in {
+        val response = submitCustomPayload(invalidIdTypeJson, validPlrId)
+        response.status shouldBe UNPROCESSABLE_ENTITY
+      }
+
       "return appropriate error for test PLR IDs" in {
         val serverErrorResponse = submitUKTR(liabilitySubmission, ServerErrorPlrId)
         serverErrorResponse.status shouldBe INTERNAL_SERVER_ERROR
+      }
+
+      "return 422 when trying to submit with non-existent PLR ID" in {
+        val nonExistentPlrId = "XMPLR9999999999"
+        val response = submitUKTR(liabilitySubmission, nonExistentPlrId)
+        response.status shouldBe UNPROCESSABLE_ENTITY
       }
     }
   }
