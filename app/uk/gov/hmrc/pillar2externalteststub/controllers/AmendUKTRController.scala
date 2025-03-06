@@ -23,6 +23,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -44,9 +45,20 @@ class AmendUKTRController @Inject() (
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap(checkForServerErrorId)
       .flatMap { pillar2Id =>
-        organisationService.getOrganisation(pillar2Id).flatMap { org =>
-          checkExistingSubmission(pillar2Id, request)
-        }
+        organisationService
+          .getOrganisation(pillar2Id)
+          .flatMap { org =>
+            checkExistingSubmission(pillar2Id, request)
+          }
+          .recoverWith {
+            case OrganisationNotFound(_) =>
+              logger.warn(s"Organisation not found for pillar2Id: $pillar2Id")
+              Future.failed(NoActiveSubscription)
+
+            case e: Exception =>
+              logger.error(s"Error validating organisation: ${e.getMessage}", e)
+              Future.failed(e)
+          }
       }
   }
 

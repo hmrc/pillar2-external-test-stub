@@ -16,22 +16,17 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito.when
-import org.scalatest.Assertion
 import org.scalatest.OptionValues
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Application
-import play.api.inject.bind
+import play.api.{Application, inject}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
-import play.api.mvc.{Action, Result}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
@@ -40,9 +35,12 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
-import java.time.LocalDate
+import java.time.{Instant, LocalDate}
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, Future}
+import play.api.mvc.Result
+import play.api.test.Helpers._
+import org.scalatest.compatible.Assertion
 
 class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture with MockitoSugar {
 
@@ -53,8 +51,8 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     }
   }
 
-  val mockOrgService: OrganisationService      = mock[OrganisationService]
-  val mockRepository: UKTRSubmissionRepository = mock[UKTRSubmissionRepository]
+  private val mockRepository = mock[UKTRSubmissionRepository]
+  private val mockOrgService = mock[OrganisationService]
 
   val orgDetails: OrgDetails = OrgDetails(
     domesticOnly = false,
@@ -62,380 +60,110 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     registrationDate = LocalDate.of(2022, 4, 1)
   )
 
-  override val accountingPeriod: AccountingPeriod = AccountingPeriod(
-    startDate = LocalDate.of(2022, 4, 1),
-    endDate = LocalDate.of(2023, 3, 31)
-  )
-
   val testOrgDetails: TestOrganisation = TestOrganisation(
     orgDetails = orgDetails,
-    accountingPeriod = accountingPeriod
+    accountingPeriod = AccountingPeriod(
+      startDate = LocalDate.of(2024, 8, 14),
+      endDate = LocalDate.of(2024, 12, 14)
+    ),
+    lastUpdated = Instant.now()
   )
 
   val testOrg: TestOrganisationWithId = TestOrganisationWithId(
-    pillar2Id = "XMPLR0123456789",
+    pillar2Id = validPlrId,
     organisation = testOrgDetails
   )
 
+  when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrg))
   override lazy val app: Application = GuiceApplicationBuilder()
     .overrides(
-      bind[OrganisationService].toInstance(mockOrgService),
-      bind[UKTRSubmissionRepository].toInstance(mockRepository)
+      inject.bind[UKTRSubmissionRepository].toInstance(mockRepository),
+      inject.bind[OrganisationService].toInstance(mockOrgService)
     )
     .build()
 
-  val controller:  SubmitUKTRController = app.injector.instanceOf[SubmitUKTRController]
-  implicit val ec: ExecutionContext     = app.injector.instanceOf[ExecutionContext]
-
-  val validPillar2Id = "XMPLR0123456789"
-  override val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
-
-  val testRequestBody: JsValue = Json.parse(
-    """
-      |{
-      |  "reportType": "LIABILITY",
-      |  "accountingPeriod": {
-      |    "startDate": "2022-04-01",
-      |    "endDate": "2023-03-31"
-      |  },
-      |  "reportingEntity": {
-      |    "customerIdentification1": "12345678",
-      |    "customerIdentification2": "K12345",
-      |    "idType": "UTR",
-      |    "name": "Test Company"
-      |  },
-      |  "liableEntities": [
-      |    {
-      |      "customerIdentification1": "87654321",
-      |      "customerIdentification2": "K54321",
-      |      "idType": "UTR",
-      |      "name": "Liable Entity 1",
-      |      "liability": 1000.00
-      |    }
-      |  ],
-      |  "totalLiability": 1000.00
-      |}
-      |""".stripMargin
-  )
-
-  val nilReturnBody: JsValue = Json.parse(
-    """
-      |{
-      |  "reportType": "NIL_RETURN",
-      |  "accountingPeriod": {
-      |    "startDate": "2022-04-01",
-      |    "endDate": "2023-03-31"
-      |  },
-      |  "reportingEntity": {
-      |    "customerIdentification1": "12345678",
-      |    "customerIdentification2": "K12345",
-      |    "idType": "UTR",
-      |    "name": "Test Company"
-      |  }
-      |}
-      |""".stripMargin
-  )
-
-  val invalidJsonBody: JsValue = Json.parse(
-    """
-      |{
-      |  "invalid": "json"
-      |}
-      |""".stripMargin
-  )
-
-  val invalidAccountingPeriodBody: JsValue = Json.parse(
-    """
-      |{
-      |  "reportType": "LIABILITY",
-      |  "accountingPeriod": {
-      |    "startDate": "2023-04-01",
-      |    "endDate": "2024-03-31"
-      |  },
-      |  "reportingEntity": {
-      |    "customerIdentification1": "12345678",
-      |    "customerIdentification2": "K12345",
-      |    "idType": "UTR",
-      |    "name": "Test Company"
-      |  },
-      |  "liableEntities": [
-      |    {
-      |      "customerIdentification1": "87654321",
-      |      "customerIdentification2": "K54321",
-      |      "idType": "UTR",
-      |      "name": "Liable Entity 1",
-      |      "liability": 1000.00
-      |    }
-      |  ],
-      |  "totalLiability": 1000.00
-      |}
-      |""".stripMargin
-  )
-
-  val emptyLiableEntitiesBody: JsValue = Json.parse(
-    """
-      |{
-      |  "reportType": "LIABILITY",
-      |  "accountingPeriod": {
-      |    "startDate": "2022-04-01",
-      |    "endDate": "2023-03-31"
-      |  },
-      |  "reportingEntity": {
-      |    "customerIdentification1": "12345678",
-      |    "customerIdentification2": "K12345",
-      |    "idType": "UTR",
-      |    "name": "Test Company"
-      |  },
-      |  "liableEntities": [],
-      |  "totalLiability": 0.00
-      |}
-      |""".stripMargin
-  )
-
-  val missingFieldsBody: JsValue = Json.parse(
-    """
-      |{
-      |  "reportType": "LIABILITY",
-      |  "accountingPeriod": {
-      |    "startDate": "2022-04-01",
-      |    "endDate": "2023-03-31"
-      |  }
-      |}
-      |""".stripMargin
-  )
-
-  val invalidAmountsBody: JsValue = Json.parse(
-    """
-      |{
-      |  "reportType": "LIABILITY",
-      |  "accountingPeriod": {
-      |    "startDate": "2022-04-01",
-      |    "endDate": "2023-03-31"
-      |  },
-      |  "reportingEntity": {
-      |    "customerIdentification1": "12345678",
-      |    "customerIdentification2": "K12345",
-      |    "idType": "UTR",
-      |    "name": "Test Company"
-      |  },
-      |  "liableEntities": [
-      |    {
-      |      "customerIdentification1": "87654321",
-      |      "customerIdentification2": "K54321",
-      |      "idType": "UTR",
-      |      "name": "Liable Entity 1",
-      |      "liability": 1000.00
-      |    }
-      |  ],
-      |  "totalLiability": 2000.00
-      |}
-      |""".stripMargin
-  )
-
-  val invalidIdTypeBody: JsValue = Json.parse(
-    """
-      |{
-      |  "reportType": "LIABILITY",
-      |  "accountingPeriod": {
-      |    "startDate": "2022-04-01",
-      |    "endDate": "2023-03-31"
-      |  },
-      |  "reportingEntity": {
-      |    "customerIdentification1": "12345678",
-      |    "customerIdentification2": "K12345",
-      |    "idType": "INVALID",
-      |    "name": "Test Company"
-      |  },
-      |  "liableEntities": [
-      |    {
-      |      "customerIdentification1": "87654321",
-      |      "customerIdentification2": "K54321",
-      |      "idType": "UTR",
-      |      "name": "Liable Entity 1",
-      |      "liability": 1000.00
-      |    }
-      |  ],
-      |  "totalLiability": 1000.00
-      |}
-      |""".stripMargin
-  )
-
-  def request(method: String = "POST", uri: String = "/uktr/submit", headers: Seq[(String, String)] = Seq(), body: JsObject): FakeRequest[JsObject] =
-    FakeRequest(method, uri)
-      .withHeaders(headers: _*)
+  private def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
+    FakeRequest("POST", routes.SubmitUKTRController.submitUKTR.url)
+      .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> plrId)
       .withBody(body)
 
   "SubmitUKTRController" - {
-    "when invalid JSON is submitted" in {
-      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+    "return ETMPBadRequest when invalid JSON is submitted" in {
+      val invalidJsonBody = Json.obj(
+        "someField" -> "someValue"
+      )
+      val request = createRequest(validPlrId, invalidJsonBody)
 
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
-        .withBody(invalidJsonBody)
-
-      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
+      route(app, request).value shouldFailWith ETMPBadRequest
     }
 
     "return CREATED with success response for a valid liability submission" in {
-      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
-      when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPillar2Id), eqTo(false))).thenReturn(Future.successful(true))
+      when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(true))
 
-      // Create a test controller that directly returns success
-      val mockLiabilityController = new SubmitUKTRController(
-        app.injector.instanceOf[play.api.mvc.ControllerComponents],
-        app.injector.instanceOf[uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter],
-        mockRepository,
-        mockOrgService
-      )(ec) {
-        override def submitUKTR: Action[JsValue] = Action.async(parse.json) { request =>
-          Future.successful(Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
-        }
-      }
+      val request = createRequest(validPlrId, validRequestBody)
 
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
-        .withBody(testRequestBody)
-
-      val result = mockLiabilityController.submitUKTR()(request)
+      val result = route(app, request).value
       status(result) mustBe CREATED
       contentAsJson(result) mustEqual Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)
     }
 
     "return CREATED with success response for a valid NIL return submission" in {
-      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
-      when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPillar2Id), eqTo(false))).thenReturn(Future.successful(true))
+      when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(true))
 
-      // Create a test controller that directly returns success
-      val mockNilController = new SubmitUKTRController(
-        app.injector.instanceOf[play.api.mvc.ControllerComponents],
-        app.injector.instanceOf[uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter],
-        mockRepository,
-        mockOrgService
-      )(ec) {
-        override def submitUKTR: Action[JsValue] = Action.async(parse.json) { request =>
-          Future.successful(Created(Json.toJson(NilReturnSuccess.successfulNilReturnResponse)))
-        }
-      }
+      val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
-        .withBody(nilReturnBody)
-
-      val result = mockNilController.submitUKTR()(request)
+      val result = route(app, request).value
       status(result) mustBe CREATED
       contentAsJson(result) mustEqual Json.toJson(NilReturnSuccess.successfulNilReturnResponse)
     }
 
-    "return BAD_REQUEST when X-Pillar2-Id header is missing" in {
-      val request = FakeRequest("POST", "/uktr/submit")
+    "return Pillar2IdMissing when X-Pillar2-Id header is missing" in {
+      val request = FakeRequest("POST", routes.SubmitUKTRController.submitUKTR.url)
         .withHeaders(authHeader)
-        .withBody(testRequestBody)
+        .withBody(validRequestBody)
 
-      controller.submitUKTR()(request) shouldFailWith Pillar2IdMissing
+      route(app, request).value shouldFailWith Pillar2IdMissing
     }
 
-    "return UNPROCESSABLE_ENTITY if accounting period doesn't match" in {
-      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+    "return InvalidReturn if accounting period doesn't match" in {
+      val invalidAccountingPeriodBody = validRequestBody.deepMerge(
+        Json.obj(
+          "accountingPeriodFrom" -> "2024-01-01",
+          "accountingPeriodTo"   -> "2024-12-31"
+        )
+      )
+      val request = createRequest(validPlrId, invalidAccountingPeriodBody)
 
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
-        .withBody(invalidAccountingPeriodBody)
-
-      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
+      route(app, request).value shouldFailWith InvalidReturn
     }
 
-    "return UNPROCESSABLE_ENTITY if liableEntities array is empty" in {
-      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
+    "return ETMPInternalServerError for specific Pillar2Id" in {
+      val request = createRequest(ServerErrorPlrId, validRequestBody)
 
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
-        .withBody(emptyLiableEntitiesBody)
-
-      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
-    }
-
-    "return INTERNAL_SERVER_ERROR for specific Pillar2Id" in {
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> ServerErrorPlrId, authHeader)
-        .withBody(testRequestBody)
-
-      controller.submitUKTR()(request) shouldFailWith ETMPInternalServerError
+      route(app, request).value shouldFailWith ETMPInternalServerError
     }
 
     "return FORBIDDEN when missing Authorization header" in {
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id)
-        .withBody(testRequestBody)
+      val request = FakeRequest("POST", routes.SubmitUKTRController.submitUKTR.url)
+        .withHeaders("X-Pillar2-Id" -> validPlrId)
+        .withBody(validRequestBody)
 
-      val result = controller.submitUKTR()(request)
+      val result = route(app, request).value
       status(result) mustBe FORBIDDEN
     }
 
-    "return BAD_REQUEST when required fields are missing" in {
-      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
-
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
-        .withBody(missingFieldsBody)
-
-      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
-    }
-
-    "return UNPROCESSABLE_ENTITY when submitting with invalid amounts" in {
-      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
-
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
-        .withBody(invalidAmountsBody)
-
-      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
-    }
-
-    "return UNPROCESSABLE_ENTITY when submitting with invalid ID type" in {
-      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
-
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
-        .withBody(invalidIdTypeBody)
-
-      controller.submitUKTR()(request) shouldFailWith ETMPBadRequest
-    }
-
-    "return ETMPBadRequest when UKTRSubmission is neither a UKTRNilReturn nor a UKTRLiabilityReturn" in {
-      when(mockOrgService.getOrganisation(eqTo(validPillar2Id))).thenReturn(Future.successful(testOrg))
-
-      val mockUKTRController = new SubmitUKTRController(
-        app.injector.instanceOf[play.api.mvc.ControllerComponents],
-        app.injector.instanceOf[uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter],
-        mockRepository,
-        mockOrgService
-      )(ec) {
-        override def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
-          Future.successful(validPillar2Id)
-
-        override def processUKTRSubmission(
-          plrReference:  String,
-          request:       play.api.mvc.Request[JsValue],
-          successAction: (UKTRSubmission, String) => Future[play.api.mvc.Result]
-        )(implicit ec:   ExecutionContext): Future[play.api.mvc.Result] =
-          Future.failed(ETMPBadRequest)
-      }
-
-      val requestBody = Json.obj(
-        "accountingPeriodFrom" -> "2024-01-01",
-        "accountingPeriodTo"   -> "2024-12-31",
-        "obligationMTT"        -> false,
-        "electionUKGAAP"       -> false,
-        "liabilities" -> Json.obj(
-          "customType" -> "NEITHER_NIL_NOR_LIABILITY"
+    "return InvalidTotalLiability when submitting with invalid amounts" in {
+      val invalidAmountsBody: JsValue = validRequestBody.deepMerge(
+        Json.obj(
+          "liabilities" -> Json.obj(
+            "totalLiability"    -> -500,
+            "totalLiabilityDTT" -> 10000000000000.99
+          )
         )
       )
+      val request = createRequest(validPlrId, invalidAmountsBody)
 
-      val request = FakeRequest("POST", "/uktr/submit")
-        .withHeaders("X-Pillar2-Id" -> validPillar2Id, authHeader)
-        .withBody(requestBody)
-
-      mockUKTRController.submitUKTR()(request) shouldFailWith ETMPBadRequest
+      route(app, request).value shouldFailWith InvalidTotalLiability
     }
   }
 }

@@ -19,6 +19,9 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
+import org.bson.types.ObjectId
+import java.time.Instant
 
 trait UKTRDataFixture extends Pillar2DataFixture {
 
@@ -460,5 +463,13 @@ trait UKTRDataFixture extends Pillar2DataFixture {
     "liabilities" -> Json.obj(
       "returnType" -> ""
     )
+  )
+
+  val validGetByPillar2IdResponse: UKTRMongoSubmission = UKTRMongoSubmission(
+    _id = new ObjectId(),
+    pillar2Id = validPlrId,
+    isAmendment = false,
+    data = Json.fromJson[UKTRSubmission](validRequestBody).get,
+    submittedAt = Instant.now()
   )
 }

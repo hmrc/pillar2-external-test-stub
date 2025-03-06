@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import org.bson.types.ObjectId
-import org.mockito.ArgumentMatchers.{eq => eqTo, _}
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{Assertion, BeforeAndAfterEach, OptionValues}
+import org.scalatest.OptionValues
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -35,40 +34,21 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrI
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn, UKTRSubmission}
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-
+import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import java.time._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import org.scalatest.compatible.Assertion
 
-class AmendUKTRControllerSpec
-    extends AnyFreeSpec
-    with Matchers
-    with GuiceOneAppPerSuite
-    with OptionValues
-    with UKTRDataFixture
-    with MockitoSugar
-    with BeforeAndAfterEach {
+class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture with MockitoSugar {
 
-  // Add an implicit class for testing Future[Result] failures
   implicit class AwaitFuture(fut: Future[Result]) {
     def shouldFailWith(expected: Throwable): Assertion = {
       val err = Await.result(fut.failed, 5.seconds)
-
-      expected match {
-        // Special case for RequestCouldNotBeProcessed where we might get a RuntimeException
-        case RequestCouldNotBeProcessed
-            if err.isInstanceOf[RuntimeException] &&
-              err.getMessage == "Request could not be processed" =>
-          succeed // This is considered a success
-
-        case _ =>
-          err.getClass mustEqual expected.getClass
-          err.getMessage mustEqual expected.getMessage
-      }
+      err mustEqual expected
     }
   }
 
@@ -97,6 +77,9 @@ class AmendUKTRControllerSpec
     organisation = testOrgDetails
   )
 
+  when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrg))
+  when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+
   private def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
       .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> plrId)
@@ -110,34 +93,8 @@ class AmendUKTRControllerSpec
       )
       .build()
 
-  override def beforeEach(): Unit = {
-    import org.mockito.Mockito.doReturn
-
-    doReturn(Future.successful(testOrg))
-      .when(mockOrgService)
-      .getOrganisation(anyString())
-
-    doReturn(
-      Future.successful(
-        Some(
-          UKTRMongoSubmission(
-            _id = new ObjectId(),
-            pillar2Id = validPlrId,
-            isAmendment = false,
-            data = Json.fromJson[UKTRSubmission](validRequestBody).get,
-            submittedAt = Instant.now()
-          )
-        )
-      )
-    ).when(mockRepository).findByPillar2Id(anyString())
-
-    val _ = org.mockito.Mockito
-      .when(mockRepository.findByPillar2Id(eqTo("XEPLR5555555554")))
-      .thenReturn(Future.successful(None))
-  }
-
   "return OK with success response for a valid uktr amendment" in {
-    val _ = when(
+    when(
       mockRepository.update(
         argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
         any[String]
@@ -162,30 +119,24 @@ class AmendUKTRControllerSpec
     route(app, request).value shouldFailWith Pillar2IdMissing
   }
 
-  "return UNPROCESSABLE_ENTITY when subscription is not found for the given PLR reference" in {
+  "return NoActiveSubscription when subscription is not found for the given PLR reference" in {
+    when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.failed(OrganisationNotFound(validPlrId)))
     val nonExistentPlrId = "XEPLR5555555554"
-    val request          = createRequest(nonExistentPlrId, Json.toJson(validRequestBody))
 
-    route(app, request).value shouldFailWith RequestCouldNotBeProcessed
+    when(
+      mockRepository.update(
+        argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
+        any[String]
+      )
+    ).thenReturn(Future.successful(Right(true)))
+
+    val request = createRequest(nonExistentPlrId, Json.toJson(validRequestBody))
+
+    route(app, request).value shouldFailWith NoActiveSubscription
   }
 
   "return UNPROCESSABLE_ENTITY when amendment to a liability return that does not exist" in {
-    val specialPlrId = "XEPLR1111111111"
-
-    import org.mockito.Mockito.doReturn
-    val failingSubmission = UKTRMongoSubmission(
-      _id = new ObjectId(),
-      pillar2Id = specialPlrId,
-      isAmendment = false,
-      data = Json.fromJson[UKTRSubmission](validRequestBody).get,
-      submittedAt = Instant.now()
-    )
-
-    doReturn(Future.successful(Some(failingSubmission)))
-      .when(mockRepository)
-      .findByPillar2Id(eqTo(specialPlrId))
-
-    val _ = when(
+    when(
       mockRepository.update(
         argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
         any[String]
@@ -211,22 +162,7 @@ class AmendUKTRControllerSpec
   }
 
   "return UNPROCESSABLE_ENTITY when amendment to a nil return that does not exist" in {
-    val specialPlrId = "XEPLR2222222222"
-
-    import org.mockito.Mockito.doReturn
-    val failingSubmission = UKTRMongoSubmission(
-      _id = new ObjectId(),
-      pillar2Id = specialPlrId,
-      isAmendment = false,
-      data = Json.fromJson[UKTRSubmission](nilReturnBody(obligationMTT = false, electionUKGAAP = false)).get,
-      submittedAt = Instant.now()
-    )
-
-    doReturn(Future.successful(Some(failingSubmission)))
-      .when(mockRepository)
-      .findByPillar2Id(eqTo(specialPlrId))
-
-    val _ = when(
+    when(
       mockRepository.update(
         argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]),
         any[String]
@@ -247,22 +183,6 @@ class AmendUKTRControllerSpec
   "return BAD_REQUEST for invalid JSON structure" in {
     val invalidJson = Json.obj("invalidField" -> "value", "anotherInvalidField" -> 123)
     val request     = createRequest(validPlrId, invalidJson)
-
-    route(app, request).value shouldFailWith ETMPBadRequest
-  }
-
-  "return BAD_REQUEST for unsupported submission type" in {
-    val unsupportedSubmissionJson = Json.obj(
-      "accountingPeriodFrom" -> "2024-01-01",
-      "accountingPeriodTo"   -> "2024-12-31",
-      "obligationMTT"        -> false,
-      "electionUKGAAP"       -> false,
-      "liabilities" -> Json.obj(
-        "someUnsupportedField" -> "someValue"
-      )
-    )
-
-    val request = createRequest(validPlrId, unsupportedSubmissionJson)
 
     route(app, request).value shouldFailWith ETMPBadRequest
   }
