@@ -67,7 +67,7 @@ Response Codes and Conditions:
 
 ### 2. Submit UKTR
 
-Endpoint: /RESTAdapter/PLR/UKTaxReturn
+Endpoint: /RESTAdapter/plr/uk-tax-return
 
 Response Codes and Conditions:
 
@@ -82,7 +82,7 @@ Response Codes and Conditions:
 
 ### 4. Submit Below Threshold Notification (BTN)
 
-Endpoint: /RESTAdapter/PLR/below-threshold-notification
+Endpoint: /RESTAdapter/plr/below-threshold-notification
 
 Response Codes and Conditions:
 
@@ -188,7 +188,7 @@ curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR5555555555" \
 
 ### Submit UKTR Request Example
 ```bash
-curl -X POST "http://localhost:10055/RESTAdapter/PLR/UKTaxReturn" \
+curl -X POST "http://localhost:10055/RESTAdapter/plr/uk-tax-return" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json" \
 -d '{
@@ -223,7 +223,7 @@ curl -X POST "http://localhost:10055/RESTAdapter/PLR/UKTaxReturn" \
 
 ### Submit Below Threshold Notification (BTN) Request Example
 ```bash
-curl -X POST "http://localhost:10055/RESTAdapter/PLR/below-threshold-notification" \
+curl -X POST "http://localhost:10055/RESTAdapter/plr/below-threshold-notification" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json" \
 -H "X-Pillar2-Id: XEPLR0000000201" \
