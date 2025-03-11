@@ -62,7 +62,7 @@ class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
       "should return UNPROCESSABLE_ENTITY when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/RESTAdapter/PLR/below-threshold-notification")
           .withHeaders("Content-Type" -> "application/json", authHeader)
-          .withBody(validRequestBody)
+          .withBody(validBTNRequestBody)
 
         val result = route(app, request).get
         status(result) shouldBe UNPROCESSABLE_ENTITY

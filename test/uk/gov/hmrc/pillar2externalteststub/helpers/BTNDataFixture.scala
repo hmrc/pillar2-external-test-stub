@@ -28,14 +28,12 @@ import java.time.Instant
 
 trait BTNDataFixture extends Pillar2DataFixture {
 
-  val authHeader: (String, String) = HeaderNames.AUTHORIZATION -> "Bearer token"
-
   val validBTNRequest: BTNRequest = BTNRequest(
     accountingPeriodFrom = accountingPeriod.startDate,
     accountingPeriodTo = accountingPeriod.endDate
   )
 
-  val validRequestBody: JsValue = Json.toJson(validBTNRequest)
+  val validBTNRequestBody: JsValue = Json.toJson(validBTNRequest)
 
   val BTNMongoSubmission: BTNSubmission = BTNSubmission(
     _id = new ObjectId(),

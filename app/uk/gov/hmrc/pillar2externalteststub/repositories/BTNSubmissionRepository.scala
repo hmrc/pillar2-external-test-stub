@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
+import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -72,4 +73,10 @@ class BTNSubmissionRepository @Inject() (
       .recoverWith { case e: Exception =>
         Future.failed(DatabaseError(s"Failed to retrieve BTN submissions: ${e.getMessage}"))
       }
+
+  def deleteByPillar2Id(pillar2Id: String): Future[Boolean] =
+    collection
+      .deleteMany(equal("pillar2Id", pillar2Id))
+      .toFuture()
+      .map(_.wasAcknowledged())
 }

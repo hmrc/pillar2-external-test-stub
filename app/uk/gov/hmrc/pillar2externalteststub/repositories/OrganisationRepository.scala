@@ -32,7 +32,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class OrganisationRepository @Inject() (
   mongoComponent: MongoComponent,
-  config:         AppConfig
+  config:         AppConfig,
+  btnRepository:  BTNSubmissionRepository,
+  uktrRepository: UKTRSubmissionRepository
 )(implicit ec:    ExecutionContext)
     extends PlayMongoRepository[TestOrganisationWithId](
       collectionName = "organisation",
@@ -94,12 +96,11 @@ class OrganisationRepository @Inject() (
         Future.failed(DatabaseError(s"Failed to update organisation: ${e.getMessage}"))
       }
 
-  def delete(pillar2Id: String): Future[Boolean] =
-    collection
-      .deleteOne(byPillar2Id(pillar2Id))
-      .toFuture()
-      .map(_ => true)
-      .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to delete organisation: ${e.getMessage}"))
-      }
+  def delete(pillar2Id: String): Future[Boolean] = {
+    for {
+      _         <- uktrRepository.deleteByPillar2Id(pillar2Id)
+      _         <- btnRepository.deleteByPillar2Id(pillar2Id)
+      deleteOrg <- collection.deleteOne(byPillar2Id(pillar2Id)).toFuture()
+    } yield deleteOrg.wasAcknowledged()
+  }.recoverWith { case e: Exception => Future.failed(DatabaseError(s"Failed to delete organisation and associated submissions: ${e.getMessage}")) }
 }
