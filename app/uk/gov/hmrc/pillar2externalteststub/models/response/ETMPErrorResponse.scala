@@ -19,6 +19,8 @@ package uk.gov.hmrc.pillar2externalteststub.models.response
 import play.api.libs.json.Json
 import play.api.libs.json.OFormat
 
+import java.time.{ZoneId, ZonedDateTime}
+
 case class ETMPErrorResponse(error: ETMPSimpleError)
 
 object ETMPErrorResponse {
@@ -40,5 +42,8 @@ object ETMPFailureResponse {
 case class ETMPDetailedError(processingDate: String, code: String, text: String)
 
 object ETMPDetailedError {
+
+  def apply(code: String, text: String) = new ETMPDetailedError(ZonedDateTime.now(ZoneId.of("UTC")).toString, code, text)
+
   implicit val format: OFormat[ETMPDetailedError] = Json.format[ETMPDetailedError]
 }
