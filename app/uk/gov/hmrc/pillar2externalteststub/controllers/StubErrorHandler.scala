@@ -26,7 +26,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.response.ETMPDetailedError
 import uk.gov.hmrc.pillar2externalteststub.models.response.ETMPFailureResponse
 import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
 
-import java.time.LocalDateTime
 import javax.inject.Singleton
 import scala.concurrent.Future
 
@@ -51,33 +50,33 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
       case e: ETMPError =>
         val ret = e match {
           case Pillar2IdMissing =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case RequestCouldNotBeProcessed =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case DuplicateSubmissionError =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case NoActiveSubscription =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case TaxObligationAlreadyFulfilled =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case InvalidReturn =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case InvalidDTTElection =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case InvalidUTPRElection =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case InvalidTotalLiability =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case InvalidTotalLiabilityIIR =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case InvalidTotalLiabilityDTT =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case InvalidTotalLiabilityUTPR =>
-            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case ETMPBadRequest =>
-            Results.BadRequest(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.BadRequest(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case ETMPInternalServerError =>
-            Results.InternalServerError(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, e.code, e.message))))
+            Results.InternalServerError(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
         }
         logger.warn(s"Caught ETMPError. Returning ${ret.header.status} statuscode", exception)
         Future.successful(ret)
