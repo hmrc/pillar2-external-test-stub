@@ -21,7 +21,7 @@ import play.api.libs.json._
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate}
-
+import uk.gov.hmrc.pillar2externalteststub.models.mongo.instantFormat
 case class OrgDetails(
   domesticOnly:     Boolean,
   organisationName: String,
@@ -67,21 +67,6 @@ object TestOrganisationRequest {
 object TestOrganisation {
   private val dateTimeFormatter = DateTimeFormatter.ISO_INSTANT
 
-  private val mongoInstantFormat: Format[Instant] = new Format[Instant] {
-    override def reads(json: JsValue): JsResult[Instant] = json match {
-      case JsString(s) => JsSuccess(Instant.from(dateTimeFormatter.parse(s)))
-      case obj: JsObject if (obj \ "$date" \ "$numberLong").isDefined =>
-        (obj \ "$date" \ "$numberLong").get.validate[String].map(s => Instant.ofEpochMilli(s.toLong))
-      case _ => JsError("Expected ISO instant format or MongoDB date format")
-    }
-
-    override def writes(instant: Instant): JsValue = Json.obj(
-      "$date" -> Json.obj(
-        "$numberLong" -> instant.toEpochMilli.toString
-      )
-    )
-  }
-
   private val apiInstantFormat: Format[Instant] = new Format[Instant] {
     override def reads(json: JsValue): JsResult[Instant] = json match {
       case JsString(s) => JsSuccess(Instant.from(dateTimeFormatter.parse(s)))
@@ -101,14 +86,14 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
-        (__ \ "lastUpdated").read[Instant](mongoInstantFormat)
+        (__ \ "lastUpdated").read[Instant](instantFormat)
     )(TestOrganisation.apply _)
 
   private val mongoWrites: OWrites[TestOrganisation] =
     (
       (__ \ "orgDetails").write[OrgDetails] and
         (__ \ "accountingPeriod").write[AccountingPeriod] and
-        (__ \ "lastUpdated").write(mongoInstantFormat)
+        (__ \ "lastUpdated").write(instantFormat)
     )(unlift(TestOrganisation.unapply))
 
   val mongoFormat: OFormat[TestOrganisation] = OFormat(mongoReads, mongoWrites)

@@ -21,7 +21,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoFormats
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
-
+import uk.gov.hmrc.pillar2externalteststub.models.mongo.instantFormat
 import java.time.Instant
 import java.time.LocalDate
 
@@ -44,22 +44,6 @@ object BTNSubmission {
       submittedAt = Instant.now()
     )
 
-  private val mongoInstantFormat: Format[Instant] = new Format[Instant] {
-
-    override def writes(instant: Instant): JsValue = Json.obj(
-      "$date" -> Json.obj(
-        "$numberLong" -> instant.toEpochMilli.toString
-      )
-    )
-
-    override def reads(json: JsValue): JsResult[Instant] = json match {
-      case obj: JsObject if (obj \ "$date" \ "$numberLong").isDefined =>
-        (obj \ "$date" \ "$numberLong").get.validate[String].map(s => Instant.ofEpochMilli(s.toLong))
-      case _ => JsError("Expected MongoDB date format")
-    }
-
-  }
-
   // MongoDB format for storage
   private val mongoReads: Reads[BTNSubmission] =
     (
@@ -67,7 +51,7 @@ object BTNSubmission {
         (__ \ "pillar2Id").read[String] and
         (__ \ "accountingPeriodFrom").read[LocalDate] and
         (__ \ "accountingPeriodTo").read[LocalDate] and
-        (__ \ "submittedAt").read[Instant](mongoInstantFormat)
+        (__ \ "submittedAt").read[Instant](instantFormat)
     )(BTNSubmission.apply _)
 
   private val mongoWrites: OWrites[BTNSubmission] =
@@ -76,7 +60,7 @@ object BTNSubmission {
         (__ \ "pillar2Id").write[String] and
         (__ \ "accountingPeriodFrom").write[LocalDate] and
         (__ \ "accountingPeriodTo").write[LocalDate] and
-        (__ \ "submittedAt").write[Instant](mongoInstantFormat)
+        (__ \ "submittedAt").write[Instant](instantFormat)
     )(unlift(BTNSubmission.unapply))
 
   val mongoFormat: OFormat[BTNSubmission] = OFormat(mongoReads, mongoWrites)

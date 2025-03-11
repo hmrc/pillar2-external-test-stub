@@ -1,0 +1,93 @@
+/*
+ * Copyright 2025 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.pillar2externalteststub.models.orn.mongo
+
+import org.bson.types.ObjectId
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+import uk.gov.hmrc.mongo.play.json.formats.MongoFormats
+import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
+import uk.gov.hmrc.pillar2externalteststub.models.mongo.instantFormat
+
+import java.time.Instant
+import java.time.LocalDate
+
+case class ORNSubmission(
+  _id: ObjectId,
+  pillar2Id: String,
+  accountingPeriodFrom: LocalDate,
+  accountingPeriodTo: LocalDate,
+  filedDateGIR: LocalDate,
+  countryGIR: String,
+  reportingEntityName: String,
+  TIN: String,
+  issuingCountryTIN: String,
+  submittedAt: Instant,
+  formBundleNumber: String
+)
+
+object ORNSubmission {
+  
+  def fromRequest(pillar2Id: String, request: ORNRequest, formBundleNumber: String): ORNSubmission =
+    ORNSubmission(
+      _id = new ObjectId(),
+      pillar2Id = pillar2Id,
+      accountingPeriodFrom = request.accountingPeriodFrom,
+      accountingPeriodTo = request.accountingPeriodTo,
+      filedDateGIR = request.filedDateGIR,
+      countryGIR = request.countryGIR,
+      reportingEntityName = request.reportingEntityName,
+      TIN = request.TIN,
+      issuingCountryTIN = request.issuingCountryTIN,
+      submittedAt = Instant.now(),
+      formBundleNumber = formBundleNumber
+    )
+
+  // MongoDB format for storage
+  private val mongoReads: Reads[ORNSubmission] =
+    (
+      (__ \ "_id").read[ObjectId](MongoFormats.objectIdFormat) and
+        (__ \ "pillar2Id").read[String] and
+        (__ \ "accountingPeriodFrom").read[LocalDate] and
+        (__ \ "accountingPeriodTo").read[LocalDate] and
+        (__ \ "filedDateGIR").read[LocalDate] and
+        (__ \ "countryGIR").read[String] and
+        (__ \ "reportingEntityName").read[String] and
+        (__ \ "TIN").read[String] and
+        (__ \ "issuingCountryTIN").read[String] and
+        (__ \ "submittedAt").read[Instant](instantFormat) and
+        (__ \ "formBundleNumber").read[String]
+    )(ORNSubmission.apply _)
+
+  private val mongoWrites: OWrites[ORNSubmission] =
+    (
+      (__ \ "_id").write[ObjectId](MongoFormats.objectIdFormat) and
+        (__ \ "pillar2Id").write[String] and
+        (__ \ "accountingPeriodFrom").write[LocalDate] and
+        (__ \ "accountingPeriodTo").write[LocalDate] and
+        (__ \ "filedDateGIR").write[LocalDate] and
+        (__ \ "countryGIR").write[String] and
+        (__ \ "reportingEntityName").write[String] and
+        (__ \ "TIN").write[String] and
+        (__ \ "issuingCountryTIN").write[String] and
+        (__ \ "submittedAt").write[Instant](instantFormat) and
+        (__ \ "formBundleNumber").write[String]
+    )(unlift(ORNSubmission.unapply))
+
+  val mongoFormat: OFormat[ORNSubmission] = OFormat(mongoReads, mongoWrites)
+}
+
