@@ -22,6 +22,7 @@ import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results.UnprocessableEntity
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate
@@ -53,7 +54,11 @@ object UKTRSubmission {
   }
 }
 
-case class UKTRSubmissionError(errorCode: String, field: String, errorMessage: String) extends ValidationError
+case class UKTRSubmissionError(error: ETMPError) extends ValidationError {
+  override def errorCode:    String = error.code
+  override def errorMessage: String = error.message
+  override def field:        String = "UKTRSubmission"
+}
 
 object UKTRErrorTransformer {
   def from422ToJson(errors: NonEmptyChain[ValidationError]): Future[Result] =

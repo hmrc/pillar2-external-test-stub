@@ -17,11 +17,13 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.isDomesticOnly
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
+import scala.concurrent.{ExecutionContext, Future}
 
 case class UKTRLiabilityReturn(
   accountingPeriodFrom: LocalDate,
@@ -29,85 +31,46 @@ case class UKTRLiabilityReturn(
   obligationMTT:        Boolean,
   electionUKGAAP:       Boolean,
   liabilities:          Liability
-) extends UKTRSubmission
+) extends UKTRSubmission {
+  def isNilReturn: Boolean = false
+}
 
 object UKTRLiabilityReturn {
+
   implicit val uktrSubmissionDataFormat: OFormat[UKTRLiabilityReturn] = Json.format[UKTRLiabilityReturn]
 
-  private val boundaryUKTRAmount                    = BigDecimal("9999999999999.99")
-  private val amountErrorMessage                    = s"must be a number between 0 and $boundaryUKTRAmount with up to 2 decimal places"
-  private def isValidUKTRAmount(number: BigDecimal) = number >= 0 && number <= boundaryUKTRAmount && number.scale <= 2
-
-  private def obligationMTTRule(plrReference: String): ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.obligationMTT && isDomesticOnly(plrReference)) {
-      invalid(
-        UKTRSubmissionError(
-          UKTRErrorCodes.INVALID_RETURN_093,
-          "obligationMTT",
-          "obligationMTT cannot be true for a domestic-only group"
-        )
-      )
-    } else valid[UKTRLiabilityReturn](data)
-  }
-
-  private def electionUKGAAPRule(plrReference: String): ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    (data.electionUKGAAP, isDomesticOnly(plrReference)) match {
-      case (true, false) =>
-        invalid(
-          UKTRSubmissionError(
-            UKTRErrorCodes.INVALID_RETURN_093,
-            "electionUKGAAP",
-            "electionUKGAAP can be true only for a domestic-only group"
-          )
-        )
-      case _ => valid[UKTRLiabilityReturn](data)
-    }
-  }
-
   private val totalLiabilityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (isValidUKTRAmount(data.liabilities.totalLiability)) valid[UKTRLiabilityReturn](data)
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiability)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(
-          UKTRErrorCodes.INVALID_TOTAL_LIABILITY_096,
-          "totalLiability",
-          s"totalLiability $amountErrorMessage"
-        )
+        UKTRSubmissionError(InvalidTotalLiability)
       )
   }
 
   private val totalLiabilityDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (isValidUKTRAmount(data.liabilities.totalLiabilityDTT)) valid[UKTRLiabilityReturn](data)
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityDTT)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.INVALID_TOTAL_LIABILITY_DTT_098,
-          "totalLiabilityDTT",
-          s"totalLiabilityDTT $amountErrorMessage"
+          InvalidTotalLiabilityDTT
         )
       )
   }
 
   private val totalLiabilityIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (isValidUKTRAmount(data.liabilities.totalLiabilityIIR)) valid[UKTRLiabilityReturn](data)
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityIIR)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(
-          UKTRErrorCodes.INVALID_TOTAL_LIABILITY_IIR_097,
-          "totalLiabilityIIR",
-          s"totalLiabilityIIR $amountErrorMessage"
-        )
+        UKTRSubmissionError(InvalidTotalLiabilityIIR)
       )
   }
 
   private val totalLiabilityUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (isValidUKTRAmount(data.liabilities.totalLiabilityUTPR)) valid[UKTRLiabilityReturn](data)
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityUTPR)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.INVALID_TOTAL_LIABILITY_UTPR_099,
-          "totalLiabilityUTPR",
-          s"totalLiabilityUTPR $amountErrorMessage"
+          InvalidTotalLiabilityUTPR
         )
       )
   }
@@ -117,9 +80,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.INVALID_RETURN_093,
-          "liabilityEntity",
-          "liabilityEntity cannot be empty"
+          InvalidReturn
         )
       )
   }
@@ -129,9 +90,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "ukChargeableEntityName",
-          "ukChargeableEntityName must have a minimum length of 1 and a maximum length of 160."
+          InvalidReturn
         )
       )
   }
@@ -141,9 +100,7 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "idType",
-          "idType must be either UTR or CRN."
+          InvalidReturn
         )
       )
   }
@@ -153,53 +110,52 @@ object UKTRLiabilityReturn {
     else
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "idValue",
-          "idValue must be alphanumeric, and have a minimum length of 1 and a maximum length of 15."
+          InvalidReturn
         )
       )
   }
 
   private val amountOwedDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => isValidUKTRAmount(f.amountOwedDTT))) valid[UKTRLiabilityReturn](data)
+    if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedDTT))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "amountOwedDTT",
-          "amountOwedDTT " + amountErrorMessage
+          InvalidTotalLiabilityDTT
         )
       )
   }
 
   private val amountOwedIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => isValidUKTRAmount(f.amountOwedIIR))) valid[UKTRLiabilityReturn](data)
+    if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedIIR))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "amountOwedIIR",
-          "amountOwedIIR " + amountErrorMessage
+          InvalidTotalLiabilityIIR
         )
       )
   }
 
   private val amountOwedUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => isValidUKTRAmount(f.amountOwedUTPR))) valid[UKTRLiabilityReturn](data)
+    if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedUTPR))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
-          UKTRErrorCodes.REQUEST_COULD_NOT_BE_PROCESSED_003,
-          "amountOwedUTPR",
-          "amountOwedUTPR " + amountErrorMessage
+          InvalidTotalLiabilityUTPR
         )
       )
   }
 
-  implicit def uktrSubmissionValidator(plrReference: String): ValidationRule[UKTRLiabilityReturn] =
-    ValidationRule.compose(
-      obligationMTTRule(plrReference),
-      electionUKGAAPRule(plrReference),
+  def uktrSubmissionValidator(
+    plrReference:                 String
+  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
+    for {
+      obligationMTTRule    <- UKTRValidationRules.obligationMTTRule[UKTRLiabilityReturn](plrReference)
+      electionUKGAAPRule   <- UKTRValidationRules.electionUKGAAPRule[UKTRLiabilityReturn](plrReference)
+      accountingPeriodRule <- UKTRValidationRules.accountingPeriodRule[UKTRLiabilityReturn](plrReference)
+    } yield ValidationRule.compose(
+      obligationMTTRule,
+      electionUKGAAPRule,
+      accountingPeriodRule,
       totalLiabilityRule,
       totalLiabilityDTTRule,
       totalLiabilityIIRRule,

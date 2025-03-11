@@ -17,11 +17,11 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper.isDomesticOnly
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import java.time.LocalDate
+import scala.concurrent.{ExecutionContext, Future}
 
 case class UKTRNilReturn(
   accountingPeriodFrom: LocalDate,
@@ -34,35 +34,16 @@ case class UKTRNilReturn(
 object UKTRNilReturn {
   implicit val UKTRSubmissionNilReturnFormat: OFormat[UKTRNilReturn] = Json.format[UKTRNilReturn]
 
-  private def obligationMTTRule(plrReference: String): ValidationRule[UKTRNilReturn] = ValidationRule { data =>
-    if (data.obligationMTT && isDomesticOnly(plrReference)) {
-      invalid(
-        UKTRSubmissionError(
-          UKTRErrorCodes.INVALID_RETURN_093,
-          "obligationMTT",
-          "obligationMTT cannot be true for a domestic-only group"
-        )
-      )
-    } else valid[UKTRNilReturn](data)
-  }
-
-  private def electionUKGAAPRule(plrReference: String): ValidationRule[UKTRNilReturn] = ValidationRule { data =>
-    (data.electionUKGAAP, isDomesticOnly(plrReference)) match {
-      case (true, false) =>
-        invalid(
-          UKTRSubmissionError(
-            UKTRErrorCodes.INVALID_RETURN_093,
-            "electionUKGAAP",
-            "electionUKGAAP can be true only for a domestic-only group"
-          )
-        )
-      case _ => valid[UKTRNilReturn](data)
-    }
-  }
-
-  implicit def uktrNilReturnValidator(plrReference: String): ValidationRule[UKTRNilReturn] =
-    ValidationRule.compose(
-      obligationMTTRule(plrReference),
-      electionUKGAAPRule(plrReference)
+  def uktrNilReturnValidator(
+    plrReference:                 String
+  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRNilReturn]] =
+    for {
+      obligationMTTRule    <- UKTRValidationRules.obligationMTTRule[UKTRNilReturn](plrReference)
+      electionUKGAAPRule   <- UKTRValidationRules.electionUKGAAPRule[UKTRNilReturn](plrReference)
+      accountingPeriodRule <- UKTRValidationRules.accountingPeriodRule[UKTRNilReturn](plrReference)
+    } yield ValidationRule.compose(
+      obligationMTTRule,
+      electionUKGAAPRule,
+      accountingPeriodRule
     )(FailFast)
 }

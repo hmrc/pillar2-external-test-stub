@@ -1,4 +1,20 @@
 /*
+ * Copyright 2025 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +36,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error._
 
 class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
@@ -76,12 +93,116 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       (json \ "message").as[String] shouldBe "Connection failed"
     }
 
+    "handle RequestCouldNotBeProcessed error" in {
+      val result = errorHandler.onServerError(dummyRequest, RequestCouldNotBeProcessed)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+    }
+
+    "handle DuplicateSubmissionError error" in {
+      val result = errorHandler.onServerError(dummyRequest, DuplicateSubmissionError)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "004"
+      (json \ "errors" \ "text").as[String] shouldBe "Duplicate submission acknowledgment reference"
+    }
+
+    "handle NoActiveSubscription error" in {
+      val result = errorHandler.onServerError(dummyRequest, NoActiveSubscription)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "007"
+      (json \ "errors" \ "text").as[String] shouldBe "Business partner does not have an Active subscription"
+    }
+
+    "handle TaxObligationAlreadyFulfilled error" in {
+      val result = errorHandler.onServerError(dummyRequest, TaxObligationAlreadyFulfilled)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "044"
+      (json \ "errors" \ "text").as[String] shouldBe "Tax obligation already fulfilled"
+    }
+
+    "handle InvalidReturn error" in {
+      val result = errorHandler.onServerError(dummyRequest, InvalidReturn)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "093"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid return"
+    }
+
+    "handle InvalidDTTElection error" in {
+      val result = errorHandler.onServerError(dummyRequest, InvalidDTTElection)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "094"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid DTT election"
+    }
+
+    "handle InvalidUTPRElection error" in {
+      val result = errorHandler.onServerError(dummyRequest, InvalidUTPRElection)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "095"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid UTPR election"
+    }
+
+    "handle InvalidTotalLiability error" in {
+      val result = errorHandler.onServerError(dummyRequest, InvalidTotalLiability)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "096"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid total liability"
+    }
+
+    "handle InvalidTotalLiabilityIIR error" in {
+      val result = errorHandler.onServerError(dummyRequest, InvalidTotalLiabilityIIR)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "097"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid total liability IIR"
+    }
+
+    "handle InvalidTotalLiabilityDTT error" in {
+      val result = errorHandler.onServerError(dummyRequest, InvalidTotalLiabilityDTT)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "098"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid total liability DTT"
+    }
+
+    "handle InvalidTotalLiabilityUTPR error" in {
+      val result = errorHandler.onServerError(dummyRequest, InvalidTotalLiabilityUTPR)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "099"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid total liability UTPR"
+    }
+
+    "handle ETMPBadRequest error" in {
+      val result = errorHandler.onServerError(dummyRequest, ETMPBadRequest)
+      status(result) shouldBe BAD_REQUEST
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "400"
+      (json \ "errors" \ "text").as[String] shouldBe "Bad request"
+    }
+
+    "handle ETMPInternalServerError error" in {
+      val result = errorHandler.onServerError(dummyRequest, ETMPInternalServerError)
+      status(result) shouldBe INTERNAL_SERVER_ERROR
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "500"
+      (json \ "errors" \ "text").as[String] shouldBe "Internal server error"
+    }
+
     "handle unknown errors" in {
       val result = errorHandler.onServerError(dummyRequest, new RuntimeException("Unexpected error"))
       status(result) shouldBe INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "500"
-      (json \ "message").as[String] shouldBe "Internal Server Error"
+      (json \ "error" \ "code").as[String]    shouldBe "500"
+      (json \ "error" \ "message").as[String] shouldBe "Internal server error"
     }
   }
 }

@@ -16,9 +16,15 @@
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
+import org.bson.types.ObjectId
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
+
+import java.time.Instant
+import java.time.LocalDate
 
 trait UKTRDataFixture extends Pillar2DataFixture {
 
@@ -35,8 +41,8 @@ trait UKTRDataFixture extends Pillar2DataFixture {
   )
 
   val validRequestBody: JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
     "liabilities" -> Json.obj(
@@ -53,8 +59,8 @@ trait UKTRDataFixture extends Pillar2DataFixture {
   )
 
   def nilReturnBody(obligationMTT: Boolean, electionUKGAAP: Boolean): JsObject = Json.obj(
-    "accountingPeriodFrom" -> "2024-08-14",
-    "accountingPeriodTo"   -> "2024-12-14",
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> obligationMTT,
     "electionUKGAAP"       -> electionUKGAAP,
     "liabilities"          -> Json.obj("returnType" -> "NIL_RETURN")
@@ -460,5 +466,30 @@ trait UKTRDataFixture extends Pillar2DataFixture {
     "liabilities" -> Json.obj(
       "returnType" -> ""
     )
+  )
+
+  val validGetByPillar2IdResponse: UKTRMongoSubmission = UKTRMongoSubmission(
+    _id = new ObjectId(),
+    pillar2Id = validPlrId,
+    isAmendment = false,
+    data = Json.fromJson[UKTRSubmission](validRequestBody).get,
+    submittedAt = Instant.now()
+  )
+
+  val orgDetails: OrgDetails = OrgDetails(
+    domesticOnly = false,
+    organisationName = "Test Org",
+    registrationDate = LocalDate.now()
+  )
+
+  val testOrgDetails: TestOrganisation = TestOrganisation(
+    orgDetails = orgDetails,
+    accountingPeriod = accountingPeriod,
+    lastUpdated = Instant.now()
+  )
+
+  val testOrganisation: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = validPlrId,
+    organisation = testOrgDetails
   )
 }

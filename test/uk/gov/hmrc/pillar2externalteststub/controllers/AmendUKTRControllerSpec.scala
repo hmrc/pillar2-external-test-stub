@@ -16,38 +16,44 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import org.mockito.ArgumentMatchers.{any, argThat}
-import org.mockito.Mockito.{reset, when}
+import org.mockito.ArgumentMatchers._
+import org.mockito.Mockito.when
+import org.scalatest.OptionValues
+import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfterEach, OptionValues}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn, UKTRSubmission}
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time._
-import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
-class AmendUKTRControllerSpec
-    extends AnyFreeSpec
-    with Matchers
-    with GuiceOneAppPerSuite
-    with OptionValues
-    with UKTRDataFixture
-    with MockitoSugar
-    with BeforeAndAfterEach {
+class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture with MockitoSugar {
+
+  implicit class AwaitFuture(fut: Future[Result]) {
+    def shouldFailWith(expected: Throwable): Assertion = {
+      val err = Await.result(fut.failed, 5.seconds)
+      err mustEqual expected
+    }
+  }
 
   private val mockRepository = mock[UKTRSubmissionRepository]
+  private val mockOrgService = mock[OrganisationService]
 
   private def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
@@ -56,124 +62,187 @@ class AmendUKTRControllerSpec
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
-      .overrides(inject.bind[UKTRSubmissionRepository].toInstance(mockRepository))
+      .overrides(
+        inject.bind[UKTRSubmissionRepository].toInstance(mockRepository),
+        inject.bind[OrganisationService].toInstance(mockOrgService)
+      )
       .build()
 
-  override def beforeEach(): Unit = reset(mockRepository)
+  "UK Tax Return Amendment" - {
+    "when amending a UK tax return" - {
+      "should return OK with success response for a valid liability amendment" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(
+          mockRepository.update(
+            argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
+            any[String]
+          )
+        ).thenReturn(Future.successful(Right(true)))
 
-  "return OK with success response for a valid uktr amendment" in {
-    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
-      .thenReturn(Future.successful(Right(true)))
+        val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
-    val request = createRequest(validPlrId, Json.toJson(validRequestBody))
+        val result = route(app, request).value
+        status(result) mustBe OK
+        val jsonResult = contentAsJson(result)
+        (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
+        (jsonResult \ "success" \ "chargeReference").as[String] mustEqual "XTC01234123412"
+        (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
+      }
 
-    val result = route(app, request).value
-    status(result) mustBe OK
-    val jsonResult = contentAsJson(result)
-    (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
-    (jsonResult \ "success" \ "chargeReference").as[String] mustEqual "XTC01234123412"
-    (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
-  }
+      "should return OK with success response for a valid NIL_RETURN amendment" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
+          .thenReturn(Future.successful(Right(true)))
 
-  "return UNPROCESSABLE_ENTITY when X-Pillar2-Id header is missing" in {
-    val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
-      .withHeaders("Content-Type" -> "application/json", authHeader)
-      .withBody(Json.toJson(validRequestBody))
+        val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
-    val result = route(app, request).value
-    status(result) mustBe UNPROCESSABLE_ENTITY
-    val jsonResult = contentAsJson(result)
-    (jsonResult \ "errors" \ "code").as[String] mustEqual "002"
-    (jsonResult \ "errors" \ "text").as[String] mustEqual "Pillar 2 ID missing or invalid"
-  }
+        val result = route(app, request).value
+        status(result) mustBe OK
+        val jsonResult = contentAsJson(result)
+        (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
+        (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
+      }
 
-  "return UNPROCESSABLE_ENTITY when subscription is not found for the given PLR reference" in {
-    val nonExistentPlrId = "XEPLR5555555554"
-    val request          = createRequest(nonExistentPlrId, Json.toJson(validRequestBody))
+      "should return Pillar2IdMissing when X-Pillar2-Id header is missing" in {
+        val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
+          .withHeaders("Content-Type" -> "application/json", authHeader)
+          .withBody(Json.toJson(validRequestBody))
 
-    val result = route(app, request).value
-    status(result) mustBe UNPROCESSABLE_ENTITY
-    val jsonResult = contentAsJson(result)
-    (jsonResult \ "errors" \ "code").as[String] mustEqual "007"
-    (jsonResult \ "errors" \ "text").as[String] mustEqual "Unable to fetch subscription for pillar2 ID: XEPLR5555555554"
-  }
+        route(app, request).value shouldFailWith Pillar2IdMissing
+      }
 
-  "return UNPROCESSABLE_ENTITY when amendment to a liability return that does not exist" in {
-    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]), any[String]))
-      .thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
+      "should return NoActiveSubscription when organisation not found" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.failed(OrganisationNotFound(validPlrId)))
 
-    val request = createRequest(validPlrId, Json.toJson(validRequestBody))
+        val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
-    val result = route(app, request).value
-    status(result) mustBe UNPROCESSABLE_ENTITY
-    val jsonResult = contentAsJson(result)
-    (jsonResult \ "errors" \ "code").as[String] mustEqual "003"
-    (jsonResult \ "errors" \ "text").as[String] mustEqual "Request could not be processed"
-  }
+        route(app, request).value shouldFailWith NoActiveSubscription
+      }
 
-  "return OK with success response for a valid NIL_RETURN amendment" in {
-    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
-      .thenReturn(Future.successful(Right(true)))
+      "should return RequestCouldNotBeProcessed when previous submission does not exist" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(None))
 
-    val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
+        val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
-    val result = route(app, request).value
-    status(result) mustBe OK
-    val jsonResult = contentAsJson(result)
-    (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
-    (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
-  }
+        route(app, request).value shouldFailWith RequestCouldNotBeProcessed
+      }
 
-  "return UNPROCESSABLE_ENTITY when amendment to a nil return that does not exist" in {
-    when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
-      .thenReturn(Future.successful(Left(RequestCouldNotBeProcessed)))
+      "should return RequestCouldNotBeProcessed when amendment to a liability return fails" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(
+          mockRepository.update(
+            argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
+            any[String]
+          )
+        ).thenReturn(Future.failed(RequestCouldNotBeProcessed))
 
-    val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
+        val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
-    val result = route(app, request).value
-    status(result) mustBe UNPROCESSABLE_ENTITY
-    val jsonResult = contentAsJson(result)
-    (jsonResult \ "errors" \ "code").as[String] mustEqual "003"
-    (jsonResult \ "errors" \ "text").as[String] mustEqual "Request could not be processed"
-  }
+        route(app, request).value shouldFailWith RequestCouldNotBeProcessed
+      }
 
-  "return INTERNAL_SERVER_ERROR for specific Pillar2Id" in {
-    val request = createRequest(ServerErrorPlrId, Json.toJson(validRequestBody))
+      "should return RequestCouldNotBeProcessed when amendment to a nil return fails" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(
+          mockRepository.update(
+            argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]),
+            any[String]
+          )
+        ).thenReturn(Future.failed(RequestCouldNotBeProcessed))
 
-    val result = route(app, request).value
-    status(result) mustBe INTERNAL_SERVER_ERROR
-    val jsonResult = contentAsJson(result)
-    (jsonResult \ "error" \ "code").as[String] mustEqual "500"
-    (jsonResult \ "error" \ "message").as[String] mustEqual "Internal server error"
-  }
+        val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
-  "return BAD_REQUEST for invalid JSON structure" in {
-    val invalidJson = Json.obj("invalidField" -> "value")
-    val request     = createRequest(validPlrId, invalidJson)
+        route(app, request).value shouldFailWith RequestCouldNotBeProcessed
+      }
 
-    val result = route(app, request).value
-    status(result) mustBe BAD_REQUEST
-  }
+      "should return ETMPInternalServerError for specific Pillar2Id" in {
+        val request = createRequest(ServerErrorPlrId, Json.toJson(validRequestBody))
 
-  "return BAD_REQUEST for non-JSON data" in {
-    val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
-      .withHeaders("Content-Type" -> "application/json", authHeader)
-      .withHeaders("X-Pillar2-Id" -> validPlrId)
-      .withBody("non-json body")
+        route(app, request).value shouldFailWith ETMPInternalServerError
+      }
 
-    val result = route(app, request).value
-    status(result) mustBe BAD_REQUEST
-  }
+      "should return ETMPBadRequest for invalid JSON structure" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
-  "return UNPROCESSABLE_ENTITY if liableEntities array is empty" in {
-    val emptyLiabilityData = validRequestBody.deepMerge(Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr())))
+        val invalidJson = Json.obj("invalidField" -> "value", "anotherInvalidField" -> 123)
+        val request     = createRequest(validPlrId, invalidJson)
 
-    val request = createRequest(validPlrId, Json.toJson(emptyLiabilityData))
+        route(app, request).value shouldFailWith ETMPBadRequest
+      }
 
-    val result = route(app, request).value
-    status(result) mustBe UNPROCESSABLE_ENTITY
-    val jsonResult = contentAsJson(result)
-    (jsonResult \ "errors" \ "code").as[String] mustEqual "093"
-    (jsonResult \ "errors" \ "text").as[String] mustEqual "liabilityEntity cannot be empty"
+      "should return InvalidReturn if liableEntities array is empty" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+
+        val emptyLiabilityData = validRequestBody.deepMerge(
+          Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr()))
+        )
+
+        val request = createRequest(validPlrId, Json.toJson(emptyLiabilityData))
+
+        route(app, request).value shouldFailWith InvalidReturn
+      }
+
+      "should return InvalidTotalLiability when amending with invalid amounts" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+
+        val invalidAmountsBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "totalLiability"    -> -500,
+              "totalLiabilityDTT" -> 10000000000000.99
+            )
+          )
+        )
+
+        route(app, createRequest(validPlrId, Json.toJson(invalidAmountsBody))).value shouldFailWith InvalidTotalLiability
+      }
+
+      "should return InvalidReturn when amending with invalid ID type" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+
+        val invalidIdTypeBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "liableEntities" -> Json.arr(
+                validLiableEntity.as[JsObject] ++ Json.obj("idType" -> "INVALID")
+              )
+            )
+          )
+        )
+
+        route(app, createRequest(validPlrId, Json.toJson(invalidIdTypeBody))).value shouldFailWith InvalidReturn
+      }
+
+      "should return FORBIDDEN when missing Authorization header" in {
+        val requestWithoutAuth = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
+          .withHeaders("Content-Type" -> "application/json", "X-Pillar2-Id" -> validPlrId)
+          .withBody(Json.toJson(validRequestBody))
+
+        val result = route(app, requestWithoutAuth).value
+        status(result) mustBe FORBIDDEN
+      }
+
+      "should return ETMPBadRequest when required fields are missing" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+
+        val missingRequiredFields = Json.obj(
+          "accountingPeriodFrom" -> "2024-08-14",
+          "obligationMTT"        -> false,
+          "electionUKGAAP"       -> false
+        )
+
+        route(app, createRequest(validPlrId, missingRequiredFields)).value shouldFailWith ETMPBadRequest
+      }
+    }
   }
 }
