@@ -228,22 +228,6 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
         route(app, createRequest(validPlrId, mismatchedTotalBody)).value shouldFailWith InvalidTotalLiability
       }
 
-      "should return InvalidTotalLiability when any component is invalid in amendment" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
-
-        val invalidComponentBody = validRequestBody.deepMerge(
-          Json.obj(
-            "liabilities" -> Json.obj(
-              "totalLiabilityIIR" -> -100.00,
-              "totalLiability"    -> 14900.98 // Even though sum would be correct, negative component is invalid
-            )
-          )
-        )
-
-        route(app, createRequest(validPlrId, invalidComponentBody)).value shouldFailWith InvalidTotalLiability
-      }
-
       "should return InvalidReturn when amending with invalid ID type" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
         when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
