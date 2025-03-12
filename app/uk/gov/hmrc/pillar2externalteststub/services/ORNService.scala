@@ -19,35 +19,35 @@ package uk.gov.hmrc.pillar2externalteststub.services
 import play.api.Logging
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{RequestCouldNotBeProcessed, TaxObligationAlreadyFulfilled}
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
+import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import java.time.LocalDate
 
 @Singleton
 class ORNService @Inject() (
-  repository: ORNSubmissionRepository
-)(implicit ec: ExecutionContext) extends Logging {
+  repository:  ORNSubmissionRepository
+)(implicit ec: ExecutionContext)
+    extends Logging {
 
-  def submitORN(pillar2Id: String, request: ORNRequest): Future[Boolean] = {
+  def submitORN(pillar2Id: String, request: ORNRequest): Future[Boolean] =
     repository.findByPillar2Id(pillar2Id).flatMap { submissions =>
-      val existingSubmission = submissions.find(submission =>
-        submission.accountingPeriodFrom == request.accountingPeriodFrom &&
-        submission.accountingPeriodTo == request.accountingPeriodTo
-      )
-
-      existingSubmission match {
-        case Some(_) =>
-          logger.warn(s"Tax obligation already fulfilled for pillar2Id: $pillar2Id")
-          Future.failed(TaxObligationAlreadyFulfilled)
-        case None =>
-          logger.info(s"Submitting new ORN for pillar2Id: $pillar2Id")
-          repository.insert(pillar2Id, request)
+      if (
+        submissions.exists(submission =>
+          submission.accountingPeriodFrom == request.accountingPeriodFrom && submission.accountingPeriodTo == request.accountingPeriodTo
+        )
+      ) {
+        logger.warn(s"Tax obligation already fulfilled for pillar2Id: $pillar2Id")
+        Future.failed(TaxObligationAlreadyFulfilled)
+      } else {
+        logger.info(s"Submitting new ORN for pillar2Id: $pillar2Id")
+        repository.insert(pillar2Id, request)
       }
     }
-  }
 
-  def amendORN(pillar2Id: String, request: ORNRequest): Future[Boolean] = {
+  def amendORN(pillar2Id: String, request: ORNRequest): Future[Boolean] =
     repository.findByPillar2Id(pillar2Id).flatMap { submissions =>
       if (submissions.isEmpty) {
         logger.warn(s"No existing ORN found for pillar2Id: $pillar2Id")
@@ -57,6 +57,8 @@ class ORNService @Inject() (
         repository.insert(pillar2Id, request)
       }
     }
-  }
-}
 
+  def getORN(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Option[ORNSubmission]] =
+    repository
+      .findByPillar2IdAndAccountingPeriod(pillar2Id, accountingPeriodFrom, accountingPeriodTo)
+}

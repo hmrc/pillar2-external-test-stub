@@ -24,6 +24,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
 
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -46,6 +47,14 @@ class ORNSubmissionRepository @Inject() (
         IndexModel(
           Indexes.ascending("pillar2Id"),
           IndexOptions().name("pillar2IdIndex")
+        ),
+        IndexModel(
+          Indexes.compoundIndex(
+            Indexes.ascending("pillar2Id"),
+            Indexes.ascending("accountingPeriodFrom"),
+            Indexes.ascending("accountingPeriodTo")
+          ),
+          IndexOptions().name("pillar2Id_accountingPeriod_idx")
         ),
         IndexModel(
           Indexes.ascending("submittedAt"),
@@ -75,19 +84,20 @@ class ORNSubmissionRepository @Inject() (
 
   def findByPillar2IdAndAccountingPeriod(
     pillar2Id:            String,
-    accountingPeriodFrom: String,
-    accountingPeriodTo:   String
-  ): Future[Seq[ORNSubmission]] =
+    accountingPeriodFrom: LocalDate,
+    accountingPeriodTo:   LocalDate
+  ): Future[Option[ORNSubmission]] =
     collection
       .find(
         Filters.and(
           Filters.equal("pillar2Id", pillar2Id),
-          Filters.equal("accountingPeriodFrom", accountingPeriodFrom),
-          Filters.equal("accountingPeriodTo", accountingPeriodTo)
+          Filters.equal("accountingPeriodFrom", accountingPeriodFrom.toString),
+          Filters.equal("accountingPeriodTo", accountingPeriodTo.toString)
         )
       )
-      .toFuture()
+      .sort(Sorts.descending("submittedAt"))
+      .headOption()
       .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to retrieve ORN submissions: ${e.getMessage}"))
+        Future.failed(DatabaseError(s"Failed to retrieve ORN submission: ${e.getMessage}"))
       }
 }

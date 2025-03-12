@@ -29,11 +29,11 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
+import java.time.LocalDate
 class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with ScalaFutures with ORNDataFixture {
 
   private val mockRepository = mock[ORNSubmissionRepository]
-  private val service = new ORNService(mockRepository)
+  private val service        = new ORNService(mockRepository)
 
   "ORNService" should {
     "submitORN" should {
@@ -61,7 +61,7 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
     "amendORN" should {
       "successfully amend an existing ORN when a submission exists" in {
         val amendedRequest = validORNRequest.copy(reportingEntityName = "Updated Name")
-        
+
         when(mockRepository.findByPillar2Id(eqTo(validPlrId))).thenReturn(Future.successful(Seq(ornMongoSubmission)))
         when(mockRepository.insert(eqTo(validPlrId), eqTo(amendedRequest))).thenReturn(Future.successful(true))
 
@@ -81,6 +81,24 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
         }
       }
     }
+
+    "getORN" should {
+      "return submission when it exists for the given period" in {
+        val submission = ornMongoSubmission
+        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(Some(submission)))
+
+        val result = service.getORN(validPlrId, submission.accountingPeriodFrom, submission.accountingPeriodTo)
+        result.futureValue mustBe Some(submission)
+      }
+
+      "return None when no submission exists for the period" in {
+        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(None))
+
+        val result = service.getORN(validPlrId, LocalDate.now(), LocalDate.now())
+        result.futureValue mustBe None
+      }
+    }
   }
 }
-

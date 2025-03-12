@@ -97,6 +97,20 @@ class ORNISpec
       .futureValue
   }
 
+  private def getORN(pillar2Id: String, accountingPeriodFrom: String, accountingPeriodTo: String): HttpResponse = {
+    val headers = Seq(
+      "Content-Type"  -> "application/json",
+      "Authorization" -> "Bearer token",
+      "X-Pillar2-Id"  -> pillar2Id
+    )
+
+    httpClient
+      .get(url"$baseUrl/RESTAdapter/PLR/overseas-return-notification?accountingPeriodFrom=$accountingPeriodFrom&accountingPeriodTo=$accountingPeriodTo")
+      .transform(_.withHttpHeaders(headers: _*))
+      .execute[HttpResponse]
+      .futureValue
+  }
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     prepareDatabase()
@@ -224,6 +238,83 @@ class ORNISpec
       response.status shouldBe 422
       val json = Json.parse(response.body)
       (json \ "errors" \ "code").as[String] shouldBe "007"
+    }
+  }
+
+  "GET ORN endpoint" should {
+    "successfully retrieve an existing ORN submission" in {
+      when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+      // First create a submission
+      val submitResponse = submitORN(validPlrId, validORNRequest)
+      submitResponse.status shouldBe 201
+
+      // Then retrieve it
+      val getResponse = getORN(validPlrId, validORNRequest.accountingPeriodFrom.toString, validORNRequest.accountingPeriodTo.toString)
+      getResponse.status shouldBe 200
+      
+      val submission = Json.parse(getResponse.body)
+      (submission \ "success" \ "accountingPeriodFrom").as[String] shouldBe validORNRequest.accountingPeriodFrom.toString
+      (submission \ "success" \ "accountingPeriodTo").as[String] shouldBe validORNRequest.accountingPeriodTo.toString
+      (submission \ "success" \ "filedDateGIR").as[String] shouldBe validORNRequest.filedDateGIR.toString
+      (submission \ "success" \ "countryGIR").as[String] shouldBe validORNRequest.countryGIR
+      (submission \ "success" \ "reportingEntityName").as[String] shouldBe validORNRequest.reportingEntityName
+      (submission \ "success" \ "TIN").as[String] shouldBe validORNRequest.TIN
+      (submission \ "success" \ "issuingCountryTIN").as[String] shouldBe validORNRequest.issuingCountryTIN
+      (submission \ "success" \ "processingDate").as[String] should not be empty
+    }
+
+    "return 404 when no submission exists for the given period" in {
+      when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+      val getResponse = getORN(validPlrId, "2025-01-01", "2025-12-31")
+      getResponse.status shouldBe 404
+      val json = Json.parse(getResponse.body)
+      (json \ "errors" \ "code").as[String] shouldBe "404"
+      (json \ "errors" \ "text").as[String] shouldBe "No ORN submission found"
+    }
+
+    "return 422 when dates are invalid" in {
+      when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+      val getResponse = getORN(validPlrId, "invalid-date", "2025-12-31")
+      getResponse.status shouldBe 422
+      val json = Json.parse(getResponse.body)
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+    }
+
+    "return 422 when Pillar2 ID is missing" in {
+      val headers = Seq(
+        "Content-Type"  -> "application/json",
+        "Authorization" -> "Bearer token"
+      )
+
+      val getResponse = httpClient
+        .get(url"$baseUrl/RESTAdapter/PLR/overseas-return-notification?accountingPeriodFrom=2024-01-01&accountingPeriodTo=2024-12-31")
+        .transform(_.withHttpHeaders(headers: _*))
+        .execute[HttpResponse]
+        .futureValue
+
+      getResponse.status shouldBe 422
+      val json = Json.parse(getResponse.body)
+      (json \ "errors" \ "code").as[String] shouldBe "002"
+    }
+
+    "return 422 when organisation does not exist" in {
+      when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.failed(OrganisationNotFound(validPlrId)))
+
+      val getResponse = getORN(validPlrId, "2024-01-01", "2024-12-31")
+      getResponse.status shouldBe 422
+      val json = Json.parse(getResponse.body)
+      (json \ "errors" \ "code").as[String] shouldBe "007"
+    }
+
+    "return 500 for server error PLR ID" in {
+      val getResponse = getORN(serverErrorPlrId, "2024-01-01", "2024-12-31")
+      getResponse.status shouldBe 500
+      val json = Json.parse(getResponse.body)
+      (json \ "errors" \ "code").as[String] shouldBe "500"
     }
   }
 }

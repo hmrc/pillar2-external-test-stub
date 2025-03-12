@@ -18,17 +18,20 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{ServerErrorPlrId, pillar2Regex}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
-import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.orn.{ORNGetResponse, ORNRequest}
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNSuccessResponse.{ORN_SUCCESS_200, ORN_SUCCESS_201}
-import uk.gov.hmrc.pillar2externalteststub.models.response.{ETMPErrorResponse, ETMPSimpleError}
+import uk.gov.hmrc.pillar2externalteststub.models.response.{ETMPDetailedError, ETMPFailureResponse}
+import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.{ORNService, OrganisationService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.{LocalDate, LocalDateTime}
+import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,6 +40,7 @@ class ORNController @Inject() (
   cc:                  ControllerComponents,
   authFilter:          AuthActionFilter,
   ornService:          ORNService,
+  repository:          ORNSubmissionRepository,
   organisationService: OrganisationService
 )(implicit ec:         ExecutionContext)
     extends BackendController(cc)
@@ -47,7 +51,7 @@ class ORNController @Inject() (
       request.body
         .validate[ORNRequest]
         .fold(
-          _ => Future.successful(BadRequest(Json.toJson(ETMPErrorResponse(ETMPSimpleError("400", "Bad request"))))),
+          _ => Future.successful(BadRequest(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, "400", "Bad request"))))),
           ornRequest =>
             organisationService
               .getOrganisation(pillar2Id)
@@ -75,6 +79,29 @@ class ORNController @Inject() (
                 Future.failed(NoActiveSubscription)
               }
         )
+    }
+  }
+
+  def getORN(accountingPeriodFrom: String, accountingPeriodTo: String): Action[AnyContent] = (Action andThen authFilter).async { implicit request =>
+    validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap(checkForServerErrorId).flatMap { pillar2Id =>
+      try {
+        val fromDate = LocalDate.parse(accountingPeriodFrom)
+        val toDate   = LocalDate.parse(accountingPeriodTo)
+
+        ornService
+          .getORN(pillar2Id, fromDate, toDate)
+          .flatMap {
+            case Some(submission) => Future.successful(Ok(Json.toJson(ORNGetResponse.fromSubmission(submission))))
+            case None             => Future.failed(RequestCouldNotBeProcessed)
+          }
+          .recoverWith { case _: OrganisationNotFound =>
+            Future.failed(NoActiveSubscription)
+          }
+      } catch {
+        case e: DateTimeParseException =>
+          logger.error(s"Invalid date format: ${e.getMessage}")
+          Future.failed(RequestCouldNotBeProcessed)
+      }
     }
   }
 
