@@ -23,12 +23,12 @@ import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{ServerErrorPlrId, pillar2Regex}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNSuccessResponse.{ORN_SUCCESS_200, ORN_SUCCESS_201}
 import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -59,14 +59,14 @@ class ORNController @Inject() (
       case e: ETMPError =>
         logger.error(s"Error validating organisation: ${e.getMessage}", e)
         Future.failed(e)
-        
+
     }
   }
 
   def amendORN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
     (for {
       pillar2Id <- validatePillar2Id(request.headers.get("X-Pillar2-Id"))
-      _        <- checkForServerErrorId(pillar2Id)
+      _         <- checkForServerErrorId(pillar2Id)
       _         <- organisationService.getOrganisation(pillar2Id)
       result <- request.body
                   .validate[ORNRequest]

@@ -22,12 +22,12 @@ import java.time.LocalDate
 
 case class ORNRequest(
   accountingPeriodFrom: LocalDate,
-  accountingPeriodTo: LocalDate,
-  filedDateGIR: LocalDate, 
-  countryGIR: String,
-  reportingEntityName: String,
-  TIN: String,
-  issuingCountryTIN: String
+  accountingPeriodTo:   LocalDate,
+  filedDateGIR:         LocalDate,
+  countryGIR:           String,
+  reportingEntityName:  String,
+  TIN:                  String,
+  issuingCountryTIN:    String
 ) {
   def accountingPeriodValid: Boolean =
     accountingPeriodFrom.isBefore(accountingPeriodTo)
@@ -36,4 +36,3 @@ case class ORNRequest(
 object ORNRequest {
   implicit val format: OFormat[ORNRequest] = Json.format[ORNRequest]
 }
-

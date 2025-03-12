@@ -26,21 +26,21 @@ import java.time.Instant
 import java.time.LocalDate
 
 case class ORNSubmission(
-  _id: ObjectId,
-  pillar2Id: String,
+  _id:                  ObjectId,
+  pillar2Id:            String,
   accountingPeriodFrom: LocalDate,
-  accountingPeriodTo: LocalDate,
-  filedDateGIR: LocalDate,
-  countryGIR: String,
-  reportingEntityName: String,
-  TIN: String,
-  issuingCountryTIN: String,
-  submittedAt: Instant,
-  formBundleNumber: String
+  accountingPeriodTo:   LocalDate,
+  filedDateGIR:         LocalDate,
+  countryGIR:           String,
+  reportingEntityName:  String,
+  TIN:                  String,
+  issuingCountryTIN:    String,
+  submittedAt:          Instant,
+  formBundleNumber:     String
 )
 
 object ORNSubmission {
-  
+
   def fromRequest(pillar2Id: String, request: ORNRequest, formBundleNumber: String): ORNSubmission =
     ORNSubmission(
       _id = new ObjectId(),
@@ -104,4 +104,3 @@ object ORNSubmission {
 
   val mongoFormat: OFormat[ORNSubmission] = OFormat(mongoReads, mongoWrites)
 }
-

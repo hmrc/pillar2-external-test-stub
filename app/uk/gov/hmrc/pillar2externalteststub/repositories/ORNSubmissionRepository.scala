@@ -20,9 +20,9 @@ import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
@@ -72,11 +72,11 @@ class ORNSubmissionRepository @Inject() (
       .recoverWith { case e: Exception =>
         Future.failed(DatabaseError(s"Failed to retrieve ORN submissions: ${e.getMessage}"))
       }
-      
+
   def findByPillar2IdAndAccountingPeriod(
-    pillar2Id: String, 
-    accountingPeriodFrom: String, 
-    accountingPeriodTo: String
+    pillar2Id:            String,
+    accountingPeriodFrom: String,
+    accountingPeriodTo:   String
   ): Future[Seq[ORNSubmission]] =
     collection
       .find(

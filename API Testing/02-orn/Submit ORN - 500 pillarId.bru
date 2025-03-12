@@ -1,0 +1,39 @@
+meta {
+  name: Submit ORN - 500 pillarId
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/RESTAdapter/PLR/overseas-return-notification
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  X-Pillar2-Id: {{serverErrorPillar2Id}}
+  Authorization: validBearerToken
+}
+
+body:json {
+  {
+    "accountingPeriodFrom": "2024-01-01",
+    "accountingPeriodTo": "2024-12-31",
+    "filedDateGIR": "2025-01-10",
+    "countryGIR": "US",
+    "reportingEntityName": "Newco PLC",
+    "TIN": "US12345678",
+    "issuingCountryTIN": "US"
+  }
+}
+
+tests {
+  test("Response contains correct error code", function() {
+    expect(res.body.errors.code).to.equal("002");
+  });
+  
+  test("Response contains correct status code", function() {
+    expect(res.status).to.equal(500);
+  });
+}
