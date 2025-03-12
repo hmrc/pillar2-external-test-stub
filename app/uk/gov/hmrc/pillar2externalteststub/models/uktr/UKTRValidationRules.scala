@@ -30,8 +30,7 @@ object UKTRValidationRules {
   def isValidUKTRAmount(number: BigDecimal): Boolean =
     number >= 0 &&
       number <= boundaryUKTRAmount &&
-      number.scale <= 2 &&
-      number.toString.matches("^\\d+(\\.\\d{1,2})?$")
+      number.scale <= 2
 
   // Common validation for obligationMTT - checks if domestic organizations can have obligationMTT set to true
   def obligationMTTRule[T <: UKTRSubmission](

@@ -33,9 +33,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
     "ukChargeableEntityName" -> "New Company",
     "idType"                 -> "CRN",
     "idValue"                -> "1234",
-    "amountOwedDTT"          -> 12345678901.0,
-    "amountOwedIIR"          -> 1234567890.09,
-    "amountOwedUTPR"         -> 600.50
+    "amountOwedDTT"          -> 5000.99,
+    "amountOwedIIR"          -> 4000,
+    "amountOwedUTPR"         -> 10000.99
   )
 
   val validRequestBody: JsObject = Json.obj(
@@ -48,7 +48,7 @@ trait UKTRDataFixture extends Pillar2DataFixture {
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 4,
       "numberSubGroupUTPR"       -> 5,
-      "totalLiability"           -> 10000.99,
+      "totalLiability"           -> 19001.98,
       "totalLiabilityDTT"        -> 5000.99,
       "totalLiabilityIIR"        -> 4000,
       "totalLiabilityUTPR"       -> 10000.99,
