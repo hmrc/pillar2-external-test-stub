@@ -70,4 +70,3 @@ trait ORNDataFixture extends Pillar2DataFixture {
     if (isAmend) createAmendRequest(plrId, Json.toJson(request))
     else createSubmitRequest(plrId, Json.toJson(request))
 }
-
