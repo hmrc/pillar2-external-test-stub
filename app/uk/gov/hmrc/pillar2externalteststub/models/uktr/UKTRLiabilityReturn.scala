@@ -39,16 +39,24 @@ object UKTRLiabilityReturn {
 
   implicit val uktrSubmissionDataFormat: OFormat[UKTRLiabilityReturn] = Json.format[UKTRLiabilityReturn]
 
-  private val totalLiabilityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiability)) valid[UKTRLiabilityReturn](data)
+  private[uktr] val totalLiabilityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+    val totalLiability = data.liabilities.totalLiabilityDTT + data.liabilities.totalLiabilityIIR + data.liabilities.totalLiabilityUTPR
+
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiability) && data.liabilities.totalLiability == totalLiability)
+      valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(InvalidTotalLiability)
       )
   }
 
-  private val totalLiabilityDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityDTT)) valid[UKTRLiabilityReturn](data)
+  private[uktr] val totalLiabilityDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+    val totalDTTAmountOwed = data.liabilities.liableEntities.foldLeft(BigDecimal(0)) { (acc, entity) =>
+      acc + entity.amountOwedDTT
+    }
+
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityDTT) && data.liabilities.totalLiabilityDTT == totalDTTAmountOwed)
+      valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -57,16 +65,26 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private val totalLiabilityIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityIIR)) valid[UKTRLiabilityReturn](data)
+  private[uktr] val totalLiabilityIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+    val totalIIRAmountOwed = data.liabilities.liableEntities.foldLeft(BigDecimal(0)) { (acc, entity) =>
+      acc + entity.amountOwedIIR
+    }
+
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityIIR) && data.liabilities.totalLiabilityIIR == totalIIRAmountOwed)
+      valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(InvalidTotalLiabilityIIR)
       )
   }
 
-  private val totalLiabilityUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityUTPR)) valid[UKTRLiabilityReturn](data)
+  private[uktr] val totalLiabilityUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+    val totalUTPRAmountOwed = data.liabilities.liableEntities.foldLeft(BigDecimal(0)) { (acc, entity) =>
+      acc + entity.amountOwedUTPR
+    }
+
+    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityUTPR) && data.liabilities.totalLiabilityUTPR == totalUTPRAmountOwed)
+      valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -75,7 +93,7 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private val liabilityEntityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+  private[uktr] val liabilityEntityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.nonEmpty) valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -85,7 +103,7 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private val ukChargeableEntityNameRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+  private[uktr] val ukChargeableEntityNameRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$"))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -95,7 +113,7 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private val idTypeRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+  private[uktr] val idTypeRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.forall(f => f.idType.equals("UTR") || f.idType.equals("CRN"))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -105,7 +123,7 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private val idValueRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+  private[uktr] val idValueRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.forall(f => f.idValue.matches("^[a-zA-Z0-9]{1,15}$"))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -115,7 +133,7 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private val amountOwedDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+  private[uktr] val amountOwedDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedDTT))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -125,7 +143,7 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private val amountOwedIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+  private[uktr] val amountOwedIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedIIR))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -135,7 +153,7 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private val amountOwedUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+  private[uktr] val amountOwedUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedUTPR))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -156,11 +174,11 @@ object UKTRLiabilityReturn {
       obligationMTTRule,
       electionUKGAAPRule,
       accountingPeriodRule,
+      liabilityEntityRule,
       totalLiabilityRule,
       totalLiabilityDTTRule,
       totalLiabilityIIRRule,
       totalLiabilityUTPRRule,
-      liabilityEntityRule,
       ukChargeableEntityNameRule,
       idTypeRule,
       idValueRule,

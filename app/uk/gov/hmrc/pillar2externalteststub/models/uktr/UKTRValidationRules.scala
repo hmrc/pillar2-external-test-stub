@@ -30,10 +30,9 @@ object UKTRValidationRules {
   def isValidUKTRAmount(number: BigDecimal): Boolean =
     number >= 0 &&
       number <= boundaryUKTRAmount &&
-      number.scale <= 2 &&
-      number.toString.matches("^\\d+(\\.\\d{1,2})?$")
+      number.scale <= 2
 
-  // Common validation for obligationMTT - checks if domestic organizations can have obligationMTT set to true
+  // Common validation for obligationMTT - checks if domestic organisations can have obligationMTT set to true
   def obligationMTTRule[T <: UKTRSubmission](
     plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[T]] =
@@ -50,7 +49,7 @@ object UKTRValidationRules {
       }
     }
 
-  // Common validation for electionUKGAAP - checks if non-domestic organizations can have electionUKGAAP set to true
+  // Common validation for electionUKGAAP - checks if non-domestic organisations can have electionUKGAAP set to true
   def electionUKGAAPRule[T <: UKTRSubmission](
     plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[T]] =

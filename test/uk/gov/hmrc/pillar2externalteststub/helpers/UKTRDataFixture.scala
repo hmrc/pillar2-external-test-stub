@@ -33,9 +33,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
     "ukChargeableEntityName" -> "New Company",
     "idType"                 -> "CRN",
     "idValue"                -> "1234",
-    "amountOwedDTT"          -> 12345678901.0,
-    "amountOwedIIR"          -> 1234567890.09,
-    "amountOwedUTPR"         -> 600.50
+    "amountOwedDTT"          -> 100,
+    "amountOwedIIR"          -> 100,
+    "amountOwedUTPR"         -> 100
   )
 
   val validRequestBody: JsObject = Json.obj(
@@ -48,10 +48,10 @@ trait UKTRDataFixture extends Pillar2DataFixture {
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 4,
       "numberSubGroupUTPR"       -> 5,
-      "totalLiability"           -> 10000.99,
-      "totalLiabilityDTT"        -> 5000.99,
-      "totalLiabilityIIR"        -> 4000,
-      "totalLiabilityUTPR"       -> 10000.99,
+      "totalLiability"           -> 300,
+      "totalLiabilityDTT"        -> 100,
+      "totalLiabilityIIR"        -> 100,
+      "totalLiabilityUTPR"       -> 100,
       "liableEntities"           -> Json.arr(validLiableEntity)
     )
   )
@@ -68,17 +68,17 @@ trait UKTRDataFixture extends Pillar2DataFixture {
     "ukChargeableEntityName" -> "",
     "idType"                 -> "UTR",
     "idValue"                -> "abc45678",
-    "amountOwedDTT"          -> 12345678901.9,
-    "amountOwedIIR"          -> 1234567890.01,
-    "amountOwedUTPR"         -> 1234567890.99
+    "amountOwedDTT"          -> 100,
+    "amountOwedIIR"          -> 100,
+    "amountOwedUTPR"         -> 100
   )
   val invalidIdTypeZeroLength: JsObject = Json.obj(
     "ukChargeableEntityName" -> "New Company",
     "idType"                 -> "",
     "idValue"                -> "abc45678",
-    "amountOwedDTT"          -> 12345678901.9,
-    "amountOwedIIR"          -> 1234567890.01,
-    "amountOwedUTPR"         -> 1234567890.99
+    "amountOwedDTT"          -> 100,
+    "amountOwedIIR"          -> 100,
+    "amountOwedUTPR"         -> 100
   )
 
   val missingUkChargeableEntityNameRequestBody: JsObject = validRequestBody ++ Json.obj(
@@ -91,9 +91,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
             Json.obj(
               "idType"         -> "CRN",
               "idValue"        -> "12345678",
-              "amountOwedDTT"  -> 12345678901.0,
-              "amountOwedIIR"  -> 1234567890.09,
-              "amountOwedUTPR" -> 6000.50
+              "amountOwedDTT"  -> 100,
+              "amountOwedIIR"  -> 100,
+              "amountOwedUTPR" -> 100
             )
           )
         )
@@ -127,9 +127,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
             Json.obj(
               "ukChargeableEntityName" -> "UKTR Newco PLC",
               "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 12345678901.0,
-              "amountOwedIIR"          -> 1234567890.09,
-              "amountOwedUTPR"         -> 6000.50
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -145,9 +145,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
             Json.obj(
               "ukChargeableEntityName" -> "UKTR Newco PLC",
               "idType"                 -> "CRN",
-              "amountOwedDTT"          -> 12345678901.0,
-              "amountOwedIIR"          -> 1234567890.09,
-              "amountOwedUTPR"         -> 6000.50
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -164,8 +164,8 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "UKTR Newco PLC",
               "idType"                 -> "CRN",
               "idValue"                -> "12345678",
-              "amountOwedIIR"          -> 1234567890.09,
-              "amountOwedUTPR"         -> 6000.50
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -182,8 +182,8 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "UKTR Newco PLC",
               "idType"                 -> "CRN",
               "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 12345678901.0,
-              "amountOwedUTPR"         -> 6000.50
+              "amountOwedDTT"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -200,8 +200,8 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "UKTR Newco PLC",
               "idType"                 -> "CRN",
               "idValue"                -> "12345678",
-              "amountOwedIIR"          -> 1234567890.09,
-              "amountOwedDTT"          -> 12345678901.0
+              "amountOwedIIR"          -> 100,
+              "amountOwedDTT"          -> 100
             )
           )
         )
@@ -230,9 +230,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901",
               "idType"         -> "CRN",
               "idValue"        -> "12345678",
-              "amountOwedDTT"  -> 12345678901.0,
-              "amountOwedIIR"  -> 1234567890.09,
-              "amountOwedUTPR" -> 6000.50
+              "amountOwedDTT"  -> 100,
+              "amountOwedIIR"  -> 100,
+              "amountOwedUTPR" -> 100
             )
           )
         )
@@ -249,9 +249,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "",
               "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 0.01,
-              "amountOwedIIR"          -> .57,
-              "amountOwedUTPR"         -> 6000.50
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -268,9 +268,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "INVALID_ID_TYPE",
               "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 0.01,
-              "amountOwedIIR"          -> .57,
-              "amountOwedUTPR"         -> 6000.50
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -287,9 +287,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "CRN",
               "idValue"                -> "",
-              "amountOwedDTT"          -> 0.01,
-              "amountOwedIIR"          -> .57,
-              "amountOwedUTPR"         -> 6000.50
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -306,9 +306,9 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "UTR",
               "idValue"                -> "abc4567890123456",
-              "amountOwedDTT"          -> 0.00,
-              "amountOwedIIR"          -> 0,
-              "amountOwedUTPR"         -> 0.0
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -325,17 +325,17 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "INVALID_ID_TYPE",
               "idValue"                -> "12345678",
-              "amountOwedDTT"          -> 0.01,
-              "amountOwedIIR"          -> .57,
-              "amountOwedUTPR"         -> 6000.50
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             ),
             Json.obj(
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "UTR",
               "idValue"                -> "abc4567890123456",
-              "amountOwedDTT"          -> 0.00,
-              "amountOwedIIR"          -> 0,
-              "amountOwedUTPR"         -> 0.0
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -353,25 +353,25 @@ trait UKTRDataFixture extends Pillar2DataFixture {
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "UTR",
               "idValue"                -> "abc45678",
-              "amountOwedDTT"          -> 50.00,
-              "amountOwedIIR"          -> 123456789101112.01,
-              "amountOwedUTPR"         -> 12345678901.9
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             ),
             Json.obj(
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "UTR",
               "idValue"                -> "abc45678",
-              "amountOwedDTT"          -> 50.00,
-              "amountOwedIIR"          -> 1234567890123.01,
-              "amountOwedUTPR"         -> 12345678901.9
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             ),
             Json.obj(
               "ukChargeableEntityName" -> "UK Company",
               "idType"                 -> "UTR",
               "idValue"                -> "abc45678",
-              "amountOwedDTT"          -> 50.00,
-              "amountOwedIIR"          -> 123.01,
-              "amountOwedUTPR"         -> -123.90
+              "amountOwedDTT"          -> 100,
+              "amountOwedIIR"          -> 100,
+              "amountOwedUTPR"         -> 100
             )
           )
         )
@@ -489,5 +489,10 @@ trait UKTRDataFixture extends Pillar2DataFixture {
   val testOrganisation: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = validPlrId,
     organisation = testOrgDetails
+  )
+
+  val domesticOrganisation: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = validPlrId,
+    organisation = testOrgDetails.copy(orgDetails = testOrgDetails.orgDetails.copy(domesticOnly = true))
   )
 }

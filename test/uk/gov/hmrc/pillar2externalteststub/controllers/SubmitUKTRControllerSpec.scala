@@ -131,7 +131,15 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
 
         val emptyLiableEntitiesBody = validRequestBody.deepMerge(
-          Json.obj("liabilities" -> Json.obj("liableEntities" -> Json.arr()))
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "liableEntities"     -> Json.arr(),
+              "totalLiability"     -> 0,
+              "totalLiabilityDTT"  -> 0,
+              "totalLiabilityIIR"  -> 0,
+              "totalLiabilityUTPR" -> 0
+            )
+          )
         )
         val request = createRequest(validPlrId, emptyLiableEntitiesBody)
 
@@ -165,6 +173,39 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           )
         )
         val request = createRequest(validPlrId, invalidAmountsBody)
+
+        route(app, request).value shouldFailWith InvalidTotalLiability
+      }
+
+      "should return InvalidTotalLiability when total liability does not match sum of components" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+
+        val mismatchedTotalBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "totalLiability" -> 50000.00 // Doesn't match sum of DTT + IIR + UTPR
+            )
+          )
+        )
+        val request = createRequest(validPlrId, mismatchedTotalBody)
+
+        route(app, request).value shouldFailWith InvalidTotalLiability
+      }
+
+      "should return InvalidTotalLiability when any component is invalid" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+
+        val invalidComponentBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "totalLiabilityDTT"  -> 5000.99,
+              "totalLiabilityIIR"  -> -100.00,
+              "totalLiabilityUTPR" -> 10000.99,
+              "totalLiability"     -> 15901.98 // Sum would be correct if IIR wasn't negative
+            )
+          )
+        )
+        val request = createRequest(validPlrId, invalidComponentBody)
 
         route(app, request).value shouldFailWith InvalidTotalLiability
       }
