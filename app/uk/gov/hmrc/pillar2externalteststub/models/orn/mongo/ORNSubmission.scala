@@ -35,13 +35,12 @@ case class ORNSubmission(
   reportingEntityName:  String,
   TIN:                  String,
   issuingCountryTIN:    String,
-  submittedAt:          Instant,
-  formBundleNumber:     String
+  submittedAt:          Instant
 )
 
 object ORNSubmission {
 
-  def fromRequest(pillar2Id: String, request: ORNRequest, formBundleNumber: String): ORNSubmission =
+  def fromRequest(pillar2Id: String, request: ORNRequest): ORNSubmission =
     ORNSubmission(
       _id = new ObjectId(),
       pillar2Id = pillar2Id,
@@ -52,8 +51,7 @@ object ORNSubmission {
       reportingEntityName = request.reportingEntityName,
       TIN = request.TIN,
       issuingCountryTIN = request.issuingCountryTIN,
-      submittedAt = Instant.now(),
-      formBundleNumber = formBundleNumber
+      submittedAt = Instant.now()
     )
 
   private val mongoInstantFormat: Format[Instant] = new Format[Instant] {
@@ -83,8 +81,7 @@ object ORNSubmission {
         (__ \ "reportingEntityName").read[String] and
         (__ \ "TIN").read[String] and
         (__ \ "issuingCountryTIN").read[String] and
-        (__ \ "submittedAt").read[Instant](mongoInstantFormat) and
-        (__ \ "formBundleNumber").read[String]
+        (__ \ "submittedAt").read[Instant](mongoInstantFormat)
     )(ORNSubmission.apply _)
 
   private val mongoWrites: OWrites[ORNSubmission] =
@@ -98,8 +95,7 @@ object ORNSubmission {
         (__ \ "reportingEntityName").write[String] and
         (__ \ "TIN").write[String] and
         (__ \ "issuingCountryTIN").write[String] and
-        (__ \ "submittedAt").write[Instant](mongoInstantFormat) and
-        (__ \ "formBundleNumber").write[String]
+        (__ \ "submittedAt").write[Instant](mongoInstantFormat)
     )(unlift(ORNSubmission.unapply))
 
   val mongoFormat: OFormat[ORNSubmission] = OFormat(mongoReads, mongoWrites)

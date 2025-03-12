@@ -42,7 +42,7 @@ trait ORNDataFixture extends Pillar2DataFixture {
 
   val validRequestBody: JsValue = Json.toJson(validORNRequest)
 
-  val ORNMongoSubmission: ORNSubmission = ORNSubmission(
+  val ornMongoSubmission: ORNSubmission = ORNSubmission(
     _id = new ObjectId(),
     pillar2Id = validPlrId,
     accountingPeriodFrom = validORNRequest.accountingPeriodFrom,
@@ -52,8 +52,7 @@ trait ORNDataFixture extends Pillar2DataFixture {
     reportingEntityName = validORNRequest.reportingEntityName,
     TIN = validORNRequest.TIN,
     issuingCountryTIN = validORNRequest.issuingCountryTIN,
-    submittedAt = Instant.now(),
-    formBundleNumber = "123456789"
+    submittedAt = Instant.now()
   )
 
   def createSubmitRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =

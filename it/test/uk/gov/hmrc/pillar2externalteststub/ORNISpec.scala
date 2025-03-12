@@ -123,6 +123,40 @@ class ORNISpec
       submission.accountingPeriodTo shouldBe validORNRequest.accountingPeriodTo
     }
 
+    "return 422 with tax obligation already fulfilled when submitting duplicate ORN" in {
+      when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+      // First submission
+      val firstResponse = submitORN(validPlrId, validORNRequest)
+      firstResponse.status shouldBe 201
+
+      // Second submission with same accounting period
+      val secondResponse = submitORN(validPlrId, validORNRequest)
+      secondResponse.status shouldBe 422
+      val json = Json.parse(secondResponse.body)
+      (json \ "errors" \ "code").as[String] shouldBe "044"
+      (json \ "errors" \ "text").as[String] shouldBe "Tax obligation already fulfilled"
+    }
+
+    "allow submission for different accounting periods" in {
+      when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+      // First submission
+      val firstResponse = submitORN(validPlrId, validORNRequest)
+      firstResponse.status shouldBe 201
+
+      // Second submission with different accounting period
+      val differentPeriodRequest = validORNRequest.copy(
+        accountingPeriodFrom = validORNRequest.accountingPeriodFrom.plusYears(1),
+        accountingPeriodTo = validORNRequest.accountingPeriodTo.plusYears(1)
+      )
+      val secondResponse = submitORN(validPlrId, differentPeriodRequest)
+      secondResponse.status shouldBe 201
+
+      val submissions = repository.findByPillar2Id(validPlrId).futureValue
+      submissions.size shouldBe 2
+    }
+
     "successfully amend an existing ORN submission" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
 
@@ -138,6 +172,19 @@ class ORNISpec
       val submissions = repository.findByPillar2Id(validPlrId).futureValue
       submissions.size shouldBe 2
       submissions.last.reportingEntityName shouldBe "Updated Newco PLC"
+    }
+
+    "return 422 when attempting to amend non-existent ORN" in {
+      when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+      val amendResponse = amendORN(validPlrId, validORNRequest)
+      amendResponse.status shouldBe 422
+      val json = Json.parse(amendResponse.body)
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+
+      val submissions = repository.findByPillar2Id(validPlrId).futureValue
+      submissions shouldBe empty
     }
 
     "handle invalid requests appropriately" in {

@@ -56,9 +56,9 @@ class ORNSubmissionRepository @Inject() (
       )
     ) {
 
-  def insert(pillar2Id: String, submission: ORNRequest, formBundleNumber: String): Future[Boolean] =
+  def insert(pillar2Id: String, submission: ORNRequest): Future[Boolean] =
     collection
-      .insertOne(ORNSubmission.fromRequest(pillar2Id, submission, formBundleNumber))
+      .insertOne(ORNSubmission.fromRequest(pillar2Id, submission))
       .toFuture()
       .map(_ => true)
       .recoverWith { case e: Exception =>
