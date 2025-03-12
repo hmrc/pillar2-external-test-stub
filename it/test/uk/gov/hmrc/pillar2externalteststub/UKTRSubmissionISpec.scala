@@ -63,7 +63,7 @@ class UKTRSubmissionISpec
 
   private def submitUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse =
     httpClient
-      .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
+      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
       .withBody(Json.toJson(submission))
       .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
@@ -71,7 +71,7 @@ class UKTRSubmissionISpec
 
   private def amendUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse =
     httpClient
-      .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
+      .put(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
       .withBody(Json.toJson(submission))
       .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
@@ -140,7 +140,7 @@ class UKTRSubmissionISpec
     "handle error cases" should {
       "return 400 for invalid JSON" in {
         val response = httpClient
-          .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
+          .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
           .withBody(Json.obj("invalid" -> "data"))
           .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> validPlrId)
           .execute[HttpResponse]
@@ -151,7 +151,7 @@ class UKTRSubmissionISpec
 
       "return 422 when Pillar2 ID header is missing" in {
         val response = httpClient
-          .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
+          .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
           .withBody(Json.toJson(liabilitySubmission))
           .setHeader("Authorization" -> authToken)
           .execute[HttpResponse]
