@@ -22,7 +22,7 @@ import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
-import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -33,8 +33,9 @@ import scala.concurrent.{ExecutionContext, Future}
 class AmendUKTRController @Inject() (
   cc:                               ControllerComponents,
   authActionFilter:                 AuthActionFilter,
-  override val repository:          UKTRSubmissionRepository,
-  override val organisationService: OrganisationService
+  override val uktrRepository:      UKTRSubmissionRepository,
+  override val organisationService: OrganisationService,
+  oasRepository:                    ObligationsAndSubmissionsRepository
 )(implicit override val ec:         ExecutionContext)
     extends BackendController(cc)
     with UKTRControllerCommon {
@@ -65,7 +66,7 @@ class AmendUKTRController @Inject() (
   private def checkExistingSubmission(plrReference: String, request: Request[JsValue])(implicit ec: ExecutionContext): Future[Result] = {
     logger.info(s"Checking for existing submission for PLR: $plrReference")
 
-    repository.findByPillar2Id(plrReference).flatMap {
+    uktrRepository.findByPillar2Id(plrReference).flatMap {
       case Some(_) =>
         logger.info(s"Existing submission found for PLR: $plrReference, proceeding with validation")
         processAmendment(plrReference, request)
@@ -80,9 +81,17 @@ class AmendUKTRController @Inject() (
     val successAction: (UKTRSubmission, String) => Future[Result] = (submission, plrRef) =>
       submission match {
         case nilReturn: UKTRNilReturn =>
-          repository.update(nilReturn, plrRef).map(_ => Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
+          uktrRepository.update(nilReturn, plrRef).flatMap { sub =>
+            oasRepository.insert(nilReturn, plrRef, sub.toOption.get).map { _ =>
+              Ok(Json.toJson(NilReturnSuccess.successfulNilReturnResponse))
+            }
+          }
         case liability: UKTRLiabilityReturn =>
-          repository.update(liability, plrRef).map(_ => Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)))
+          uktrRepository.update(liability, plrRef).flatMap { sub =>
+            oasRepository.insert(liability, plrRef, sub.toOption.get).map { _ =>
+              Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse))
+            }
+          }
         case _ =>
           Future.failed(ETMPBadRequest)
       }
