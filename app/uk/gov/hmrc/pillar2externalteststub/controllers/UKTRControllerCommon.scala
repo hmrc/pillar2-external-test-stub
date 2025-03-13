@@ -79,10 +79,7 @@ trait UKTRControllerCommon extends Logging {
               logger.info(s"UKTR request validated successfully for PLR: $plrReference")
               successAction(uktrRequest, plrReference)
           }
-        }).flatten.recoverWith { case e: Exception =>
-          logger.error(s"Error validating request: ${e.getMessage}", e)
-          Future.failed(e)
-        }
+        }).flatten
 
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         logger.info(s"Processing nil return for PLR: $plrReference")
@@ -101,10 +98,7 @@ trait UKTRControllerCommon extends Logging {
               logger.info(s"Nil return request validated successfully for PLR: $plrReference")
               successAction(nilReturnRequest, plrReference)
           }
-        }).flatten.recoverWith { case e: Exception =>
-          logger.error(s"Error validating request: ${e.getMessage}", e)
-          Future.failed(e)
-        }
+        }).flatten
 
       case JsError(errors) =>
         val errorMessage = errors
