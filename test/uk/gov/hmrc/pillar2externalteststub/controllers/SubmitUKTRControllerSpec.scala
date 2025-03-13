@@ -18,6 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito.when
+import org.mongodb.scala.bson.ObjectId
 import org.scalatest.OptionValues
 import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AnyFreeSpec
@@ -70,7 +71,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     "when submitting a UK tax return" - {
       "should return CREATED with success response for a valid liability submission" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(true))
+        when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
 
         val result = route(app, createRequest(validPlrId, validRequestBody)).get
         status(result) mustBe CREATED
@@ -79,7 +80,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "should return CREATED with success response for a valid NIL return submission" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(true))
+        when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
 
         val result = route(app, createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))).get
         status(result) mustBe CREATED
