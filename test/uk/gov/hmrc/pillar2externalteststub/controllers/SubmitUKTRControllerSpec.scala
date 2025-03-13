@@ -269,11 +269,11 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
             anyString(),
             any[ObjectId]
           )
-        ).thenReturn(Future.failed(DatabaseError(s"Failed to insert submission into mongo")))
+        ).thenReturn(Future.failed(DatabaseError("Failed to insert submission into mongo")))
 
         val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
-        route(app, request).value shouldFailWith DatabaseError(s"Failed to insert submission into mongo")
+        route(app, request).value shouldFailWith DatabaseError("Failed to insert submission into mongo")
       }
     }
   }

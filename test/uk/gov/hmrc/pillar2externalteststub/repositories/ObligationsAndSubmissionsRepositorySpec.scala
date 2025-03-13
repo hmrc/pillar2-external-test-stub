@@ -28,18 +28,18 @@ import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.ObligationsAndSubmissionsMongoSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.Liability
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRLiabilityReturn
 
-import java.time.LocalDate
 import scala.concurrent.ExecutionContext
+import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 
 class ObligationsAndSubmissionsRepositorySpec
     extends AnyWordSpec
     with Matchers
     with DefaultPlayMongoRepositorySupport[ObligationsAndSubmissionsMongoSubmission]
     with ScalaFutures
-    with IntegrationPatience {
+    with IntegrationPatience
+    with UKTRDataFixture {
 
   val config = new AppConfig(
     Configuration.from(
@@ -65,44 +65,27 @@ class ObligationsAndSubmissionsRepositorySpec
 
   implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
-  private val testPillar2Id    = "XMPLR0000000000"
   private val testSubmissionId = new ObjectId()
-  private val testSubmission = UKTRLiabilityReturn(
-    accountingPeriodFrom = LocalDate.of(2024, 1, 1),
-    accountingPeriodTo = LocalDate.of(2024, 12, 31),
-    obligationMTT = false,
-    electionUKGAAP = false,
-    liabilities = Liability(
-      electionDTTSingleMember = false,
-      electionUTPRSingleMember = false,
-      numberSubGroupDTT = 0,
-      numberSubGroupUTPR = 0,
-      totalLiability = 3000,
-      totalLiabilityDTT = 1000,
-      totalLiabilityIIR = 1000,
-      totalLiabilityUTPR = 1000,
-      liableEntities = Seq.empty
-    )
-  )
+  private val testSubmission   = validRequestBody.as[UKTRLiabilityReturn]
 
   "insert" should {
     "successfully insert a new submission" in {
-      val result = repository.insert(testSubmission, testPillar2Id, testSubmissionId).futureValue
+      val result = repository.insert(testSubmission, validPlrId, testSubmissionId).futureValue
       result shouldBe true
 
-      val submissions = repository.findAllSubmissionsByPillar2Id(testPillar2Id).futureValue
+      val submissions = repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue
       submissions.size shouldBe 1
       val submission = submissions.head
-      submission.pillar2Id      shouldBe testPillar2Id
+      submission.pillar2Id      shouldBe validPlrId
       submission.submissionId   shouldBe testSubmissionId
       submission.submissionType shouldBe SubmissionType.UKTR
     }
 
     "allow multiple submissions for the same pillar2Id" in {
-      repository.insert(testSubmission, testPillar2Id, new ObjectId()).futureValue shouldBe true
-      repository.insert(testSubmission, testPillar2Id, new ObjectId()).futureValue shouldBe true
+      repository.insert(testSubmission, validPlrId, new ObjectId()).futureValue shouldBe true
+      repository.insert(testSubmission, validPlrId, new ObjectId()).futureValue shouldBe true
 
-      val submissions = repository.findAllSubmissionsByPillar2Id(testPillar2Id).futureValue
+      val submissions = repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue
       submissions.size shouldBe 2
     }
   }
@@ -116,10 +99,10 @@ class ObligationsAndSubmissionsRepositorySpec
       val objectIds = List(new ObjectId(), new ObjectId(), new ObjectId())
 
       objectIds.foreach { id =>
-        repository.insert(testSubmission, testPillar2Id, id).futureValue shouldBe true
+        repository.insert(testSubmission, validPlrId, id).futureValue shouldBe true
       }
 
-      val submissions = repository.findAllSubmissionsByPillar2Id(testPillar2Id).futureValue
+      val submissions = repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue
       submissions.size              shouldBe 3
       submissions.map(_.submissionId) should contain theSameElementsAs objectIds
     }
@@ -127,13 +110,13 @@ class ObligationsAndSubmissionsRepositorySpec
 
   "deleteByPillar2Id" should {
     "successfully delete all submissions for a given pillar2Id" in {
-      repository.insert(testSubmission, testPillar2Id, new ObjectId()).futureValue shouldBe true
-      repository.insert(testSubmission, testPillar2Id, new ObjectId()).futureValue shouldBe true
+      repository.insert(testSubmission, validPlrId, new ObjectId()).futureValue shouldBe true
+      repository.insert(testSubmission, validPlrId, new ObjectId()).futureValue shouldBe true
 
-      repository.findAllSubmissionsByPillar2Id(testPillar2Id).futureValue.size shouldBe 2
+      repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue.size shouldBe 2
 
-      repository.deleteByPillar2Id(testPillar2Id).futureValue             shouldBe true
-      repository.findAllSubmissionsByPillar2Id(testPillar2Id).futureValue shouldBe empty
+      repository.deleteByPillar2Id(validPlrId).futureValue             shouldBe true
+      repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue shouldBe empty
     }
 
     "return true when attempting to delete non-existent pillar2Id" in {

@@ -38,7 +38,7 @@ class ObligationsAndSubmissionsRepository @Inject() (
   config:         AppConfig
 )(implicit ec:    ExecutionContext)
     extends PlayMongoRepository[ObligationsAndSubmissionsMongoSubmission](
-      collectionName = "obligations-and-submissions-submission",
+      collectionName = "obligations-and-submissions",
       mongoComponent = mongoComponent,
       domainFormat = ObligationsAndSubmissionsMongoSubmission.mongoFormat,
       indexes = Seq(
@@ -53,7 +53,7 @@ class ObligationsAndSubmissionsRepository @Inject() (
             ascending("submissionId")
           ),
           IndexOptions()
-            .name("pillar2Id_submissionHistory_Index")
+            .name("pillar2Id_oas_Index")
         ),
         IndexModel(
           Indexes.ascending("submittedAt"),
@@ -70,11 +70,11 @@ class ObligationsAndSubmissionsRepository @Inject() (
       .insertOne(ObligationsAndSubmissionsMongoSubmission.fromRequest(pillar2Id, submission, sub))
       .toFuture()
       .map { _ =>
-        logger.info("Successfully saved entry to submission history collection.")
+        logger.info("Successfully saved entry to oas collection.")
         true
       }
       .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to insert submission into mongo: ${e.getMessage}"))
+        Future.failed(DatabaseError(s"Failed to insert submission to oas collection: ${e.getMessage}"))
       }
 
   def deleteByPillar2Id(pillar2Id: String): Future[Boolean] =
