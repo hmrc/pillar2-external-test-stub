@@ -26,12 +26,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.ObligationsAndSubmissionsMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRLiabilityReturn
 
 import scala.concurrent.ExecutionContext
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 
 class ObligationsAndSubmissionsRepositorySpec
     extends AnyWordSpec
