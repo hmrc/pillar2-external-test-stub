@@ -76,7 +76,7 @@ class BTNISpec
     )
 
     httpClient
-      .post(url"$baseUrl/RESTAdapter/PLR/below-threshold-notification")
+      .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
       .transform(_.withHttpHeaders(headers: _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
@@ -129,7 +129,7 @@ class BTNISpec
       )
 
       val responseWithoutId = httpClient
-        .post(url"$baseUrl/RESTAdapter/PLR/below-threshold-notification")
+        .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
         .transform(_.withHttpHeaders(headers: _*))
         .withBody(Json.toJson(validBTNRequest))
         .execute[HttpResponse]
