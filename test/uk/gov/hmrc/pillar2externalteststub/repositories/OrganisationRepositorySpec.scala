@@ -68,8 +68,6 @@ class OrganisationRepositorySpec
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
   )
 
-  private val organisationWithId = organisation.withPillar2Id("TEST123")
-
   "insert" should {
     "successfully insert a new organisation" in {
       val result = repository.insert(organisationWithId).futureValue
