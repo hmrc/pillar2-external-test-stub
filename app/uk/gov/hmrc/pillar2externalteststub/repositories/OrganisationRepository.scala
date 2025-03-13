@@ -34,7 +34,8 @@ class OrganisationRepository @Inject() (
   mongoComponent: MongoComponent,
   config:         AppConfig,
   btnRepository:  BTNSubmissionRepository,
-  uktrRepository: UKTRSubmissionRepository
+  uktrRepository: UKTRSubmissionRepository,
+  ornRepository:  ORNSubmissionRepository
 )(implicit ec:    ExecutionContext)
     extends PlayMongoRepository[TestOrganisationWithId](
       collectionName = "organisation",
@@ -100,6 +101,7 @@ class OrganisationRepository @Inject() (
     for {
       _         <- uktrRepository.deleteByPillar2Id(pillar2Id)
       _         <- btnRepository.deleteByPillar2Id(pillar2Id)
+      _         <- ornRepository.deleteByPillar2Id(pillar2Id)
       deleteOrg <- collection.deleteOne(byPillar2Id(pillar2Id)).toFuture()
     } yield deleteOrg.wasAcknowledged()
   }.recoverWith { case e: Exception => Future.failed(DatabaseError(s"Failed to delete organisation and associated submissions: ${e.getMessage}")) }

@@ -25,13 +25,12 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNSuccessResponse.{ORN_SUCCESS_200, ORN_SUCCESS_201}
 import uk.gov.hmrc.pillar2externalteststub.models.orn.{ORNGetResponse, ORNRequest}
-import uk.gov.hmrc.pillar2externalteststub.models.response.{ETMPDetailedError, ETMPFailureResponse}
 import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.{ORNService, OrganisationService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.LocalDate
 import java.time.format.DateTimeParseException
-import java.time.{LocalDate, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -51,7 +50,7 @@ class ORNController @Inject() (
       request.body
         .validate[ORNRequest]
         .fold(
-          _ => Future.successful(BadRequest(Json.toJson(ETMPFailureResponse(ETMPDetailedError(LocalDateTime.now().toString, "400", "Bad request"))))),
+          _ => Future.failed(ETMPBadRequest),
           ornRequest =>
             organisationService
               .getOrganisation(pillar2Id)

@@ -28,8 +28,6 @@ import java.time.{Instant, LocalDate}
 
 trait ORNDataFixture extends Pillar2DataFixture {
 
-  val authHeader: (String, String) = HeaderNames.AUTHORIZATION -> "Bearer token"
-
   val validORNRequest: ORNRequest = ORNRequest(
     accountingPeriodFrom = accountingPeriod.startDate,
     accountingPeriodTo = accountingPeriod.endDate,

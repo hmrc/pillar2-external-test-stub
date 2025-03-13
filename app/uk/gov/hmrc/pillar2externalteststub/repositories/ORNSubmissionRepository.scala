@@ -100,4 +100,11 @@ class ORNSubmissionRepository @Inject() (
       .recoverWith { case e: Exception =>
         Future.failed(DatabaseError(s"Failed to retrieve ORN submission: ${e.getMessage}"))
       }
+
+  def deleteByPillar2Id(pillar2Id: String): Future[Boolean] =
+    collection
+      .deleteMany(Filters.equal("pillar2Id", pillar2Id))
+      .toFuture()
+      .map(_ => true)
+      .recoverWith { case e: Exception => Future.failed(DatabaseError(s"Failed to delete ORN submission: ${e.getMessage}")) }
 }
