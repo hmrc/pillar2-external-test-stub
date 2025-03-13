@@ -141,53 +141,59 @@ class ORNSubmissionRepositorySpec
       requests.foreach(request => repository.insert(testPillar2Id, request).futureValue shouldBe true)
 
       val submissions = repository.findByPillar2Id(testPillar2Id).futureValue
-      submissions.size                        shouldBe 3
+      submissions.size                      shouldBe 3
       submissions.map(_.accountingPeriodFrom) should contain theSameElementsAs requests.map(_.accountingPeriodFrom)
     }
   }
 
   "findByPillar2IdAndAccountingPeriod" should {
     "return None when no matching submission exists" in {
-      repository.findByPillar2IdAndAccountingPeriod(
-        "NONEXISTENT",
-        LocalDate.of(2024, 1, 1),
-        LocalDate.of(2024, 12, 31)
-      ).futureValue shouldBe None
+      repository
+        .findByPillar2IdAndAccountingPeriod(
+          "NONEXISTENT",
+          LocalDate.of(2024, 1, 1),
+          LocalDate.of(2024, 12, 31)
+        )
+        .futureValue shouldBe None
     }
 
     "return the matching submission when one exists" in {
       repository.insert(testPillar2Id, testRequest).futureValue shouldBe true
 
-      val submission = repository.findByPillar2IdAndAccountingPeriod(
-        testPillar2Id,
-        testRequest.accountingPeriodFrom,
-        testRequest.accountingPeriodTo
-      ).futureValue
+      val submission = repository
+        .findByPillar2IdAndAccountingPeriod(
+          testPillar2Id,
+          testRequest.accountingPeriodFrom,
+          testRequest.accountingPeriodTo
+        )
+        .futureValue
 
-      submission.isDefined shouldBe true
-      submission.get.pillar2Id shouldBe testPillar2Id
+      submission.isDefined                shouldBe true
+      submission.get.pillar2Id            shouldBe testPillar2Id
       submission.get.accountingPeriodFrom shouldBe testRequest.accountingPeriodFrom
-      submission.get.accountingPeriodTo shouldBe testRequest.accountingPeriodTo
+      submission.get.accountingPeriodTo   shouldBe testRequest.accountingPeriodTo
     }
 
     "return the most recent submission when multiple matching submissions exist" in {
       // First insert the initial submission
       repository.insert(testPillar2Id, testRequest).futureValue shouldBe true
-      
+
       // Then insert an updated submission with same Pillar2Id and accounting period
       val updatedRequest = testRequest.copy(
         reportingEntityName = "Updated Company Name"
       )
       repository.insert(testPillar2Id, updatedRequest).futureValue shouldBe true
 
-      val submission = repository.findByPillar2IdAndAccountingPeriod(
-        testPillar2Id,
-        testRequest.accountingPeriodFrom,
-        testRequest.accountingPeriodTo
-      ).futureValue
+      val submission = repository
+        .findByPillar2IdAndAccountingPeriod(
+          testPillar2Id,
+          testRequest.accountingPeriodFrom,
+          testRequest.accountingPeriodTo
+        )
+        .futureValue
 
-      submission.isDefined shouldBe true
-      submission.get.pillar2Id shouldBe testPillar2Id
+      submission.isDefined               shouldBe true
+      submission.get.pillar2Id           shouldBe testPillar2Id
       submission.get.reportingEntityName shouldBe "Updated Company Name"
     }
   }
@@ -195,15 +201,20 @@ class ORNSubmissionRepositorySpec
   "deleteByPillar2Id" should {
     "successfully delete submissions for a given pillar2Id" in {
       repository.insert(testPillar2Id, testRequest).futureValue
-      repository.insert(testPillar2Id, testRequest.copy(
-        accountingPeriodFrom = LocalDate.of(2025, 1, 1),
-        accountingPeriodTo = LocalDate.of(2025, 12, 31)
-      )).futureValue
+      repository
+        .insert(
+          testPillar2Id,
+          testRequest.copy(
+            accountingPeriodFrom = LocalDate.of(2025, 1, 1),
+            accountingPeriodTo = LocalDate.of(2025, 12, 31)
+          )
+        )
+        .futureValue
 
       repository.findByPillar2Id(testPillar2Id).futureValue.size shouldBe 2
 
       repository.deleteByPillar2Id(testPillar2Id).futureValue shouldBe true
-      repository.findByPillar2Id(testPillar2Id).futureValue shouldBe empty
+      repository.findByPillar2Id(testPillar2Id).futureValue   shouldBe empty
     }
 
     "return true when attempting to delete non-existent pillar2Id" in {
@@ -211,4 +222,4 @@ class ORNSubmissionRepositorySpec
       deleteResult shouldBe true
     }
   }
-} 
+}

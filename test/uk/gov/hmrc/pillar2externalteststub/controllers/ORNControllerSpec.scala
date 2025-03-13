@@ -79,13 +79,13 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
           .withBody(validRequestBody)
 
         val result = route(app, request).get
-        result shouldFailWith(Pillar2IdMissing)
+        result shouldFailWith Pillar2IdMissing
       }
 
       "should return Pillar2IdMissing when Pillar2 ID format is invalid" in {
         val invalidPlrId = "invalid@id"
         val result       = route(app, createRequestWithBody(invalidPlrId, validORNRequest)).get
-        result shouldFailWith(Pillar2IdMissing)
+        result shouldFailWith Pillar2IdMissing
       }
 
       "should return NoActiveSubscription when organisation not found" in {
@@ -93,18 +93,18 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
           .thenReturn(Future.failed(OrganisationNotFound("Organisation not found")))
 
         val result = route(app, createRequestWithBody(validPlrId, validORNRequest)).get
-        result shouldFailWith(NoActiveSubscription)
+        result shouldFailWith NoActiveSubscription
       }
 
       "should return ETMPBadRequest when request body is invalid JSON" in {
         val result = route(app, createSubmitRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith(ETMPBadRequest)
+        result shouldFailWith ETMPBadRequest
       }
 
       "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {
         val serverErrorPlrId = "XEPLR5000000000"
         val result           = route(app, createRequestWithBody(serverErrorPlrId, validORNRequest)).get
-        result shouldFailWith(ETMPInternalServerError)
+        result shouldFailWith ETMPInternalServerError
       }
     }
 
@@ -125,12 +125,12 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
           .thenReturn(Future.failed(OrganisationNotFound("Organisation not found")))
 
         val result = route(app, createRequestWithBody(validPlrId, validORNRequest, isAmend = true)).get
-        result shouldFailWith(NoActiveSubscription)
+        result shouldFailWith NoActiveSubscription
       }
 
       "should return BAD_REQUEST when amendment request body is invalid JSON" in {
         val result = route(app, createAmendRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith(ETMPBadRequest)
+        result shouldFailWith ETMPBadRequest
       }
     }
 
@@ -167,7 +167,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
           .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> validPlrId)
 
         val result = route(app, request).get
-        result shouldFailWith(RequestCouldNotBeProcessed)
+        result shouldFailWith RequestCouldNotBeProcessed
       }
 
       "should return UNPROCESSABLE_ENTITY when date format is invalid" in {
@@ -178,7 +178,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
           .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> validPlrId)
 
         val result = route(app, request).get
-        result shouldFailWith(RequestCouldNotBeProcessed)
+        result shouldFailWith RequestCouldNotBeProcessed
       }
     }
   }
