@@ -54,14 +54,9 @@ class SubmitUKTRController @Inject() (
               case JsError(_) => Future.failed(ETMPBadRequest)
             }
           }
-          .recoverWith {
-            case OrganisationNotFound(_) =>
-              logger.warn(s"Organisation not found for pillar2Id: $pillar2Id")
-              Future.failed(NoActiveSubscription)
-
-            case e: Exception =>
-              logger.error(s"Error validating organisation: ${e.getMessage}", e)
-              Future.failed(e)
+          .recoverWith { case OrganisationNotFound(_) =>
+            logger.warn(s"Organisation not found for pillar2Id: $pillar2Id")
+            Future.failed(NoActiveSubscription)
           }
       }
   }
