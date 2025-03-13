@@ -74,7 +74,7 @@ class ObligationsAndSubmissionsRepository @Inject() (
         true
       }
       .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to save entry to submission history collection: ${e.getMessage}"))
+        Future.failed(DatabaseError(s"Failed to insert submission into mongo: ${e.getMessage}"))
       }
 
   def deleteByPillar2Id(pillar2Id: String): Future[Boolean] =

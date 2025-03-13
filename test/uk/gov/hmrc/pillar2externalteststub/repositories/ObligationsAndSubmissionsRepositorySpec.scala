@@ -41,8 +41,6 @@ class ObligationsAndSubmissionsRepositorySpec
     with ScalaFutures
     with IntegrationPatience {
 
-  override protected val databaseName: String = "obligations-and-submissions-repository"
-
   val config = new AppConfig(
     Configuration.from(
       Map(
