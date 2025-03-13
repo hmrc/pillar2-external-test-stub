@@ -27,9 +27,9 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{RequestCouldN
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import java.time.LocalDate
 class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with ScalaFutures with ORNDataFixture {
 
   private val mockRepository = mock[ORNSubmissionRepository]

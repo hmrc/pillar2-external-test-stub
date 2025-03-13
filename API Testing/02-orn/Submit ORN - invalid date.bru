@@ -1,7 +1,7 @@
 meta {
-  name: Submit ORN - Server Error
+  name: Submit ORN - Invalid Date Format
   type: http
-  seq: 4
+  seq: 9
 }
 
 post {
@@ -12,13 +12,13 @@ post {
 
 headers {
   Content-Type: application/json
-  X-Pillar2-Id: {{serverErrorPillar2Id}}
+  X-Pillar2-Id: {{nonDomesticPlrId}}
   Authorization: validBearerToken
 }
 
 body:json {
   {
-    "accountingPeriodFrom": "2024-01-01",
+    "accountingPeriodFrom": "2024-001-01",
     "accountingPeriodTo": "2024-12-31",
     "filedDateGIR": "2025-01-10",
     "countryGIR": "US",
@@ -29,13 +29,12 @@ body:json {
 }
 
 tests {
-  test("should return 500 Server Error", function() {
-    expect(res.status).to.equal(500);
+  test("should return 400 for invalid date format", function() {
+    expect(res.status).to.equal(400);
   });
   
-  test("should include error details", function() {
+  test("should contain error about invalid date format", function() {
     expect(res.body.errors).to.not.be.undefined;
-    expect(res.body.errors.code).to.equal("500");
-    expect(res.body.errors.text).to.include("Internal server error");
+    expect(res.body.errors.code).to.equal("400");
   });
-}
+} 

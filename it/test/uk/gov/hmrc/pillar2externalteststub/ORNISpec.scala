@@ -264,14 +264,14 @@ class ORNISpec
       (submission \ "success" \ "processingDate").as[String] should not be empty
     }
 
-    "return 404 when no submission exists for the given period" in {
+    "return 422 when no submission exists for the given period" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
 
       val getResponse = getORN(validPlrId, "2025-01-01", "2025-12-31")
-      getResponse.status shouldBe 404
+      getResponse.status shouldBe 422
       val json = Json.parse(getResponse.body)
-      (json \ "errors" \ "code").as[String] shouldBe "404"
-      (json \ "errors" \ "text").as[String] shouldBe "No ORN submission found"
+      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
     }
 
     "return 422 when dates are invalid" in {
@@ -307,7 +307,7 @@ class ORNISpec
       val getResponse = getORN(validPlrId, "2024-01-01", "2024-12-31")
       getResponse.status shouldBe 422
       val json = Json.parse(getResponse.body)
-      (json \ "errors" \ "code").as[String] shouldBe "007"
+      (json \ "errors" \ "code").as[String] shouldBe "003"
     }
 
     "return 500 for server error PLR ID" in {

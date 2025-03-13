@@ -1,7 +1,7 @@
 meta {
-  name: Submit ORN - Server Error
+  name: Submit ORN - Missing Pillar2-ID Header
   type: http
-  seq: 4
+  seq: 6
 }
 
 post {
@@ -12,7 +12,6 @@ post {
 
 headers {
   Content-Type: application/json
-  X-Pillar2-Id: {{serverErrorPillar2Id}}
   Authorization: validBearerToken
 }
 
@@ -29,13 +28,13 @@ body:json {
 }
 
 tests {
-  test("should return 500 Server Error", function() {
-    expect(res.status).to.equal(500);
+  test("should return 422 when X-Pillar2-Id header is missing", function() {
+    expect(res.status).to.equal(422);
   });
   
-  test("should include error details", function() {
+  test("should include error details about missing Pillar2-ID", function() {
     expect(res.body.errors).to.not.be.undefined;
-    expect(res.body.errors.code).to.equal("500");
-    expect(res.body.errors.text).to.include("Internal server error");
+    expect(res.body.errors.code).to.equal("002");
+    expect(res.body.errors.text).to.include("Pillar2 ID Missing or Invalid");
   });
-}
+} 

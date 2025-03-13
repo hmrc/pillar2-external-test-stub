@@ -22,9 +22,9 @@ import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
 
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import java.time.LocalDate
 
 @Singleton
 class ORNService @Inject() (

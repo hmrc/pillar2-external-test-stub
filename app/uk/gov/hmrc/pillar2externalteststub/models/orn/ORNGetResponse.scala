@@ -19,8 +19,8 @@ package uk.gov.hmrc.pillar2externalteststub.models.orn
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
 
-import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
 import java.time.temporal.ChronoUnit
+import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
 
 case class ORNGetResponse(success: ORNGetSuccess)
 
@@ -55,4 +55,3 @@ case class ORNGetSuccess(
 object ORNGetSuccess {
   implicit val format: OFormat[ORNGetSuccess] = Json.format[ORNGetSuccess]
 }
-

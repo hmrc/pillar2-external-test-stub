@@ -1,5 +1,5 @@
 meta {
-  name: Submit ORN - valid request
+  name: Submit ORN - Valid Request
   type: http
   seq: 1
 }
@@ -29,15 +29,20 @@ body:json {
 }
 
 tests {
-  test("Response contains form bundle number", function() {
+  test("should return 201 Created", function() {
+    expect(res.status).to.equal(201);
+  });
+  
+  test("should contain form bundle number", function() {
     expect(res.body.success.formBundleNumber).to.not.be.undefined;
   });
   
-  test("Response contains processing date", function() {
+  test("should contain processing date", function() {
     expect(res.body.success.processingDate).to.not.be.undefined;
   });
   
-  test("Response contains correct status code", function() {
-    expect(res.status).to.equal(201);
+  test("response should have proper content structure", function() {
+    expect(res.body).to.have.property("success");
+    expect(res.body.success).to.be.an("object");
   });
 }
