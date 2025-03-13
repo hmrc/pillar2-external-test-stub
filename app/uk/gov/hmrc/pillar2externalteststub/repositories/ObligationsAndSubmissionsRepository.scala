@@ -47,10 +47,10 @@ class ObligationsAndSubmissionsRepository @Inject() (
           IndexOptions()
             .name("idIndex")
         ),
-        IndexModel( //todo - review if this index is really needed?
+        IndexModel(
           compoundIndex(
             ascending("pillar2Id"),
-            ascending("submissionType")
+            ascending("submissionId")
           ),
           IndexOptions()
             .name("pillar2Id_submissionHistory_Index")
@@ -83,7 +83,7 @@ class ObligationsAndSubmissionsRepository @Inject() (
       .toFuture()
       .map(_.wasAcknowledged())
 
-  def findAllSubmissionsByPillar2Id( // todo review
+  def findAllSubmissionsByPillar2Id(
     pillar2Id: String
   ): Future[Seq[ObligationsAndSubmissionsMongoSubmission]] =
     collection
