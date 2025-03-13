@@ -29,7 +29,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait UKTRControllerCommon extends Logging {
 
-  protected def repository:          UKTRSubmissionRepository
+  protected def uktrRepository:      UKTRSubmissionRepository
   protected def organisationService: OrganisationService
   implicit def ec:                   ExecutionContext
 
