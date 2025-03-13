@@ -46,7 +46,7 @@ class ObligationsAndSubmissionsRepositorySpec
   val config = new AppConfig(
     Configuration.from(
       Map(
-        "appName" -> "pillar2-external-test-stub",
+        "appName"                 -> "pillar2-external-test-stub",
         "defaultDataExpireInDays" -> 28
       )
     )
@@ -54,7 +54,7 @@ class ObligationsAndSubmissionsRepositorySpec
 
   private val app = GuiceApplicationBuilder()
     .configure(
-      "metrics.enabled" -> false,
+      "metrics.enabled"  -> false,
       "encryptionToggle" -> "true"
     )
     .overrides(
@@ -67,7 +67,7 @@ class ObligationsAndSubmissionsRepositorySpec
 
   implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
-  private val testPillar2Id = "XMPLR0000000000"
+  private val testPillar2Id    = "XMPLR0000000000"
   private val testSubmissionId = new ObjectId()
   private val testSubmission = UKTRLiabilityReturn(
     accountingPeriodFrom = LocalDate.of(2024, 1, 1),
@@ -95,8 +95,8 @@ class ObligationsAndSubmissionsRepositorySpec
       val submissions = repository.findAllSubmissionsByPillar2Id(testPillar2Id).futureValue
       submissions.size shouldBe 1
       val submission = submissions.head
-      submission.pillar2Id shouldBe testPillar2Id
-      submission.submissionId shouldBe testSubmissionId
+      submission.pillar2Id      shouldBe testPillar2Id
+      submission.submissionId   shouldBe testSubmissionId
       submission.submissionType shouldBe SubmissionType.UKTR
     }
 
@@ -116,13 +116,13 @@ class ObligationsAndSubmissionsRepositorySpec
 
     "return all submissions for a given pillar2Id" in {
       val objectIds = List(new ObjectId(), new ObjectId(), new ObjectId())
-      
+
       objectIds.foreach { id =>
         repository.insert(testSubmission, testPillar2Id, id).futureValue shouldBe true
       }
 
       val submissions = repository.findAllSubmissionsByPillar2Id(testPillar2Id).futureValue
-      submissions.size shouldBe 3
+      submissions.size              shouldBe 3
       submissions.map(_.submissionId) should contain theSameElementsAs objectIds
     }
   }
@@ -134,7 +134,7 @@ class ObligationsAndSubmissionsRepositorySpec
 
       repository.findAllSubmissionsByPillar2Id(testPillar2Id).futureValue.size shouldBe 2
 
-      repository.deleteByPillar2Id(testPillar2Id).futureValue shouldBe true
+      repository.deleteByPillar2Id(testPillar2Id).futureValue             shouldBe true
       repository.findAllSubmissionsByPillar2Id(testPillar2Id).futureValue shouldBe empty
     }
 
