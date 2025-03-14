@@ -73,7 +73,7 @@ class OrganisationRepositorySpec
       val result = repository.insert(organisationWithId).futureValue
       result shouldBe true
 
-      val retrieved = repository.findByPillar2Id("TEST123").futureValue
+      val retrieved = repository.findByPillar2Id(validPlrId).futureValue
       retrieved shouldBe Some(organisationWithId)
     }
 
@@ -92,8 +92,8 @@ class OrganisationRepositorySpec
     }
 
     "return the organisation when it exists" in {
-      repository.insert(organisationWithId).futureValue shouldBe true
-      repository.findByPillar2Id("TEST123").futureValue shouldBe Some(organisationWithId)
+      repository.insert(organisationWithId).futureValue  shouldBe true
+      repository.findByPillar2Id(validPlrId).futureValue shouldBe Some(organisationWithId)
     }
   }
 
@@ -104,17 +104,17 @@ class OrganisationRepositorySpec
       val updatedOrganisation = organisation.copy(
         orgDetails = orgDetails.copy(organisationName = "Updated Org")
       )
-      val updatedWithId = updatedOrganisation.withPillar2Id("TEST123")
+      val updatedWithId = updatedOrganisation.withPillar2Id(validPlrId)
 
       repository.update(updatedWithId).futureValue shouldBe true
 
-      val retrieved = repository.findByPillar2Id("TEST123").futureValue
+      val retrieved = repository.findByPillar2Id(validPlrId).futureValue
       retrieved shouldBe Some(updatedWithId)
     }
 
     "insert a new organisation if it doesn't exist" in {
-      repository.update(organisationWithId).futureValue shouldBe true
-      repository.findByPillar2Id("TEST123").futureValue shouldBe Some(organisationWithId)
+      repository.update(organisationWithId).futureValue  shouldBe true
+      repository.findByPillar2Id(validPlrId).futureValue shouldBe Some(organisationWithId)
     }
   }
 

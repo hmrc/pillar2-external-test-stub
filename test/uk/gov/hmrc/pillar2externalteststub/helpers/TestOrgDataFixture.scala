@@ -49,4 +49,9 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
     pillar2Id = validPlrId,
     organisation = organisationDetails.copy(orgDetails = organisationDetails.orgDetails.copy(domesticOnly = true))
   )
+
+  val nonDomesticOrganisation: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = validPlrId,
+    organisation = organisationDetails.copy(orgDetails = organisationDetails.orgDetails.copy(domesticOnly = false))
+  )
 }
