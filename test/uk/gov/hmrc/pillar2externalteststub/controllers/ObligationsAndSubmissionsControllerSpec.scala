@@ -140,6 +140,20 @@ class ObligationsAndSubmissionsControllerSpec
         submissions.head.country.value mustBe "FR"
       }
 
+      "should handle BTN submission type" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+        mockBySubmissionType(BTN)
+
+        val result = route(app, createRequest()).value
+        status(result) mustBe OK
+
+        val jsonResponse  = contentAsJson(result)
+        val p2Submission  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 0 \ "submissions").as[Seq[Submission]]
+        val girSubmission = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "submissions").as[Seq[Submission]]
+        p2Submission.head.submissionType mustBe BTN
+        girSubmission.head.submissionType mustBe BTN
+      }
+
       "should set canAmend to false when current date is after due date" in {
         val pastDueOrg = domesticOrganisation.copy(
           organisation = domesticOrganisation.organisation.copy(

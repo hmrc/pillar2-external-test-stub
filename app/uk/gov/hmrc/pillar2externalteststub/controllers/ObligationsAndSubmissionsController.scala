@@ -90,7 +90,7 @@ class ObligationsAndSubmissionsController @Inject() (
       )
     )
     val p2TaxReturnSubmissions = submissions.filter(s => s.submissionType == UKTR || s.submissionType == BTN)
-    val girSubmissions         = submissions.filter(s => s.submissionType == ORN || s.submissionType == GIR || s.submissionType == ORN)
+    val girSubmissions         = submissions.filter(s => s.submissionType == BTN || s.submissionType == GIR || s.submissionType == ORN)
 
     Ok(
       Json.toJson(
