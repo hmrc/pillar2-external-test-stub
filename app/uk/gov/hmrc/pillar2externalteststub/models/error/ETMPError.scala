@@ -25,27 +25,32 @@ sealed trait ETMPError extends Exception {
 object ETMPError {
   case object Pillar2IdMissing extends ETMPError {
     override val code:    String = "002"
-    override val message: String = s"Pillar2 ID Missing or Invalid"
+    override val message: String = "Pillar2 ID Missing or Invalid"
   }
 
   case object RequestCouldNotBeProcessed extends ETMPError {
     override val code:    String = "003"
-    override val message: String = s"Request could not be processed"
+    override val message: String = "Request could not be processed"
   }
 
   case object DuplicateSubmissionError extends ETMPError {
     override val code:    String = "004"
-    override val message: String = s"Duplicate submission acknowledgment reference"
+    override val message: String = "Duplicate submission acknowledgment reference"
   }
 
   case object NoActiveSubscription extends ETMPError {
     override val code:    String = "007"
-    override val message: String = s"Business partner does not have an Active subscription"
+    override val message: String = "Business partner does not have an Active subscription"
+  }
+
+  case object NoAssociatedDataFound extends ETMPError {
+    override val code:    String = "025"
+    override val message: String = "No associated data found"
   }
 
   case object TaxObligationAlreadyFulfilled extends ETMPError {
     override val code:    String = "044"
-    override val message: String = s"Tax obligation already fulfilled"
+    override val message: String = "Tax obligation already fulfilled"
   }
 
   case object InvalidReturn extends ETMPError {

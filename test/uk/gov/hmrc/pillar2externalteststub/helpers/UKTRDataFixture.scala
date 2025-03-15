@@ -18,14 +18,12 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 
 import org.bson.types.ObjectId
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 
 import java.time.Instant
-import java.time.LocalDate
 
-trait UKTRDataFixture extends Pillar2DataFixture {
+trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
 
   val invalidUKTRAmounts: Seq[BigDecimal] = Seq(-5, 1e+13, 10.999)
 
@@ -472,27 +470,5 @@ trait UKTRDataFixture extends Pillar2DataFixture {
     isAmendment = false,
     data = Json.fromJson[UKTRSubmission](validRequestBody).get,
     submittedAt = Instant.now()
-  )
-
-  val orgDetails: OrgDetails = OrgDetails(
-    domesticOnly = false,
-    organisationName = "Test Org",
-    registrationDate = LocalDate.now()
-  )
-
-  val testOrgDetails: TestOrganisation = TestOrganisation(
-    orgDetails = orgDetails,
-    accountingPeriod = accountingPeriod,
-    lastUpdated = Instant.now()
-  )
-
-  val testOrganisation: TestOrganisationWithId = TestOrganisationWithId(
-    pillar2Id = validPlrId,
-    organisation = testOrgDetails
-  )
-
-  val domesticOrganisation: TestOrganisationWithId = TestOrganisationWithId(
-    pillar2Id = validPlrId,
-    organisation = testOrgDetails.copy(orgDetails = testOrgDetails.orgDetails.copy(domesticOnly = true))
   )
 }

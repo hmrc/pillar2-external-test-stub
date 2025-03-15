@@ -16,4 +16,9 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models
 
-trait BaseSubmission
+import java.time.LocalDate
+
+trait BaseSubmission {
+  val accountingPeriodFrom: LocalDate
+  val accountingPeriodTo:   LocalDate
+}

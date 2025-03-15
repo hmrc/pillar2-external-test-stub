@@ -284,8 +284,6 @@ class UKTRSubmissionISpec
     "handle liability returns" should {
       "successfully submit a new liability return" in {
         val response = submitUKTR(liabilitySubmission, validPlrId)
-        println(s"Submit response status: ${response.status}")
-        println(s"Submit response body: ${response.body}")
         response.status shouldBe CREATED
 
         val submission = repository.findByPillar2Id(validPlrId).futureValue
@@ -295,15 +293,11 @@ class UKTRSubmissionISpec
       "successfully amend an existing liability return" in {
      
         val createResponse = submitUKTR(liabilitySubmission, validPlrId)
-        println(s"Create response status: ${createResponse.status}")
-        println(s"Create response body: ${createResponse.body}")
         createResponse.status shouldBe CREATED
         
        
         val updatedBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject]).get
         val response = amendUKTR(updatedBody, validPlrId)
-        println(s"Amend response status: ${response.status}")
-        println(s"Amend response body: ${response.body}")
         response.status shouldBe OK
         
         val latestSubmission = repository.findByPillar2Id(validPlrId).futureValue
@@ -330,8 +324,6 @@ class UKTRSubmissionISpec
     "handle nil returns" should {
       "successfully submit a new nil return" in {
         val response = submitNilReturn(validPlrId)
-        println(s"Nil submit response status: ${response.status}")
-        println(s"Nil submit response body: ${response.body}")
         response.status shouldBe CREATED
 
         val submission = repository.findByPillar2Id(validPlrId).futureValue
@@ -341,14 +333,10 @@ class UKTRSubmissionISpec
       "successfully amend an existing nil return" in {
      
         val createResponse = submitNilReturn(validPlrId)
-        println(s"Nil create response status: ${createResponse.status}")
-        println(s"Nil create response body: ${createResponse.body}")
         createResponse.status shouldBe CREATED
         
     
         val response = amendNilReturn(validPlrId)
-        println(s"Nil amend response status: ${response.status}")
-        println(s"Nil amend response body: ${response.body}")
         response.status shouldBe OK
       }
     }

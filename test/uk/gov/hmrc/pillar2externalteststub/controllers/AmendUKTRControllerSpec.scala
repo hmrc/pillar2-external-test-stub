@@ -55,7 +55,6 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
   }
 
   private val mockUKTRRepository = mock[UKTRSubmissionRepository]
-  private val mockOrgService     = mock[OrganisationService]
   private val mockOasRepository  = mock[ObligationsAndSubmissionsRepository]
 
   private def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =

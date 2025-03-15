@@ -57,6 +57,8 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
             Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case NoActiveSubscription =>
             Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
+          case NoAssociatedDataFound =>
+            Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case TaxObligationAlreadyFulfilled =>
             Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
           case InvalidReturn =>
