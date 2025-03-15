@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito.when
 import org.mockito.stubbing.OngoingStubbing
 import org.mongodb.scala.bson.ObjectId
@@ -39,7 +39,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.Obli
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GlobeInformationReturn, Pillar2TaxReturn}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.ObligationsAndSubmissionsMongoSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
@@ -56,9 +56,6 @@ class ObligationsAndSubmissionsControllerSpec
     with TestOrgDataFixture
     with UKTRDataFixture {
 
-  val fromDate = "2024-01-01"
-  val toDate   = "2024-12-31"
-
   implicit class AwaitFuture(fut: Future[Result]) {
     def shouldFailWith(expected: Throwable): Assertion = {
       val err = Await.result(fut.failed, 5.seconds)
@@ -69,13 +66,14 @@ class ObligationsAndSubmissionsControllerSpec
   private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
 
   def mockBySubmissionType(subType: SubmissionType): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] =
-    when(mockOasRepository.findAllSubmissionsByPillar2Id(anyString())).thenReturn(
+    when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(
       Future.successful(
         Seq(
           ObligationsAndSubmissionsMongoSubmission(
             _id = new ObjectId,
             submissionId = new ObjectId,
             pillar2Id = validPlrId,
+            accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
             submissionType = subType,
             submittedAt = Instant.now()
           )
@@ -91,7 +89,11 @@ class ObligationsAndSubmissionsControllerSpec
       )
       .build()
 
-  private def createRequest(plrId: String = validPlrId, fromDate: String = fromDate, toDate: String = toDate) =
+  private def createRequest(
+    plrId:    String = validPlrId,
+    fromDate: String = accountingPeriod.startDate.toString,
+    toDate:   String = accountingPeriod.endDate.toString
+  ) =
     FakeRequest(GET, routes.ObligationsAndSubmissionsController.getObligationsAndSubmissions(fromDate, toDate).url)
       .withHeaders(authHeader, "X-Pillar2-Id" -> plrId)
 
@@ -158,15 +160,16 @@ class ObligationsAndSubmissionsControllerSpec
         val pastDueOrg = domesticOrganisation.copy(
           organisation = domesticOrganisation.organisation.copy(
             accountingPeriod = domesticOrganisation.organisation.accountingPeriod.copy(
-              endDate = LocalDate.now().minusMonths(16)
+              startDate = LocalDate.of(2022, 1, 1),
+              endDate = LocalDate.of(2022, 12, 31)
             )
           )
         )
 
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(pastDueOrg))
-        when(mockOasRepository.findAllSubmissionsByPillar2Id(anyString())).thenReturn(Future.successful(Seq.empty))
+        when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(Future.successful(Seq.empty))
 
-        val result = route(app, createRequest()).value
+        val result = route(app, createRequest(fromDate = "2022-01-01", toDate = "2023-01-01")).value
         status(result) mustBe OK
 
         val jsonResponse = contentAsJson(result)
@@ -175,7 +178,7 @@ class ObligationsAndSubmissionsControllerSpec
 
       "should return the correct response when no submissions exist" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
-        when(mockOasRepository.findAllSubmissionsByPillar2Id(anyString())).thenReturn(Future.successful(Seq.empty))
+        when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(Future.successful(Seq.empty))
 
         val result = route(app, createRequest()).value
         status(result) mustBe OK
@@ -185,7 +188,7 @@ class ObligationsAndSubmissionsControllerSpec
 
       "should return ObligationStatus Open when there are no submissions" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-        when(mockOasRepository.findAllSubmissionsByPillar2Id(anyString())).thenReturn(Future.successful(Seq.empty))
+        when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(Future.successful(Seq.empty))
 
         val result = route(app, createRequest()).value
 
@@ -211,15 +214,10 @@ class ObligationsAndSubmissionsControllerSpec
         route(app, createRequest()).value shouldFailWith NoAssociatedDataFound
       }
 
-      "should return NoAssociatedDataFound when the dates queried do no cover an accounting period" in {
+      "should return NoAssociatedDataFound when the dates queried do not overlap with an accounting period" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
-        when(mockOasRepository.findAllSubmissionsByPillar2Id(anyString())).thenReturn(Future.successful(Seq.empty))
 
-        val failingQuery = route(app, createRequest(fromDate = "2022-01-01", toDate = "2022-02-01"))
-        failingQuery.value shouldFailWith NoAssociatedDataFound
-
-        val successfulQuery = route(app, createRequest()).value
-        status(successfulQuery) mustBe OK
+        route(app, createRequest(fromDate = "2022-01-01", toDate = "2022-03-01")).value shouldFailWith NoAssociatedDataFound
       }
 
       "should return RequestCouldNotBeProcessed for invalid date format" in {

@@ -53,16 +53,17 @@ class ObligationsAndSubmissionsController @Inject() (
   def getObligationsAndSubmissions(fromDate: String, toDate: String): Action[AnyContent] = (Action andThen authFilter).async { implicit request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap { pillar2Id =>
       (for {
-        localFromDate <- Future.fromTry(Try(LocalDate.parse(fromDate)))
-        localToDate   <- Future.fromTry(Try(LocalDate.parse(toDate)))
-        testOrg <- organisationService.getOrganisation(pillar2Id).flatMap { org =>
-                     if (
-                       !localFromDate.isAfter(org.organisation.accountingPeriod.startDate) && !localToDate
-                         .isBefore(org.organisation.accountingPeriod.endDate)
-                     ) Future.successful(org)
-                     else Future.failed(NoAssociatedDataFound)
-                   }
-        oasSubmissions <- oasRepository.findAllSubmissionsByPillar2Id(pillar2Id)
+        from <- Future.fromTry(Try(LocalDate.parse(fromDate)))
+        to   <- Future.fromTry(Try(LocalDate.parse(toDate)))
+        _ = if (from.isAfter(to)) throw RequestCouldNotBeProcessed
+        testOrg <- organisationService.getOrganisation(pillar2Id)
+        _ = {
+          val orgStartDate = testOrg.organisation.accountingPeriod.startDate
+          val orgEndDate   = testOrg.organisation.accountingPeriod.endDate
+
+          if (from.isAfter(orgEndDate) || to.isBefore(orgStartDate)) throw NoAssociatedDataFound
+        }
+        oasSubmissions <- oasRepository.findByPillar2Id(pillar2Id, from, to)
       } yield generateHistory(testOrg, oasSubmissions))
         .recoverWith {
           case _: OrganisationNotFound =>
@@ -75,11 +76,7 @@ class ObligationsAndSubmissionsController @Inject() (
     }
   }
 
-  private def generateHistory(
-    testOrg:        TestOrganisationWithId,
-    oasSubmissions: Seq[ObligationsAndSubmissionsMongoSubmission]
-  ): Result = {
-
+  private def generateHistory(testOrg: TestOrganisationWithId, oasSubmissions: Seq[ObligationsAndSubmissionsMongoSubmission]): Result = {
     val dueDate  = testOrg.organisation.accountingPeriod.endDate.plusMonths(15)
     val canAmend = if (LocalDate.now().isAfter(dueDate)) false else true
     val submissions = oasSubmissions.map(submission =>
