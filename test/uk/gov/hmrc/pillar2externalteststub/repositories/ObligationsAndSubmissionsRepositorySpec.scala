@@ -109,13 +109,52 @@ class ObligationsAndSubmissionsRepositorySpec
       submissions.map(_.submissionId) should contain theSameElementsAs objectIds
     }
 
-    "not return submissions when the dates queried do no cover their accounting period" in {
-      insertRequest()
-      val fromDate = LocalDate.of(2022, 1, 1)
-      val toDate   = LocalDate.of(2022, 2, 1)
+    "filter submissions based on accounting period overlap with query date range" in {
+      val baseDate   = LocalDate.of(2023, 1, 1)
+      val queryRange = (baseDate, baseDate.plusMonths(3))
 
-      repository.findByPillar2Id(validPlrId, fromDate, toDate).futureValue.isEmpty shouldBe true
-      findRequest().isEmpty                                                        shouldBe false
+      // Create test submissions with different date relationships to query range
+      case class TestCase(name: String, dateRange: (LocalDate, LocalDate), shouldMatch: Boolean)
+
+      val testCases = Seq(
+        TestCase("before", (baseDate.minusMonths(6), baseDate.minusMonths(3)), false), // completely before
+        TestCase("startOverlap", (baseDate.minusMonths(1), baseDate.plusDays(15)), true), // overlaps start of query
+        TestCase("during", (baseDate.plusDays(5), baseDate.plusMonths(2)), true), // completely within query
+        TestCase("endOverlap", (baseDate.plusMonths(2).plusDays(15), baseDate.plusMonths(4)), true), // overlaps end of query
+        TestCase("after", (baseDate.plusMonths(4), baseDate.plusMonths(6)), false) // completely after query
+      )
+
+      // Insert all test submissions and map to their IDs
+      val submissionMap = testCases.map { case TestCase(name, (from, to), _) =>
+        val id = new ObjectId()
+        val submission = validRequestBody
+          .as[UKTRLiabilityReturn]
+          .copy(
+            accountingPeriodFrom = from,
+            accountingPeriodTo = to
+          )
+        insertRequest(submission, validPlrId, id) shouldBe true
+        name                                            -> id
+      }.toMap
+
+      // Execute query with test date range
+      val results = findRequest(validPlrId, queryRange._1, queryRange._2)
+
+      // Verify correct submissions are returned
+      results.size shouldBe 3
+
+      val resultIds        = results.map(_.submissionId).toSet
+      val matchingCases    = testCases.filter(_.shouldMatch).map(tc => submissionMap(tc.name))
+      val nonMatchingCases = testCases.filterNot(_.shouldMatch).map(tc => submissionMap(tc.name))
+
+      // Verify each expected match is included
+      matchingCases.foreach(id => resultIds should contain(id))
+
+      // Verify each non-match is excluded
+      nonMatchingCases.foreach(id => resultIds should not contain id)
+
+      // Verify all submissions can be found with a wide date range
+      findRequest(validPlrId, baseDate.minusYears(1), baseDate.plusYears(1)).size shouldBe 5
     }
   }
 

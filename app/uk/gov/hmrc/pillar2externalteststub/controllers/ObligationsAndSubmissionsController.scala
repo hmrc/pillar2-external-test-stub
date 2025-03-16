@@ -56,13 +56,7 @@ class ObligationsAndSubmissionsController @Inject() (
         from <- Future.fromTry(Try(LocalDate.parse(fromDate)))
         to   <- Future.fromTry(Try(LocalDate.parse(toDate)))
         _ = if (from.isAfter(to)) throw RequestCouldNotBeProcessed
-        testOrg <- organisationService.getOrganisation(pillar2Id)
-        _ = {
-          val orgStartDate = testOrg.organisation.accountingPeriod.startDate
-          val orgEndDate   = testOrg.organisation.accountingPeriod.endDate
-
-          if (from.isAfter(orgEndDate) || to.isBefore(orgStartDate)) throw NoAssociatedDataFound
-        }
+        testOrg        <- organisationService.getOrganisation(pillar2Id)
         oasSubmissions <- oasRepository.findByPillar2Id(pillar2Id, from, to)
       } yield generateHistory(testOrg, oasSubmissions))
         .recoverWith {

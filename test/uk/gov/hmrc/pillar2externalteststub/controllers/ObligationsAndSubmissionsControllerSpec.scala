@@ -214,16 +214,20 @@ class ObligationsAndSubmissionsControllerSpec
         route(app, createRequest()).value shouldFailWith NoAssociatedDataFound
       }
 
-      "should return NoAssociatedDataFound when the dates queried do not overlap with an accounting period" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
-
-        route(app, createRequest(fromDate = "2022-01-01", toDate = "2022-03-01")).value shouldFailWith NoAssociatedDataFound
-      }
-
       "should return RequestCouldNotBeProcessed for invalid date format" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         route(app, createRequest(fromDate = "invalid-date")).value shouldFailWith RequestCouldNotBeProcessed
+      }
+
+      "should return RequestCouldNotBeProcessed when fromDate is after toDate" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        // Use a fromDate that is learly after toDate
+        val futureFromDate = LocalDate.now().plusYears(1).toString
+        val pastToDate     = LocalDate.now().minusYears(1).toString
+
+        route(app, createRequest(fromDate = futureFromDate, toDate = pastToDate)).value shouldFailWith RequestCouldNotBeProcessed
       }
 
       "should handle ServerErrorPlrId appropriately" in {
