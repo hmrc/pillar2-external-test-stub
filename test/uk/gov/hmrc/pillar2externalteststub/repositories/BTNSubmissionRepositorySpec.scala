@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
-import org.bson.types.ObjectId
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -74,7 +73,7 @@ class BTNSubmissionRepositorySpec
   "insert" should {
     "successfully insert a new BTN submission" in {
       val result = repository.insert(testPillar2Id, testRequest).futureValue
-      result shouldBe a[ObjectId]
+      result shouldBe true
 
       val submissions = repository.findByPillar2Id(testPillar2Id).futureValue
       submissions.size shouldBe 1
@@ -85,21 +84,21 @@ class BTNSubmissionRepositorySpec
     }
 
     "allow submissions for same pillar2Id with different accounting periods" in {
-      repository.insert(testPillar2Id, testRequest).futureValue shouldBe a[ObjectId]
+      repository.insert(testPillar2Id, testRequest).futureValue shouldBe true
 
       val differentPeriodRequest = testRequest.copy(
         accountingPeriodFrom = LocalDate.of(2025, 1, 1),
         accountingPeriodTo = LocalDate.of(2025, 12, 31)
       )
-      repository.insert(testPillar2Id, differentPeriodRequest).futureValue shouldBe a[ObjectId]
+      repository.insert(testPillar2Id, differentPeriodRequest).futureValue shouldBe true
 
       val submissions = repository.findByPillar2Id(testPillar2Id).futureValue
       submissions.size shouldBe 2
     }
 
     "allow submissions for different pillar2Ids with same accounting period" in {
-      repository.insert(testPillar2Id, testRequest).futureValue     shouldBe a[ObjectId]
-      repository.insert("XMPLR0000000001", testRequest).futureValue shouldBe a[ObjectId]
+      repository.insert(testPillar2Id, testRequest).futureValue     shouldBe true
+      repository.insert("XMPLR0000000001", testRequest).futureValue shouldBe true
 
       val submissions1 = repository.findByPillar2Id(testPillar2Id).futureValue
       submissions1.size shouldBe 1
@@ -127,7 +126,7 @@ class BTNSubmissionRepositorySpec
         )
       )
 
-      requests.foreach(request => repository.insert(testPillar2Id, request).futureValue shouldBe a[ObjectId])
+      requests.foreach(request => repository.insert(testPillar2Id, request).futureValue shouldBe true)
 
       val submissions = repository.findByPillar2Id(testPillar2Id).futureValue
       submissions.size                      shouldBe 3

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
-import org.mongodb.scala.bson.ObjectId
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -50,11 +49,11 @@ class UKTRSubmissionRepositorySpec
   "UKTRSubmissionRepository" when {
     "handling valid submissions" should {
       "successfully insert a liability return" in {
-        repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe a[ObjectId]
+        repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe true
       }
 
       "successfully insert a nil return" in {
-        repository.insert(nilSubmission, validPlrId).futureValue shouldBe a[ObjectId]
+        repository.insert(nilSubmission, validPlrId).futureValue shouldBe true
       }
 
       "successfully handle amendments" in {
@@ -66,7 +65,7 @@ class UKTRSubmissionRepositorySpec
 
     "handling invalid submissions" should {
       "fail when attempting to update non-existent submission" in {
-        val result: Either[DetailedErrorResponse, ObjectId] = repository.update(liabilitySubmission, validPlrId).futureValue
+        val result: Either[DetailedErrorResponse, Boolean] = repository.update(liabilitySubmission, validPlrId).futureValue
 
         result.isLeft shouldBe true
       }
