@@ -17,28 +17,35 @@
 package uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo
 
 import org.bson.types.ObjectId
-import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json._
-import uk.gov.hmrc.mongo.play.json.formats.MongoFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoFormats.Implicits._
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.Implicits._
 import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn}
 
-import java.time.Instant
+import java.time.{Instant, LocalDate}
 
 case class ObligationsAndSubmissionsMongoSubmission(
-  _id:            ObjectId,
-  submissionId:   ObjectId,
-  pillar2Id:      String,
-  submissionType: SubmissionType,
-  submittedAt:    Instant
+  _id:              ObjectId,
+  submissionId:     ObjectId,
+  pillar2Id:        String,
+  accountingPeriod: AccountingPeriod,
+  submissionType:   SubmissionType,
+  submittedAt:      Instant
 )
+
+case class AccountingPeriod(startDate: LocalDate, endDate: LocalDate)
+
+object AccountingPeriod {
+  implicit val format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
+}
 
 object ObligationsAndSubmissionsMongoSubmission {
 
-  def fromRequest(pillar2Id: String, request: BaseSubmission, sub: ObjectId): ObligationsAndSubmissionsMongoSubmission = {
-    val submissionType = request match {
+  def fromRequest(pillar2Id: String, submission: BaseSubmission, id: ObjectId): ObligationsAndSubmissionsMongoSubmission = {
+    val submissionType = submission match {
       case _: UKTRNilReturn | _: UKTRLiabilityReturn => SubmissionType.UKTR
       case _: BTNRequest => SubmissionType.BTN
       case _ => throw new IllegalArgumentException("Unsupported submission type")
@@ -46,46 +53,14 @@ object ObligationsAndSubmissionsMongoSubmission {
 
     ObligationsAndSubmissionsMongoSubmission(
       _id = new ObjectId(),
-      submissionId = sub,
+      submissionId = id,
       pillar2Id = pillar2Id,
+      accountingPeriod = AccountingPeriod(submission.accountingPeriodFrom, submission.accountingPeriodTo),
       submissionType = submissionType,
       submittedAt = Instant.now()
     )
   }
 
-  private val mongoInstantFormat: Format[Instant] = new Format[Instant] {
-
-    override def writes(instant: Instant): JsValue = Json.obj(
-      "$date" -> Json.obj(
-        "$numberLong" -> instant.toEpochMilli.toString
-      )
-    )
-
-    override def reads(json: JsValue): JsResult[Instant] = json match {
-      case obj: JsObject if (obj \ "$date" \ "$numberLong").isDefined =>
-        (obj \ "$date" \ "$numberLong").get.validate[String].map(s => Instant.ofEpochMilli(s.toLong))
-      case _ => JsError("Expected MongoDB date format")
-    }
-
-  }
-
-  // MongoDB format for storage
-  private val mongoReads: Reads[ObligationsAndSubmissionsMongoSubmission] = (
-    (__ \ "_id").read[ObjectId](MongoFormats.objectIdFormat) and
-      (__ \ "submissionId").read[ObjectId](MongoFormats.objectIdFormat) and
-      (__ \ "pillar2Id").read[String] and
-      (__ \ "submissionType").read[SubmissionType] and
-      (__ \ "submittedAt").read[Instant](mongoInstantFormat)
-  ).apply(ObligationsAndSubmissionsMongoSubmission.apply _)
-
-  private val mongoWrites: OWrites[ObligationsAndSubmissionsMongoSubmission] = (
-    (__ \ "_id").write[ObjectId](MongoFormats.objectIdFormat) and
-      (__ \ "submissionId").write[ObjectId](MongoFormats.objectIdFormat) and
-      (__ \ "pillar2Id").write[String] and
-      (__ \ "submissionType").write[SubmissionType] and
-      (__ \ "submittedAt").write[Instant](mongoInstantFormat)
-  )(unlift(ObligationsAndSubmissionsMongoSubmission.unapply))
-
-  implicit val mongoFormat: OFormat[ObligationsAndSubmissionsMongoSubmission] = OFormat(mongoReads, mongoWrites)
+  implicit val format: OFormat[ObligationsAndSubmissionsMongoSubmission] = Json.format[ObligationsAndSubmissionsMongoSubmission]
 
 }

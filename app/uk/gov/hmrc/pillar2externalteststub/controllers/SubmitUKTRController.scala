@@ -44,20 +44,24 @@ class SubmitUKTRController @Inject() (
     logger.info("UKTR submission request received")
 
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
-      .flatMap(checkForServerErrorId)
       .flatMap { pillar2Id =>
         organisationService
           .getOrganisation(pillar2Id)
-          .flatMap { org =>
+          .flatMap { _ =>
             request.body.validate[UKTRSubmission] match {
               case JsSuccess(_, _) =>
                 processSubmission(pillar2Id, request)
               case JsError(_) => Future.failed(ETMPBadRequest)
             }
           }
-          .recoverWith { case OrganisationNotFound(_) =>
-            logger.warn(s"Organisation not found for pillar2Id: $pillar2Id")
-            Future.failed(NoActiveSubscription)
+          .recoverWith {
+            case OrganisationNotFound(_) =>
+              logger.warn(s"Organisation not found for pillar2Id: $pillar2Id")
+              Future.failed(NoActiveSubscription)
+
+            case e: Exception =>
+              logger.error(s"Error validating organisation: ${e.getMessage}", e)
+              Future.failed(e)
           }
       }
   }

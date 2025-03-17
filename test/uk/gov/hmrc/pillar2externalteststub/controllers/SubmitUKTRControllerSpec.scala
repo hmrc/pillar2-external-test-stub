@@ -56,7 +56,6 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
   private val mockUKTRRepository = mock[UKTRSubmissionRepository]
   private val mockOasRepository  = mock[ObligationsAndSubmissionsRepository]
-  private val mockOrgService     = mock[OrganisationService]
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()

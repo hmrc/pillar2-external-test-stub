@@ -19,7 +19,6 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
@@ -32,26 +31,6 @@ trait UKTRControllerCommon extends Logging {
   protected def uktrRepository:      UKTRSubmissionRepository
   protected def organisationService: OrganisationService
   implicit def ec:                   ExecutionContext
-
-  // Common validation for Pillar2Id
-  protected def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
-    pillar2Id match {
-      case Some(id) if pillar2Regex.matches(id) =>
-        logger.info(s"Valid Pillar2Id received: $id")
-        Future.successful(id)
-      case other =>
-        logger.warn(s"Invalid Pillar2Id received: $other")
-        Future.failed(Pillar2IdMissing)
-    }
-
-  // Check for server error PLR ID
-  protected def checkForServerErrorId(pillar2Id: String): Future[String] =
-    if (pillar2Id == ServerErrorPlrId) {
-      logger.warn("Server error triggered by special PLR ID")
-      Future.failed(ETMPInternalServerError)
-    } else {
-      Future.successful(pillar2Id)
-    }
 
   // Common processing logic for validating UKTRSubmission
   protected def processUKTRSubmission(
@@ -79,7 +58,10 @@ trait UKTRControllerCommon extends Logging {
               logger.info(s"UKTR request validated successfully for PLR: $plrReference")
               successAction(uktrRequest, plrReference)
           }
-        }).flatten
+        }).flatten.recoverWith { case e: Exception =>
+          logger.error(s"Error validating request: ${e.getMessage}", e)
+          Future.failed(e)
+        }
 
       case JsSuccess(nilReturnRequest: UKTRNilReturn, _) =>
         logger.info(s"Processing nil return for PLR: $plrReference")
@@ -98,7 +80,10 @@ trait UKTRControllerCommon extends Logging {
               logger.info(s"Nil return request validated successfully for PLR: $plrReference")
               successAction(nilReturnRequest, plrReference)
           }
-        }).flatten
+        }).flatten.recoverWith { case e: Exception =>
+          logger.error(s"Error validating request: ${e.getMessage}", e)
+          Future.failed(e)
+        }
 
       case JsError(errors) =>
         val errorMessage = errors

@@ -27,11 +27,12 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.ObligationsAndSubmissionsMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRLiabilityReturn
 
-import scala.concurrent.ExecutionContext
+import java.time.LocalDate
 
 class ObligationsAndSubmissionsRepositorySpec
     extends AnyWordSpec
@@ -42,12 +43,7 @@ class ObligationsAndSubmissionsRepositorySpec
     with UKTRDataFixture {
 
   val config = new AppConfig(
-    Configuration.from(
-      Map(
-        "appName"                 -> "pillar2-external-test-stub",
-        "defaultDataExpireInDays" -> 28
-      )
-    )
+    Configuration.from(Map("appName" -> "pillar2-external-test-stub", "defaultDataExpireInDays" -> 28))
   )
 
   private val app = GuiceApplicationBuilder()
@@ -55,25 +51,33 @@ class ObligationsAndSubmissionsRepositorySpec
       "metrics.enabled"  -> false,
       "encryptionToggle" -> "true"
     )
-    .overrides(
-      bind[MongoComponent].toInstance(mongoComponent)
-    )
+    .overrides(bind[MongoComponent].toInstance(mongoComponent))
     .build()
 
   override protected val repository: ObligationsAndSubmissionsRepository =
     app.injector.instanceOf[ObligationsAndSubmissionsRepository]
 
-  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  def findRequest(
+    pillar2Id: String = validPlrId,
+    from:      LocalDate = accountingPeriod.startDate,
+    to:        LocalDate = accountingPeriod.endDate
+  ): Seq[ObligationsAndSubmissionsMongoSubmission] =
+    repository.findByPillar2Id(pillar2Id, from, to).futureValue
 
-  private val testSubmissionId = new ObjectId()
-  private val testSubmission   = validRequestBody.as[UKTRLiabilityReturn]
+  def insertRequest(
+    submission: BaseSubmission = validRequestBody.as[UKTRLiabilityReturn],
+    pillar2Id:  String = validPlrId,
+    id:         ObjectId = new ObjectId()
+  ): Boolean =
+    repository.insert(submission, pillar2Id, id).futureValue
 
   "insert" should {
     "successfully insert a new submission" in {
-      val result = repository.insert(testSubmission, validPlrId, testSubmissionId).futureValue
+      val testSubmissionId = new ObjectId()
+      val result           = insertRequest(id = testSubmissionId)
       result shouldBe true
 
-      val submissions = repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue
+      val submissions = findRequest()
       submissions.size shouldBe 1
       val submission = submissions.head
       submission.pillar2Id      shouldBe validPlrId
@@ -82,41 +86,48 @@ class ObligationsAndSubmissionsRepositorySpec
     }
 
     "allow multiple submissions for the same pillar2Id" in {
-      repository.insert(testSubmission, validPlrId, new ObjectId()).futureValue shouldBe true
-      repository.insert(testSubmission, validPlrId, new ObjectId()).futureValue shouldBe true
+      insertRequest() shouldBe true
+      insertRequest() shouldBe true
 
-      val submissions = repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue
+      val submissions = findRequest()
       submissions.size shouldBe 2
     }
   }
 
-  "findAllSubmissionsByPillar2Id" should {
+  "findByPillar2Id" should {
     "return empty sequence when no submissions exist" in {
-      repository.findAllSubmissionsByPillar2Id("NONEXISTENT").futureValue shouldBe empty
+      findRequest("NONEXISTENT") shouldBe empty
     }
 
     "return all submissions for a given pillar2Id" in {
       val objectIds = List(new ObjectId(), new ObjectId(), new ObjectId())
 
-      objectIds.foreach { id =>
-        repository.insert(testSubmission, validPlrId, id).futureValue shouldBe true
-      }
+      objectIds.foreach(id => insertRequest(id = id) shouldBe true)
 
-      val submissions = repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue
+      val submissions = findRequest()
       submissions.size              shouldBe 3
       submissions.map(_.submissionId) should contain theSameElementsAs objectIds
+    }
+
+    "not return submissions when the dates queried do no cover their accounting period" in {
+      insertRequest()
+      val fromDate = LocalDate.of(2022, 1, 1)
+      val toDate   = LocalDate.of(2022, 2, 1)
+
+      repository.findByPillar2Id(validPlrId, fromDate, toDate).futureValue.isEmpty shouldBe true
+      findRequest().isEmpty                                                        shouldBe false
     }
   }
 
   "deleteByPillar2Id" should {
     "successfully delete all submissions for a given pillar2Id" in {
-      repository.insert(testSubmission, validPlrId, new ObjectId()).futureValue shouldBe true
-      repository.insert(testSubmission, validPlrId, new ObjectId()).futureValue shouldBe true
+      insertRequest()
+      insertRequest()
 
-      repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue.size shouldBe 2
+      findRequest().size shouldBe 2
 
-      repository.deleteByPillar2Id(validPlrId).futureValue             shouldBe true
-      repository.findAllSubmissionsByPillar2Id(validPlrId).futureValue shouldBe empty
+      repository.deleteByPillar2Id(validPlrId).futureValue shouldBe true
+      findRequest()                                        shouldBe empty
     }
 
     "return true when attempting to delete non-existent pillar2Id" in {
