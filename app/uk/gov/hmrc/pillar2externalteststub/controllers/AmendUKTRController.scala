@@ -44,11 +44,10 @@ class AmendUKTRController @Inject() (
     logger.info("UKTR amendment request received")
 
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
-      .flatMap(checkForServerErrorId)
       .flatMap { pillar2Id =>
         organisationService
           .getOrganisation(pillar2Id)
-          .flatMap { org =>
+          .flatMap { _ =>
             checkExistingSubmission(pillar2Id, request)
           }
           .recoverWith { case OrganisationNotFound(_) =>

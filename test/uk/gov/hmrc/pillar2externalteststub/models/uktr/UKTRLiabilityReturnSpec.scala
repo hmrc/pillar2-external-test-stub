@@ -33,7 +33,7 @@ import scala.concurrent.{Await, Future}
 
 class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFixture with MockitoSugar {
 
-  implicit val mockOrgService: OrganisationService = mock[OrganisationService]
+  override implicit val mockOrgService: OrganisationService = mock[OrganisationService]
 
   "UKTRLiabilityReturn validation" - {
     when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
