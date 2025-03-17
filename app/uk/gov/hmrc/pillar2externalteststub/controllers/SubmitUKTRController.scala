@@ -44,11 +44,10 @@ class SubmitUKTRController @Inject() (
     logger.info("UKTR submission request received")
 
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
-      .flatMap(checkForServerErrorId)
       .flatMap { pillar2Id =>
         organisationService
           .getOrganisation(pillar2Id)
-          .flatMap { org =>
+          .flatMap { _ =>
             request.body.validate[UKTRSubmission] match {
               case JsSuccess(_, _) =>
                 processSubmission(pillar2Id, request)
