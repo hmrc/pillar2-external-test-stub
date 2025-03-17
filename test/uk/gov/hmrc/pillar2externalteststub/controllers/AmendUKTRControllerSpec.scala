@@ -18,6 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
+import org.mongodb.scala.bson.ObjectId
 import org.scalatest.OptionValues
 import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AnyFreeSpec
@@ -33,10 +34,11 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.error.{DatabaseError, OrganisationNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn, UKTRSubmission}
-import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time._
@@ -52,8 +54,9 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
     }
   }
 
-  private val mockRepository = mock[UKTRSubmissionRepository]
-  private val mockOrgService = mock[OrganisationService]
+  private val mockUKTRRepository = mock[UKTRSubmissionRepository]
+  private val mockOrgService     = mock[OrganisationService]
+  private val mockOasRepository  = mock[ObligationsAndSubmissionsRepository]
 
   private def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
@@ -63,7 +66,8 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .overrides(
-        inject.bind[UKTRSubmissionRepository].toInstance(mockRepository),
+        inject.bind[UKTRSubmissionRepository].toInstance(mockUKTRRepository),
+        inject.bind[ObligationsAndSubmissionsRepository].toInstance(mockOasRepository),
         inject.bind[OrganisationService].toInstance(mockOrgService)
       )
       .build()
@@ -72,13 +76,20 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
     "when amending a UK tax return" - {
       "should return OK with success response for a valid liability amendment" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
         when(
-          mockRepository.update(
+          mockOasRepository.insert(
+            argThat((submission: BaseSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
+            anyString(),
+            any[ObjectId]
+          )
+        ).thenReturn(Future.successful(true))
+        when(
+          mockUKTRRepository.update(
             argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
             any[String]
           )
-        ).thenReturn(Future.successful(Right(true)))
+        ).thenReturn(Future.successful(Right(new ObjectId())))
 
         val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
@@ -92,9 +103,16 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return OK with success response for a valid NIL_RETURN amendment" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
-        when(mockRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
-          .thenReturn(Future.successful(Right(true)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
+          .thenReturn(Future.successful(Right(new ObjectId())))
+        when(
+          mockOasRepository.insert(
+            argThat((submission: BaseSubmission) => submission.isInstanceOf[UKTRNilReturn]),
+            anyString(),
+            any[ObjectId]
+          )
+        ).thenReturn(Future.successful(true))
 
         val request = createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))
 
@@ -123,7 +141,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return RequestCouldNotBeProcessed when previous submission does not exist" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(None))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(None))
 
         val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
@@ -132,9 +150,9 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return RequestCouldNotBeProcessed when amendment to a liability return fails" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
         when(
-          mockRepository.update(
+          mockUKTRRepository.update(
             argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
             any[String]
           )
@@ -147,9 +165,9 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return RequestCouldNotBeProcessed when amendment to a nil return fails" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
         when(
-          mockRepository.update(
+          mockUKTRRepository.update(
             argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]),
             any[String]
           )
@@ -168,7 +186,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return ETMPBadRequest for invalid JSON structure" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
         val invalidJson = Json.obj("invalidField" -> "value", "anotherInvalidField" -> 123)
         val request     = createRequest(validPlrId, invalidJson)
@@ -178,7 +196,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return InvalidReturn if liableEntities array is empty" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
         val emptyLiabilityData = validRequestBody.deepMerge(
           Json.obj(
@@ -199,7 +217,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return InvalidTotalLiability when amending with invalid amounts" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
         val invalidAmountsBody = validRequestBody.deepMerge(
           Json.obj(
@@ -215,7 +233,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return InvalidTotalLiability when total liability does not match sum of components in amendment" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
         val mismatchedTotalBody = validRequestBody.deepMerge(
           Json.obj(
@@ -230,7 +248,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return InvalidReturn when amending with invalid ID type" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
         val invalidIdTypeBody = validRequestBody.deepMerge(
           Json.obj(
@@ -256,7 +274,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
 
       "should return ETMPBadRequest when required fields are missing" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
         val missingRequiredFields = Json.obj(
           "accountingPeriodFrom" -> "2024-08-14",
@@ -265,6 +283,28 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
         )
 
         route(app, createRequest(validPlrId, missingRequiredFields)).value shouldFailWith ETMPBadRequest
+      }
+
+      "should return DatabaseError when database insert fails" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(
+          mockUKTRRepository.update(
+            argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
+            any[String]
+          )
+        ).thenReturn(Future.successful(Right(new ObjectId())))
+        when(
+          mockOasRepository.insert(
+            argThat((submission: BaseSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
+            anyString(),
+            any[ObjectId]
+          )
+        ).thenReturn(Future.failed(DatabaseError("Failed to insert submission into mongo")))
+
+        val request = createRequest(validPlrId, Json.toJson(validRequestBody))
+
+        route(app, request).value shouldFailWith DatabaseError("Failed to insert submission into mongo")
       }
     }
   }

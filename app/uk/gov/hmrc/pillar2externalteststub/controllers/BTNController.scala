@@ -26,7 +26,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNFailureResponse._
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNSuccessResponse.BTN_SUCCESS_201
 import uk.gov.hmrc.pillar2externalteststub.models.btn._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
-import uk.gov.hmrc.pillar2externalteststub.repositories.BTNSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -37,8 +37,9 @@ import scala.concurrent.{ExecutionContext, Future}
 class BTNController @Inject() (
   cc:                  ControllerComponents,
   authFilter:          AuthActionFilter,
-  repository:          BTNSubmissionRepository,
-  organisationService: OrganisationService
+  btnRepository:       BTNSubmissionRepository,
+  organisationService: OrganisationService,
+  oasRepository:       ObligationsAndSubmissionsRepository
 )(implicit ec:         ExecutionContext)
     extends BackendController(cc)
     with Logging {
@@ -77,7 +78,7 @@ class BTNController @Inject() (
               testOrg.organisation.accountingPeriod.startDate == request.accountingPeriodFrom &&
               testOrg.organisation.accountingPeriod.endDate == request.accountingPeriodTo
             ) {
-              repository.findByPillar2Id(pillar2Id).flatMap { submissions =>
+              btnRepository.findByPillar2Id(pillar2Id).flatMap { submissions =>
                 if (
                   submissions.exists(submission =>
                     submission.accountingPeriodFrom == request.accountingPeriodFrom
@@ -85,7 +86,12 @@ class BTNController @Inject() (
                   )
                 )
                   Future.successful(UnprocessableEntity(Json.toJson(BTN_DUPLICATE_SUBMISSION_004)))
-                else repository.insert(pillar2Id, request).map(_ => Created(Json.toJson(BTN_SUCCESS_201)))
+                else
+                  btnRepository.insert(pillar2Id, request).flatMap { sub =>
+                    oasRepository.insert(request, pillar2Id, sub).map { _ =>
+                      Created(Json.toJson(BTN_SUCCESS_201))
+                    }
+                  }
               }
             } else Future.successful(UnprocessableEntity(Json.toJson(BTN_REQUEST_INVALID_003)))
           }

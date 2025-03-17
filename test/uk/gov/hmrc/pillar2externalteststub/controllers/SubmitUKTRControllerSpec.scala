@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import org.mockito.ArgumentMatchers.argThat
 import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito.when
+import org.mongodb.scala.bson.ObjectId
 import org.scalatest.OptionValues
 import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AnyFreeSpec
@@ -32,9 +34,11 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
@@ -50,13 +54,15 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     }
   }
 
-  private val mockRepository = mock[UKTRSubmissionRepository]
-  private val mockOrgService = mock[OrganisationService]
+  private val mockUKTRRepository = mock[UKTRSubmissionRepository]
+  private val mockOasRepository  = mock[ObligationsAndSubmissionsRepository]
+  private val mockOrgService     = mock[OrganisationService]
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .overrides(
-        inject.bind[UKTRSubmissionRepository].toInstance(mockRepository),
+        inject.bind[UKTRSubmissionRepository].toInstance(mockUKTRRepository),
+        inject.bind[ObligationsAndSubmissionsRepository].toInstance(mockOasRepository),
         inject.bind[OrganisationService].toInstance(mockOrgService)
       )
       .build()
@@ -70,7 +76,8 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     "when submitting a UK tax return" - {
       "should return CREATED with success response for a valid liability submission" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(true))
+        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
+        when(mockOasRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[ObjectId])).thenReturn(Future.successful(true))
 
         val result = route(app, createRequest(validPlrId, validRequestBody)).get
         status(result) mustBe CREATED
@@ -79,7 +86,8 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "should return CREATED with success response for a valid NIL return submission" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(true))
+        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
+        when(mockOasRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[ObjectId])).thenReturn(Future.successful(true))
 
         val result = route(app, createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))).get
         status(result) mustBe CREATED
@@ -243,6 +251,29 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         val request = createRequest(validPlrId, invalidIdTypeBody)
 
         route(app, request).value shouldFailWith InvalidReturn
+      }
+
+      "should return DatabaseError when database insert fails" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        when(
+          mockUKTRRepository.insert(
+            argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRSubmission]),
+            anyString(),
+            eqTo(false)
+          )
+        ).thenReturn(Future.successful(new ObjectId()))
+        when(
+          mockOasRepository.insert(
+            argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRSubmission]),
+            anyString(),
+            any[ObjectId]
+          )
+        ).thenReturn(Future.failed(DatabaseError("Failed to insert submission into mongo")))
+
+        val request = createRequest(validPlrId, Json.toJson(validRequestBody))
+
+        route(app, request).value shouldFailWith DatabaseError("Failed to insert submission into mongo")
       }
     }
   }
