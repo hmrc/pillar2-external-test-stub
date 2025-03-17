@@ -27,6 +27,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.JsValue
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -80,6 +81,49 @@ class ObligationsAndSubmissionsControllerSpec
         )
       )
     )
+
+  def mockMultipleAccountingPeriods(): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] = {
+    val period1 = AccountingPeriod(
+      startDate = LocalDate.of(2023, 1, 1),
+      endDate = LocalDate.of(2023, 12, 31)
+    )
+
+    val period2 = AccountingPeriod(
+      startDate = LocalDate.of(2024, 1, 1),
+      endDate = LocalDate.of(2024, 12, 31)
+    )
+
+    when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(
+      Future.successful(
+        Seq(
+          ObligationsAndSubmissionsMongoSubmission(
+            _id = new ObjectId,
+            submissionId = new ObjectId,
+            pillar2Id = validPlrId,
+            accountingPeriod = period1,
+            submissionType = UKTR,
+            submittedAt = Instant.now()
+          ),
+          ObligationsAndSubmissionsMongoSubmission(
+            _id = new ObjectId,
+            submissionId = new ObjectId,
+            pillar2Id = validPlrId,
+            accountingPeriod = period2,
+            submissionType = BTN,
+            submittedAt = Instant.now()
+          ),
+          ObligationsAndSubmissionsMongoSubmission(
+            _id = new ObjectId,
+            submissionId = new ObjectId,
+            pillar2Id = validPlrId,
+            accountingPeriod = period1, // Another submission for period1
+            submissionType = ORN,
+            submittedAt = Instant.now()
+          )
+        )
+      )
+    )
+  }
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -214,20 +258,97 @@ class ObligationsAndSubmissionsControllerSpec
         route(app, createRequest()).value shouldFailWith NoAssociatedDataFound
       }
 
-      "should return NoAssociatedDataFound when the dates queried do not overlap with an accounting period" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
-
-        route(app, createRequest(fromDate = "2022-01-01", toDate = "2022-03-01")).value shouldFailWith NoAssociatedDataFound
-      }
-
       "should return RequestCouldNotBeProcessed for invalid date format" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         route(app, createRequest(fromDate = "invalid-date")).value shouldFailWith RequestCouldNotBeProcessed
       }
 
+      "should return RequestCouldNotBeProcessed when fromDate is after toDate" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        // Use a fromDate that is learly after toDate
+        val futureFromDate = LocalDate.now().plusYears(1).toString
+        val pastToDate     = LocalDate.now().minusYears(1).toString
+
+        route(app, createRequest(fromDate = futureFromDate, toDate = pastToDate)).value shouldFailWith RequestCouldNotBeProcessed
+      }
+
       "should handle ServerErrorPlrId appropriately" in {
         route(app, createRequest(plrId = ServerErrorPlrId)).value shouldFailWith ETMPInternalServerError
+      }
+
+      "should group submissions by accounting period" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+        mockMultipleAccountingPeriods()
+
+        val result = route(app, createRequest()).value
+        status(result) mustBe OK
+
+        val jsonResponse            = contentAsJson(result)
+        val accountingPeriodDetails = (jsonResponse \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
+
+        // Should have two accounting periods
+        accountingPeriodDetails.size mustBe 2
+
+        // First accounting period (2023) should have 2 submissions (UKTR and ORN)
+        val period1 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2023-01-01").value
+
+        val period1Obligations    = (period1 \ "obligations").as[Seq[JsValue]]
+        val period1GIRSubmissions = (period1Obligations(1) \ "submissions").as[Seq[JsValue]]
+        period1GIRSubmissions.size mustBe 1
+        (period1GIRSubmissions.head \ "submissionType").as[String] mustBe "ORN"
+
+        // Second accounting period (2024) should have 1 submission (BTN)
+        val period2 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2024-01-01").value
+
+        val period2Obligations   = (period2 \ "obligations").as[Seq[JsValue]]
+        val period2P2Submissions = (period2Obligations.head \ "submissions").as[Seq[JsValue]]
+        period2P2Submissions.size mustBe 1
+        (period2P2Submissions.head \ "submissionType").as[String] mustBe "BTN"
+      }
+
+      "should create obligations for each accounting period with correct status" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+        mockMultipleAccountingPeriods()
+
+        val result = route(app, createRequest()).value
+        status(result) mustBe OK
+
+        val jsonResponse            = contentAsJson(result)
+        val accountingPeriodDetails = (jsonResponse \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
+
+        // First period should have Fulfilled status for Pillar2TaxReturn due to UKTR submission
+        val period1 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2023-01-01").value
+
+        val period1Obligations = (period1 \ "obligations").as[Seq[JsValue]]
+        (period1Obligations.head \ "status").as[String] mustBe "Fulfilled"
+        (period1Obligations.head \ "obligationType").as[String] mustBe "Pillar2TaxReturn"
+
+        // Second period should have Fulfilled status for Pillar2TaxReturn due to BTN submission
+        val period2 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2024-01-01").value
+
+        val period2Obligations = (period2 \ "obligations").as[Seq[JsValue]]
+        (period2Obligations.head \ "status").as[String] mustBe "Fulfilled"
+        (period2Obligations.head \ "obligationType").as[String] mustBe "Pillar2TaxReturn"
+      }
+
+      "should use organisation's default accounting period when no submissions exist" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+        when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(Future.successful(Seq.empty))
+
+        val result = route(app, createRequest()).value
+        status(result) mustBe OK
+
+        val jsonResponse            = contentAsJson(result)
+        val accountingPeriodDetails = (jsonResponse \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
+
+        // Should have only one accounting period (the default one)
+        accountingPeriodDetails.size mustBe 1
+
+        // Should match the organisation's default accounting period
+        (accountingPeriodDetails.head \ "startDate").as[String] mustBe domesticOrganisation.organisation.accountingPeriod.startDate.toString
+        (accountingPeriodDetails.head \ "endDate").as[String] mustBe domesticOrganisation.organisation.accountingPeriod.endDate.toString
       }
     }
   }

@@ -56,13 +56,7 @@ class ObligationsAndSubmissionsController @Inject() (
         from <- Future.fromTry(Try(LocalDate.parse(fromDate)))
         to   <- Future.fromTry(Try(LocalDate.parse(toDate)))
         _ = if (from.isAfter(to)) throw RequestCouldNotBeProcessed
-        testOrg <- organisationService.getOrganisation(pillar2Id)
-        _ = {
-          val orgStartDate = testOrg.organisation.accountingPeriod.startDate
-          val orgEndDate   = testOrg.organisation.accountingPeriod.endDate
-
-          if (from.isAfter(orgEndDate) || to.isBefore(orgStartDate)) throw NoAssociatedDataFound
-        }
+        testOrg        <- organisationService.getOrganisation(pillar2Id)
         oasSubmissions <- oasRepository.findByPillar2Id(pillar2Id, from, to)
       } yield generateHistory(testOrg, oasSubmissions))
         .recoverWith {
@@ -77,52 +71,88 @@ class ObligationsAndSubmissionsController @Inject() (
   }
 
   private def generateHistory(testOrg: TestOrganisationWithId, oasSubmissions: Seq[ObligationsAndSubmissionsMongoSubmission]): Result = {
-    val dueDate  = testOrg.organisation.accountingPeriod.endDate.plusMonths(15)
-    val canAmend = if (LocalDate.now().isAfter(dueDate)) false else true
-    val submissions = oasSubmissions.map(submission =>
-      Submission(
-        submissionType = submission.submissionType,
-        receivedDate = submission.submittedAt.atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS),
-        country = if (submission.submissionType == ORN) Some("FR") else None
+    // Group submissions by accounting period
+    val submissionsByPeriod = oasSubmissions.groupBy(_.accountingPeriod)
+
+    // If no submissions, return the organisation's default accounting period
+    val accountingPeriodDetails = if (submissionsByPeriod.isEmpty) {
+      Seq(
+        createAccountingPeriodDetails(
+          testOrg.organisation.accountingPeriod.startDate,
+          testOrg.organisation.accountingPeriod.endDate,
+          Seq.empty,
+          testOrg.organisation.orgDetails.domesticOnly
+        )
       )
-    )
-    val p2TaxReturnSubmissions = submissions.filter(s => s.submissionType == UKTR || s.submissionType == BTN)
-    val girSubmissions         = submissions.filter(s => s.submissionType == BTN || s.submissionType == GIR || s.submissionType == ORN)
+    } else {
+      // Create AccountingPeriodDetails for each group
+      submissionsByPeriod.map { case (accountingPeriod, submissions) =>
+        createAccountingPeriodDetails(
+          accountingPeriod.startDate,
+          accountingPeriod.endDate,
+          submissions.map(toSubmission),
+          testOrg.organisation.orgDetails.domesticOnly
+        )
+      }.toSeq
+    }
 
     Ok(
       Json.toJson(
         ObligationsAndSubmissionsSuccessResponse(
           ObligationsAndSubmissionsSuccess(
             processingDate = ZonedDateTime.parse(nowZonedDateTime),
-            accountingPeriodDetails = Seq(
-              AccountingPeriodDetails(
-                startDate = testOrg.organisation.accountingPeriod.startDate,
-                endDate = testOrg.organisation.accountingPeriod.endDate,
-                dueDate = dueDate,
-                underEnquiry = false,
-                obligations = {
-                  val domesticObligation = Seq(
-                    Obligation(
-                      obligationType = Pillar2TaxReturn,
-                      status = if (p2TaxReturnSubmissions.isEmpty) Open else Fulfilled,
-                      canAmend = canAmend,
-                      submissions = p2TaxReturnSubmissions
-                    )
-                  )
-                  if (!testOrg.organisation.orgDetails.domesticOnly) {
-                    domesticObligation :+ Obligation(
-                      obligationType = GlobeInformationReturn,
-                      status = if (girSubmissions.isEmpty) Open else Fulfilled,
-                      canAmend = canAmend,
-                      submissions = girSubmissions
-                    )
-                  } else domesticObligation
-                }
-              )
-            )
+            accountingPeriodDetails = accountingPeriodDetails
           )
         )
       )
+    )
+  }
+
+  private def toSubmission(submission: ObligationsAndSubmissionsMongoSubmission): Submission =
+    Submission(
+      submissionType = submission.submissionType,
+      receivedDate = submission.submittedAt.atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS),
+      country = if (submission.submissionType == ORN) Some("FR") else None
+    )
+
+  private def createAccountingPeriodDetails(
+    startDate:      LocalDate,
+    endDate:        LocalDate,
+    submissions:    Seq[Submission],
+    isDomesticOnly: Boolean
+  ): AccountingPeriodDetails = {
+    val dueDate  = endDate.plusMonths(15)
+    val canAmend = !LocalDate.now().isAfter(dueDate)
+
+    val p2TaxReturnSubmissions = submissions.filter(s => s.submissionType == UKTR || s.submissionType == BTN)
+    val girSubmissions         = submissions.filter(s => s.submissionType == BTN || s.submissionType == GIR || s.submissionType == ORN)
+
+    val domesticObligation = Seq(
+      Obligation(
+        obligationType = Pillar2TaxReturn,
+        status = if (p2TaxReturnSubmissions.isEmpty) Open else Fulfilled,
+        canAmend = canAmend,
+        submissions = p2TaxReturnSubmissions
+      )
+    )
+
+    val obligations = if (!isDomesticOnly) {
+      domesticObligation :+ Obligation(
+        obligationType = GlobeInformationReturn,
+        status = if (girSubmissions.isEmpty) Open else Fulfilled,
+        canAmend = canAmend,
+        submissions = girSubmissions
+      )
+    } else {
+      domesticObligation
+    }
+
+    AccountingPeriodDetails(
+      startDate = startDate,
+      endDate = endDate,
+      dueDate = dueDate,
+      underEnquiry = false,
+      obligations = obligations
     )
   }
 }
