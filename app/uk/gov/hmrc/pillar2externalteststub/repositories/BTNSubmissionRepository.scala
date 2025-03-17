@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
-import org.mongodb.scala.bson.ObjectId
 import org.mongodb.scala.model.Filters.equal
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
@@ -58,17 +57,14 @@ class BTNSubmissionRepository @Inject() (
       )
     ) {
 
-  def insert(pillar2Id: String, submission: BTNRequest): Future[ObjectId] = {
-    val document = BTNSubmission.fromRequest(pillar2Id, submission)
-
+  def insert(pillar2Id: String, submission: BTNRequest): Future[Boolean] =
     collection
-      .insertOne(document)
+      .insertOne(BTNSubmission.fromRequest(pillar2Id, submission))
       .toFuture()
-      .map(_ => document._id)
+      .map(_ => true)
       .recoverWith { case e: Exception =>
         Future.failed(DatabaseError(s"Failed to save BTN submission: ${e.getMessage}"))
       }
-  }
 
   def findByPillar2Id(pillar2Id: String): Future[Seq[BTNSubmission]] =
     collection

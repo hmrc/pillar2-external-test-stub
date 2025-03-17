@@ -58,7 +58,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       replaceIndexes = true
     ) {
 
-  def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[ObjectId] = {
+  def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[Boolean] = {
     val document = UKTRMongoSubmission(
       _id = new ObjectId(),
       pillar2Id = pillar2Id,
@@ -70,13 +70,13 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
     collection
       .insertOne(document)
       .toFuture()
-      .map(_ => document._id)
+      .map(_ => true)
       .recoverWith { case e: Exception =>
         Future.failed(DatabaseError(s"Failed to ${if (isAmendment) "amend" else "create"} UKTR - ${e.getMessage}"))
       }
   }
 
-  def update(submission: UKTRSubmission, pillar2Id: String): Future[Either[DetailedErrorResponse, ObjectId]] =
+  def update(submission: UKTRSubmission, pillar2Id: String): Future[Either[DetailedErrorResponse, Boolean]] =
     findByPillar2Id(pillar2Id).flatMap(
       _.toRight(RequestCouldNotBeProcessed)
         .traverse(_ => insert(submission, pillar2Id, isAmendment = true))

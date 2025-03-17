@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import org.mockito.ArgumentMatchers.{eq => eqTo, _}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.when
-import org.mongodb.scala.bson.ObjectId
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -29,10 +28,9 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, TestOrgDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
-import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
+import uk.gov.hmrc.pillar2externalteststub.repositories.BTNSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time.LocalDate
@@ -40,29 +38,20 @@ import scala.concurrent.Future
 
 class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with BTNDataFixture with TestOrgDataFixture {
 
-  private val mockBTNRepository = mock[BTNSubmissionRepository]
-  private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
+  private val mockRepository = mock[BTNSubmissionRepository]
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
-      .overrides(inject.bind[BTNSubmissionRepository].toInstance(mockBTNRepository))
-      .overrides(inject.bind[ObligationsAndSubmissionsRepository].toInstance(mockOasRepository))
+      .overrides(inject.bind[BTNSubmissionRepository].toInstance(mockRepository))
       .build()
 
   "Below Threshold Notification" - {
     "when submitting a notification" - {
       "should return CREATED with success response for a valid submission" in {
         when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
-        when(mockBTNRepository.findByPillar2Id(eqTo(validPlrId))).thenReturn(Future.successful(Seq.empty))
-        when(mockBTNRepository.insert(eqTo(validPlrId), any[BTNRequest])).thenReturn(Future.successful(new ObjectId()))
-        when(
-          mockOasRepository.insert(
-            argThat((submission: BaseSubmission) => submission.isInstanceOf[BTNRequest]),
-            anyString(),
-            any[ObjectId]
-          )
-        ).thenReturn(Future.successful(true))
+        when(mockRepository.findByPillar2Id(eqTo(validPlrId))).thenReturn(Future.successful(Seq.empty))
+        when(mockRepository.insert(eqTo(validPlrId), any[BTNRequest])).thenReturn(Future.successful(true))
 
         val result = route(app, createRequestWithBody(validPlrId, validBTNRequest)).get
         status(result) shouldBe CREATED
@@ -122,7 +111,7 @@ class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return UNPROCESSABLE_ENTITY when duplicate submission exists" in {
         when(mockOrgService.getOrganisation(validPlrId)).thenReturn(Future.successful(organisationWithId))
-        when(mockBTNRepository.findByPillar2Id(any[String])).thenReturn(Future.successful(Seq(BTNMongoSubmission)))
+        when(mockRepository.findByPillar2Id(any[String])).thenReturn(Future.successful(Seq(BTNMongoSubmission)))
 
         val result = route(app, createRequestWithBody(validPlrId, validBTNRequest)).get
         status(result) shouldBe UNPROCESSABLE_ENTITY

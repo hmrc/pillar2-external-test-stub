@@ -17,11 +17,10 @@
 package uk.gov.hmrc.pillar2externalteststub.models.btn
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 
 import java.time.LocalDate
 
-case class BTNRequest(accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate) extends BaseSubmission {
+case class BTNRequest(accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate) {
   def accountingPeriodValid: Boolean =
     accountingPeriodFrom.isBefore(accountingPeriodTo)
 }
