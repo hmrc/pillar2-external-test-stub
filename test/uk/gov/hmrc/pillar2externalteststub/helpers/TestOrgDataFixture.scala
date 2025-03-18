@@ -20,11 +20,12 @@ import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
+import java.time.Instant
 import java.time.LocalDate
 
 trait TestOrgDataFixture extends Pillar2DataFixture {
 
-  val mockOrgService: OrganisationService = mock[OrganisationService]
+  implicit val mockOrgService: OrganisationService = mock[OrganisationService]
 
   val orgDetails: OrgDetails = OrgDetails(
     domesticOnly = false,
@@ -38,20 +39,26 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
   )
 
+  val testOrgDetails: TestOrganisation = TestOrganisation(
+    orgDetails = orgDetails,
+    accountingPeriod = accountingPeriod,
+    lastUpdated = Instant.now()
+  )
+
+  val nonDomesticOrganisation: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = validPlrId,
+    organisation = testOrgDetails
+  )
+
+  val domesticOrganisation: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = validPlrId,
+    organisation = testOrgDetails.copy(orgDetails = testOrgDetails.orgDetails.copy(domesticOnly = true))
+  )
+
   val organisationWithId: TestOrganisationWithId = organisationDetails.withPillar2Id(validPlrId)
 
   val testOrganisation: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = validPlrId,
     organisation = organisationDetails
-  )
-
-  val domesticOrganisation: TestOrganisationWithId = TestOrganisationWithId(
-    pillar2Id = validPlrId,
-    organisation = organisationDetails.copy(orgDetails = organisationDetails.orgDetails.copy(domesticOnly = true))
-  )
-
-  val nonDomesticOrganisation: TestOrganisationWithId = TestOrganisationWithId(
-    pillar2Id = nonDomesticPlrId,
-    organisation = organisationDetails.copy(orgDetails = organisationDetails.orgDetails.copy(domesticOnly = false))
   )
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,22 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.orn
 
-import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
-import java.time.LocalDate
+import scala.concurrent.{ExecutionContext, Future}
 
-case class ORNRequest(
-  accountingPeriodFrom: LocalDate,
-  accountingPeriodTo:   LocalDate,
-  filedDateGIR:         LocalDate,
-  countryGIR:           String,
-  reportingEntityName:  String,
-  TIN:                  String,
-  issuingCountryTIN:    String
-) {
-  def accountingPeriodValid: Boolean =
-    accountingPeriodFrom.isBefore(accountingPeriodTo)
-}
+object ORNValidator {
 
-object ORNRequest {
-  implicit val format: OFormat[ORNRequest] = Json.format[ORNRequest]
-
+  def ornValidator(
+    pillar2Id: String
+  )(implicit
+    organisationService: OrganisationService,
+    ec:                  ExecutionContext
+  ): Future[ValidationRule[ORNRequest]] =
+    for {
+      domesticRule <- ORNValidationRules.domesticOnlyRule(pillar2Id)
+    } yield ValidationRule.compose(
+      domesticRule
+    )(FailFast)
 }

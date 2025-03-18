@@ -38,7 +38,8 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
   "ORNService" should {
     "submitORN" should {
       "successfully submit a new ORN when no existing submission exists" in {
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Seq.empty))
+        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(None))
         when(mockRepository.insert(anyString(), any[ORNRequest]())).thenReturn(Future.successful(true))
 
         val result = service.submitORN(validPlrId, validORNRequest)
@@ -48,7 +49,8 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
       }
 
       "fail with TaxObligationAlreadyFulfilled when a submission exists for the same accounting period" in {
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Seq(ornMongoSubmission)))
+        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(Some(ornMongoSubmission)))
 
         val result = service.submitORN(validPlrId, validORNRequest)
 
@@ -72,7 +74,8 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
       }
 
       "fail with RequestCouldNotBeProcessed when no existing submission exists" in {
-        when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Seq.empty))
+        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(None))
 
         val result = service.amendORN(validPlrId, validORNRequest)
 

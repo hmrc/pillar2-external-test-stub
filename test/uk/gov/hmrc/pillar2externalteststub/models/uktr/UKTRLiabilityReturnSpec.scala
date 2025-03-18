@@ -22,21 +22,19 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
+import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFixture with MockitoSugar {
-
-  override implicit val mockOrgService: OrganisationService = mock[OrganisationService]
+class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFixture with MockitoSugar with TestOrgDataFixture {
 
   "UKTRLiabilityReturn validation" - {
-    when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+    when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
     val validLiabilityReturn = Json.fromJson[UKTRLiabilityReturn](validRequestBody).get
 
     "should pass validation for a valid liability return" in {
@@ -150,9 +148,6 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     }
 
     "should fail validation when obligationMTT is true for domestic organisation" in {
-      val domesticOrganisation = testOrganisation.copy(organisation =
-        testOrganisation.organisation.copy(orgDetails = testOrganisation.organisation.orgDetails.copy(domesticOnly = true))
-      )
       when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
       val invalidReturn = validLiabilityReturn.copy(
         obligationMTT = true
@@ -162,7 +157,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     }
 
     "should fail validation when electionUKGAAP is true for non-domestic organisation" in {
-      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
       val invalidReturn = validLiabilityReturn.copy(
         electionUKGAAP = true
       )

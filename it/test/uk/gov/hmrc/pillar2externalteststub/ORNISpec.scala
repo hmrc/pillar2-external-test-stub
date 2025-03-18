@@ -75,7 +75,7 @@ class ORNISpec
     )
 
     httpClient
-      .post(url"$baseUrl/RESTAdapter/PLR/overseas-return-notification")
+      .post(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
       .transform(_.withHttpHeaders(headers: _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
@@ -90,7 +90,7 @@ class ORNISpec
     )
 
     httpClient
-      .put(url"$baseUrl/RESTAdapter/PLR/overseas-return-notification")
+      .put(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
       .transform(_.withHttpHeaders(headers: _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
@@ -105,7 +105,7 @@ class ORNISpec
     )
 
     httpClient
-      .get(url"$baseUrl/RESTAdapter/PLR/overseas-return-notification?accountingPeriodFrom=$accountingPeriodFrom&accountingPeriodTo=$accountingPeriodTo")
+      .get(url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=$accountingPeriodFrom&accountingPeriodTo=$accountingPeriodTo")
       .transform(_.withHttpHeaders(headers: _*))
       .execute[HttpResponse]
       .futureValue
@@ -208,7 +208,7 @@ class ORNISpec
       )
 
       val responseWithoutId = httpClient
-        .post(url"$baseUrl/RESTAdapter/PLR/overseas-return-notification")
+        .post(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
         .transform(_.withHttpHeaders(headers: _*))
         .withBody(Json.toJson(validORNRequest))
         .execute[HttpResponse]
@@ -291,7 +291,7 @@ class ORNISpec
       )
 
       val getResponse = httpClient
-        .get(url"$baseUrl/RESTAdapter/PLR/overseas-return-notification?accountingPeriodFrom=2024-01-01&accountingPeriodTo=2024-12-31")
+        .get(url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=2024-01-01&accountingPeriodTo=2024-12-31")
         .transform(_.withHttpHeaders(headers: _*))
         .execute[HttpResponse]
         .futureValue
