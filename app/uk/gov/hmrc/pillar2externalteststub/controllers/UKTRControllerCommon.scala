@@ -19,7 +19,6 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
@@ -29,29 +28,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait UKTRControllerCommon extends Logging {
 
-  protected def repository:          UKTRSubmissionRepository
+  protected def uktrRepository:      UKTRSubmissionRepository
   protected def organisationService: OrganisationService
   implicit def ec:                   ExecutionContext
-
-  // Common validation for Pillar2Id
-  protected def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
-    pillar2Id match {
-      case Some(id) if pillar2Regex.matches(id) =>
-        logger.info(s"Valid Pillar2Id received: $id")
-        Future.successful(id)
-      case other =>
-        logger.warn(s"Invalid Pillar2Id received: $other")
-        Future.failed(Pillar2IdMissing)
-    }
-
-  // Check for server error PLR ID
-  protected def checkForServerErrorId(pillar2Id: String): Future[String] =
-    if (pillar2Id == ServerErrorPlrId) {
-      logger.warn("Server error triggered by special PLR ID")
-      Future.failed(ETMPInternalServerError)
-    } else {
-      Future.successful(pillar2Id)
-    }
 
   // Common processing logic for validating UKTRSubmission
   protected def processUKTRSubmission(

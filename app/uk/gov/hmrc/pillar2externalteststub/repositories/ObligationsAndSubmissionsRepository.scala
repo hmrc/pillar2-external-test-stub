@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,28 +17,31 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.mongodb.scala.bson.ObjectId
-import org.mongodb.scala.model.Filters.equal
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.model.Indexes.{ascending, compoundIndex}
+import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
+import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
-import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
-import uk.gov.hmrc.pillar2externalteststub.models.btn.mongo.BTNSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.ObligationsAndSubmissionsMongoSubmission
 
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BTNSubmissionRepository @Inject() (
+class ObligationsAndSubmissionsRepository @Inject() (
   mongoComponent: MongoComponent,
   config:         AppConfig
 )(implicit ec:    ExecutionContext)
-    extends PlayMongoRepository[BTNSubmission](
-      collectionName = "btn-submissions",
+    extends PlayMongoRepository[ObligationsAndSubmissionsMongoSubmission](
+      collectionName = "obligations-and-submissions",
       mongoComponent = mongoComponent,
-      domainFormat = BTNSubmission.mongoFormat,
+      domainFormat = ObligationsAndSubmissionsMongoSubmission.format,
       indexes = Seq(
         IndexModel(
           Indexes.ascending("_id"),
@@ -46,8 +49,12 @@ class BTNSubmissionRepository @Inject() (
             .name("idIndex")
         ),
         IndexModel(
-          Indexes.ascending("pillar2Id"),
-          IndexOptions().name("pillar2IdIndex")
+          compoundIndex(
+            ascending("pillar2Id"),
+            ascending("submissionId")
+          ),
+          IndexOptions()
+            .name("pillar2Id_oas_Index")
         ),
         IndexModel(
           Indexes.ascending("submittedAt"),
@@ -56,26 +63,19 @@ class BTNSubmissionRepository @Inject() (
             .expireAfter(config.defaultDataExpireInDays, TimeUnit.DAYS)
         )
       )
-    ) {
+    )
+    with Logging {
 
-  def insert(pillar2Id: String, submission: BTNRequest): Future[ObjectId] = {
-    val document = BTNSubmission.fromRequest(pillar2Id, submission)
-
+  def insert(submission: BaseSubmission, pillar2Id: String, id: ObjectId): Future[Boolean] =
     collection
-      .insertOne(document)
+      .insertOne(ObligationsAndSubmissionsMongoSubmission.fromRequest(pillar2Id, submission, id))
       .toFuture()
-      .map(_ => document._id)
-      .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to save BTN submission: ${e.getMessage}"))
+      .map { _ =>
+        logger.info("Successfully saved entry to oas collection.")
+        true
       }
-  }
-
-  def findByPillar2Id(pillar2Id: String): Future[Seq[BTNSubmission]] =
-    collection
-      .find(Filters.equal("pillar2Id", pillar2Id))
-      .toFuture()
       .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to retrieve BTN submissions: ${e.getMessage}"))
+        Future.failed(DatabaseError(s"Failed to insert submission to oas collection: ${e.getMessage}"))
       }
 
   def deleteByPillar2Id(pillar2Id: String): Future[Boolean] =
@@ -83,4 +83,17 @@ class BTNSubmissionRepository @Inject() (
       .deleteMany(equal("pillar2Id", pillar2Id))
       .toFuture()
       .map(_.wasAcknowledged())
+
+  def findByPillar2Id(pillar2Id: String, from: LocalDate, to: LocalDate): Future[Seq[ObligationsAndSubmissionsMongoSubmission]] = {
+    val filter =
+      and(
+        equal("pillar2Id", pillar2Id),
+        nor(gt("accountingPeriod.startDate", to), lte("accountingPeriod.endDate", from))
+      )
+
+    collection
+      .find(filter)
+      .toFuture()
+      .recoverWith { case e: Exception => Future.failed(DatabaseError(s"Failed to retrieve matching records: ${e.getMessage}")) }
+  }
 }
