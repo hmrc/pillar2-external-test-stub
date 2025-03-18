@@ -99,7 +99,7 @@ class ORNController @Inject() (
       } catch {
         case e: DateTimeParseException =>
           logger.error(s"Invalid date format: ${e.getMessage}")
-          Future.failed(RequestCouldNotBeProcessed)
+          Future.failed(ETMPBadRequest)
       }
     }
   }

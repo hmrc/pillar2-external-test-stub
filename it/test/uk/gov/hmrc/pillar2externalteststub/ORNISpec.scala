@@ -274,14 +274,14 @@ class ORNISpec
       (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
     }
 
-    "return 422 when dates are invalid" in {
+    "return 400 when dates are invalid" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
 
       val getResponse = getORN(validPlrId, "invalid-date", "2025-12-31")
-      getResponse.status shouldBe 422
+      getResponse.status shouldBe 400
       val json = Json.parse(getResponse.body)
-      (json \ "errors" \ "code").as[String] shouldBe "003"
-      (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+      (json \ "errors" \ "code").as[String] shouldBe "400"
+      (json \ "errors" \ "text").as[String] shouldBe "Bad request"
     }
 
     "return 422 when Pillar2 ID is missing" in {

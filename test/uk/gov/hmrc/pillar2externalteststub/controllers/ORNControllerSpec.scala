@@ -155,7 +155,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         (json \ "success" \ "countryGIR").as[String]                  shouldBe "US"
       }
 
-      "should return UNPROCESSABLE_ENTITY when no submission is found" in {
+      "should return RequestCouldNotBeProcessed when no submission is found" in {
         val fromDate = "2024-01-01"
         val toDate   = "2024-12-31"
 
@@ -170,7 +170,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         result shouldFailWith RequestCouldNotBeProcessed
       }
 
-      "should return UNPROCESSABLE_ENTITY when date format is invalid" in {
+      "should return ETMPBadRequest when date format is invalid" in {
         val fromDate = "invalid-date"
         val toDate   = "2024-12-31"
 
@@ -178,7 +178,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
           .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> validPlrId)
 
         val result = route(app, request).get
-        result shouldFailWith RequestCouldNotBeProcessed
+        result shouldFailWith ETMPBadRequest
       }
     }
   }
