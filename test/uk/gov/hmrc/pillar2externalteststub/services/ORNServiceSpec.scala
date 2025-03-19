@@ -33,27 +33,27 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with ScalaFutures with ORNDataFixture {
 
-  private val mockRepository    = mock[ORNSubmissionRepository]
+  private val mockOrnRepository = mock[ORNSubmissionRepository]
   private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
-  private val service           = new ORNService(mockRepository, mockOasRepository)
+  private val service           = new ORNService(mockOrnRepository, mockOasRepository)
 
   "ORNService" should {
     "submitORN" should {
       "successfully submit a new ORN when no existing submission exists" in {
-        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+        when(mockOrnRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(None))
-        when(mockRepository.insert(anyString(), any[ORNRequest]())).thenReturn(Future.successful(ObjectId.get()))
+        when(mockOrnRepository.insert(anyString(), any[ORNRequest]())).thenReturn(Future.successful(ObjectId.get()))
         when(mockOasRepository.insert(any[ORNRequest](), anyString(), any[ObjectId]())).thenReturn(Future.successful(true))
 
         val result = service.submitORN(validPlrId, validORNRequest)
 
         result.futureValue mustBe true
-        verify(mockRepository).insert(validPlrId, validORNRequest)
+        verify(mockOrnRepository).insert(validPlrId, validORNRequest)
         verify(mockOasRepository).insert(eqTo(validORNRequest), eqTo(validPlrId), any[ObjectId]())
       }
 
       "fail with TaxObligationAlreadyFulfilled when a submission exists for the same accounting period" in {
-        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+        when(mockOrnRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(Some(ornMongoSubmission)))
 
         val result = service.submitORN(validPlrId, validORNRequest)
@@ -68,20 +68,20 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
       "successfully amend an existing ORN when a submission exists" in {
         val amendedRequest = validORNRequest.copy(reportingEntityName = "Updated Name")
 
-        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+        when(mockOrnRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(Some(ornMongoSubmission)))
-        when(mockRepository.insert(eqTo(validPlrId), eqTo(amendedRequest))).thenReturn(Future.successful(ObjectId.get()))
+        when(mockOrnRepository.insert(eqTo(validPlrId), eqTo(amendedRequest))).thenReturn(Future.successful(ObjectId.get()))
         when(mockOasRepository.insert(any[ORNRequest](), anyString(), any[ObjectId]())).thenReturn(Future.successful(true))
 
         val result = service.amendORN(validPlrId, amendedRequest)
 
         result.futureValue mustBe true
-        verify(mockRepository, times(1)).insert(validPlrId, amendedRequest)
+        verify(mockOrnRepository, times(1)).insert(validPlrId, amendedRequest)
         verify(mockOasRepository).insert(eqTo(amendedRequest), eqTo(validPlrId), any[ObjectId]())
       }
 
       "fail with RequestCouldNotBeProcessed when no existing submission exists" in {
-        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+        when(mockOrnRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(None))
 
         val result = service.amendORN(validPlrId, validORNRequest)
@@ -95,7 +95,7 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
     "getORN" should {
       "return submission when it exists for the given period" in {
         val submission = ornMongoSubmission
-        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+        when(mockOrnRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(Some(submission)))
 
         val result = service.getORN(validPlrId, submission.accountingPeriodFrom, submission.accountingPeriodTo)
@@ -103,7 +103,7 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
       }
 
       "return None when no submission exists for the period" in {
-        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+        when(mockOrnRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(None))
 
         val result = service.getORN(validPlrId, LocalDate.now(), LocalDate.now())

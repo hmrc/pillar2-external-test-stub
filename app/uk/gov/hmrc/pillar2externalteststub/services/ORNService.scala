@@ -29,26 +29,26 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ORNService @Inject() (
-  repository:    ORNSubmissionRepository,
+  ornRepository: ORNSubmissionRepository,
   oasRepository: ObligationsAndSubmissionsRepository
 )(implicit ec:   ExecutionContext)
     extends Logging {
 
   def submitORN(pillar2Id: String, request: ORNRequest): Future[Boolean] =
-    repository.findByPillar2IdAndAccountingPeriod(pillar2Id, request.accountingPeriodFrom, request.accountingPeriodTo).flatMap {
+    ornRepository.findByPillar2IdAndAccountingPeriod(pillar2Id, request.accountingPeriodFrom, request.accountingPeriodTo).flatMap {
       case Some(_) =>
         Future.failed(TaxObligationAlreadyFulfilled)
       case None =>
-        repository.insert(pillar2Id, request).flatMap { submissionId =>
+        ornRepository.insert(pillar2Id, request).flatMap { submissionId =>
           oasRepository.insert(request, pillar2Id, submissionId)
         }
     }
 
   def amendORN(pillar2Id: String, request: ORNRequest): Future[Boolean] = {
     logger.info(s"Amending ORN for pillar2Id: $pillar2Id")
-    repository.findByPillar2IdAndAccountingPeriod(pillar2Id, request.accountingPeriodFrom, request.accountingPeriodTo).flatMap {
+    ornRepository.findByPillar2IdAndAccountingPeriod(pillar2Id, request.accountingPeriodFrom, request.accountingPeriodTo).flatMap {
       case Some(_) =>
-        repository.insert(pillar2Id, request).flatMap { submissionId =>
+        ornRepository.insert(pillar2Id, request).flatMap { submissionId =>
           oasRepository.insert(request, pillar2Id, submissionId)
         }
       case None =>
@@ -57,6 +57,6 @@ class ORNService @Inject() (
   }
 
   def getORN(pillar2Id: String, accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate): Future[Option[ORNSubmission]] =
-    repository
+    ornRepository
       .findByPillar2IdAndAccountingPeriod(pillar2Id, accountingPeriodFrom, accountingPeriodTo)
 }

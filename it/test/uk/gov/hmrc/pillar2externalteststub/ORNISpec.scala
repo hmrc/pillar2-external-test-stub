@@ -54,10 +54,11 @@ class ORNISpec
 
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
-  override protected val repository: ORNSubmissionRepository = app.injector.instanceOf[ORNSubmissionRepository]
+  private val ornRepository: ORNSubmissionRepository = app.injector.instanceOf[ORNSubmissionRepository]
   private val oasRepository: ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
   implicit val ec:                   ExecutionContext        = app.injector.instanceOf[ExecutionContext]
   implicit val hc:                   HeaderCarrier           = HeaderCarrier()
+  override protected val repository = ornRepository
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -119,8 +120,8 @@ class ORNISpec
   }
 
   override protected def prepareDatabase(): Unit = {
-    repository.collection.drop().toFuture().futureValue
-    repository.collection.createIndexes(repository.indexes).toFuture().futureValue
+    ornRepository.collection.drop().toFuture().futureValue
+    ornRepository.collection.createIndexes(ornRepository.indexes).toFuture().futureValue
     oasRepository.collection.drop().toFuture().futureValue
     oasRepository.collection.createIndexes(oasRepository.indexes).toFuture().futureValue
     ()
@@ -133,7 +134,7 @@ class ORNISpec
       val response = submitORN(validPlrId, validORNRequest)
       response.status shouldBe 201
 
-      val submissions = repository.findByPillar2Id(validPlrId).futureValue
+      val submissions = ornRepository.findByPillar2Id(validPlrId).futureValue
       submissions.size shouldBe 1
       val submission = submissions.head
       submission.pillar2Id shouldBe validPlrId
@@ -148,7 +149,7 @@ class ORNISpec
       response.status shouldBe 201
 
       // Verify in ORN repository
-      val ornSubmissions = repository.findByPillar2Id(validPlrId).futureValue
+      val ornSubmissions = ornRepository.findByPillar2Id(validPlrId).futureValue
       ornSubmissions.size shouldBe 1
       
       // Verify in OAS repository
@@ -196,7 +197,7 @@ class ORNISpec
       val secondResponse = submitORN(validPlrId, differentPeriodRequest)
       secondResponse.status shouldBe 201
 
-      val submissions = repository.findByPillar2Id(validPlrId).futureValue
+      val submissions = ornRepository.findByPillar2Id(validPlrId).futureValue
       submissions.size shouldBe 2
     }
 
@@ -212,7 +213,7 @@ class ORNISpec
       val amendResponse = amendORN(validPlrId, amendedRequest)
       amendResponse.status shouldBe 200
 
-      val submissions = repository.findByPillar2Id(validPlrId).futureValue
+      val submissions = ornRepository.findByPillar2Id(validPlrId).futureValue
       submissions.size shouldBe 2
       submissions.last.reportingEntityName shouldBe "Updated Newco PLC"
     }
@@ -232,7 +233,7 @@ class ORNISpec
       amendResponse.status shouldBe 200
 
       // Verify in ORN repository - should have both original and amended submissions
-      val ornSubmissions = repository.findByPillar2Id(validPlrId).futureValue
+      val ornSubmissions = ornRepository.findByPillar2Id(validPlrId).futureValue
       ornSubmissions.size shouldBe 2
       
       // Verify in OAS repository - should have both original and amended submissions
@@ -260,7 +261,7 @@ class ORNISpec
       (json \ "errors" \ "code").as[String] shouldBe "003"
       (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
 
-      val submissions = repository.findByPillar2Id(validPlrId).futureValue
+      val submissions = ornRepository.findByPillar2Id(validPlrId).futureValue
       submissions shouldBe empty
     }
 
@@ -281,7 +282,7 @@ class ORNISpec
       val json = Json.parse(responseWithoutId.body)
       (json \ "errors" \ "code").as[String] shouldBe "002"
 
-      repository.findByPillar2Id(validPlrId).futureValue shouldBe empty
+      ornRepository.findByPillar2Id(validPlrId).futureValue shouldBe empty
     }
 
     "handle server error cases correctly" in {
@@ -291,7 +292,7 @@ class ORNISpec
       val json = Json.parse(response.body)
       (json \ "errors" \ "code").as[String] shouldBe "500"
 
-      repository.findByPillar2Id(serverErrorPlrId).futureValue shouldBe empty
+      ornRepository.findByPillar2Id(serverErrorPlrId).futureValue shouldBe empty
     }
 
     "handle non-existent organisation" in {
