@@ -17,6 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.models.orn
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 
 import java.time.LocalDate
 
@@ -28,7 +29,7 @@ case class ORNRequest(
   reportingEntityName:  String,
   TIN:                  String,
   issuingCountryTIN:    String
-) {
+) extends BaseSubmission {
   def accountingPeriodValid: Boolean =
     accountingPeriodFrom.isBefore(accountingPeriodTo)
 }

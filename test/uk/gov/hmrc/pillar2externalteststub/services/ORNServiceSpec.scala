@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 
+import org.bson.types.ObjectId
 import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.concurrent.ScalaFutures
@@ -25,27 +26,30 @@ import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.pillar2externalteststub.helpers.ORNDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{RequestCouldNotBeProcessed, TaxObligationAlreadyFulfilled}
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
-import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.repositories.{ORNSubmissionRepository, ObligationsAndSubmissionsRepository}
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with ScalaFutures with ORNDataFixture {
 
-  private val mockRepository = mock[ORNSubmissionRepository]
-  private val service        = new ORNService(mockRepository)
+  private val mockRepository    = mock[ORNSubmissionRepository]
+  private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
+  private val service           = new ORNService(mockRepository, mockOasRepository)
 
   "ORNService" should {
     "submitORN" should {
       "successfully submit a new ORN when no existing submission exists" in {
         when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(None))
-        when(mockRepository.insert(anyString(), any[ORNRequest]())).thenReturn(Future.successful(true))
+        when(mockRepository.insert(anyString(), any[ORNRequest]())).thenReturn(Future.successful(ObjectId.get()))
+        when(mockOasRepository.insert(any[ORNRequest](), anyString(), any[ObjectId]())).thenReturn(Future.successful(true))
 
         val result = service.submitORN(validPlrId, validORNRequest)
 
         result.futureValue mustBe true
         verify(mockRepository).insert(validPlrId, validORNRequest)
+        verify(mockOasRepository).insert(eqTo(validORNRequest), eqTo(validPlrId), any[ObjectId]())
       }
 
       "fail with TaxObligationAlreadyFulfilled when a submission exists for the same accounting period" in {
@@ -64,13 +68,16 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
       "successfully amend an existing ORN when a submission exists" in {
         val amendedRequest = validORNRequest.copy(reportingEntityName = "Updated Name")
 
-        when(mockRepository.findByPillar2Id(eqTo(validPlrId))).thenReturn(Future.successful(Seq(ornMongoSubmission)))
-        when(mockRepository.insert(eqTo(validPlrId), eqTo(amendedRequest))).thenReturn(Future.successful(true))
+        when(mockRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(Some(ornMongoSubmission)))
+        when(mockRepository.insert(eqTo(validPlrId), eqTo(amendedRequest))).thenReturn(Future.successful(ObjectId.get()))
+        when(mockOasRepository.insert(any[ORNRequest](), anyString(), any[ObjectId]())).thenReturn(Future.successful(true))
 
         val result = service.amendORN(validPlrId, amendedRequest)
 
         result.futureValue mustBe true
         verify(mockRepository, times(1)).insert(validPlrId, amendedRequest)
+        verify(mockOasRepository).insert(eqTo(amendedRequest), eqTo(validPlrId), any[ObjectId]())
       }
 
       "fail with RequestCouldNotBeProcessed when no existing submission exists" in {

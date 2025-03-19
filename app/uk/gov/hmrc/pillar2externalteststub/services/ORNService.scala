@@ -21,7 +21,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNo
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
-import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.repositories.{ORNSubmissionRepository, ObligationsAndSubmissionsRepository}
 
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
@@ -29,8 +29,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ORNService @Inject() (
-  repository:  ORNSubmissionRepository
-)(implicit ec: ExecutionContext)
+  repository:    ORNSubmissionRepository,
+  oasRepository: ObligationsAndSubmissionsRepository
+)(implicit ec:   ExecutionContext)
     extends Logging {
 
   def submitORN(pillar2Id: String, request: ORNRequest): Future[Boolean] =
@@ -38,14 +39,18 @@ class ORNService @Inject() (
       case Some(_) =>
         Future.failed(TaxObligationAlreadyFulfilled)
       case None =>
-        repository.insert(pillar2Id, request)
+        repository.insert(pillar2Id, request).flatMap { submissionId =>
+          oasRepository.insert(request, pillar2Id, submissionId)
+        }
     }
 
   def amendORN(pillar2Id: String, request: ORNRequest): Future[Boolean] = {
     logger.info(s"Amending ORN for pillar2Id: $pillar2Id")
     repository.findByPillar2IdAndAccountingPeriod(pillar2Id, request.accountingPeriodFrom, request.accountingPeriodTo).flatMap {
       case Some(_) =>
-        repository.insert(pillar2Id, request)
+        repository.insert(pillar2Id, request).flatMap { submissionId =>
+          oasRepository.insert(request, pillar2Id, submissionId)
+        }
       case None =>
         Future.failed(RequestCouldNotBeProcessed)
     }

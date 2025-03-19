@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
+import org.bson.types.ObjectId
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -31,7 +32,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext
-
 class ORNSubmissionRepositorySpec
     extends AnyWordSpec
     with Matchers
@@ -80,7 +80,7 @@ class ORNSubmissionRepositorySpec
   "insert" should {
     "successfully insert a new ORN submission" in {
       val result = repository.insert(testPillar2Id, testRequest).futureValue
-      result shouldBe true
+      result shouldBe a[ObjectId]
 
       val submissions = repository.findByPillar2Id(testPillar2Id).futureValue
       submissions.size shouldBe 1
@@ -96,21 +96,21 @@ class ORNSubmissionRepositorySpec
     }
 
     "allow submissions for same pillar2Id with different accounting periods" in {
-      repository.insert(testPillar2Id, testRequest).futureValue shouldBe true
+      repository.insert(testPillar2Id, testRequest).futureValue shouldBe a[ObjectId]
 
       val differentPeriodRequest = testRequest.copy(
         accountingPeriodFrom = LocalDate.of(2025, 1, 1),
         accountingPeriodTo = LocalDate.of(2025, 12, 31)
       )
-      repository.insert(testPillar2Id, differentPeriodRequest).futureValue shouldBe true
+      repository.insert(testPillar2Id, differentPeriodRequest).futureValue shouldBe a[ObjectId]
 
       val submissions = repository.findByPillar2Id(testPillar2Id).futureValue
       submissions.size shouldBe 2
     }
 
     "allow submissions for different pillar2Ids with same accounting period" in {
-      repository.insert(testPillar2Id, testRequest).futureValue     shouldBe true
-      repository.insert("XMPLR0000000001", testRequest).futureValue shouldBe true
+      repository.insert(testPillar2Id, testRequest).futureValue     shouldBe a[ObjectId]
+      repository.insert("XMPLR0000000001", testRequest).futureValue shouldBe a[ObjectId]
 
       val submissions1 = repository.findByPillar2Id(testPillar2Id).futureValue
       submissions1.size shouldBe 1
@@ -138,7 +138,7 @@ class ORNSubmissionRepositorySpec
         )
       )
 
-      requests.foreach(request => repository.insert(testPillar2Id, request).futureValue shouldBe true)
+      requests.foreach(request => repository.insert(testPillar2Id, request).futureValue shouldBe a[ObjectId])
 
       val submissions = repository.findByPillar2Id(testPillar2Id).futureValue
       submissions.size                      shouldBe 3
@@ -158,7 +158,7 @@ class ORNSubmissionRepositorySpec
     }
 
     "return the matching submission when one exists" in {
-      repository.insert(testPillar2Id, testRequest).futureValue shouldBe true
+      repository.insert(testPillar2Id, testRequest).futureValue shouldBe a[ObjectId]
 
       val submission = repository
         .findByPillar2IdAndAccountingPeriod(
@@ -176,13 +176,13 @@ class ORNSubmissionRepositorySpec
 
     "return the most recent submission when multiple matching submissions exist" in {
       // First insert the initial submission
-      repository.insert(testPillar2Id, testRequest).futureValue shouldBe true
+      repository.insert(testPillar2Id, testRequest).futureValue shouldBe a[ObjectId]
 
       // Then insert an updated submission with same Pillar2Id and accounting period
       val updatedRequest = testRequest.copy(
         reportingEntityName = "Updated Company Name"
       )
-      repository.insert(testPillar2Id, updatedRequest).futureValue shouldBe true
+      repository.insert(testPillar2Id, updatedRequest).futureValue shouldBe a[ObjectId]
 
       val submission = repository
         .findByPillar2IdAndAccountingPeriod(
