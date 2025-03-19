@@ -95,8 +95,8 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
         val result = route(app, request).value
         status(result) mustBe OK
         val jsonResult = contentAsJson(result)
-        (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
-        (jsonResult \ "success" \ "chargeReference").as[String] mustEqual "XTC01234123412"
+        (jsonResult \ "success" \ "formBundleNumber").asOpt[String].isDefined mustBe true
+        (jsonResult \ "success" \ "chargeReference").asOpt[String].isDefined mustBe true
         (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
@@ -118,7 +118,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
         val result = route(app, request).value
         status(result) mustBe OK
         val jsonResult = contentAsJson(result)
-        (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
+        (jsonResult \ "success" \ "formBundleNumber").asOpt[String].isDefined mustBe true
         (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 

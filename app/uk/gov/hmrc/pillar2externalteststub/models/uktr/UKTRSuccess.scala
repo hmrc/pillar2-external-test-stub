@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{generateChargeReference, generateFormBundleNumber, nowZonedDateTime}
 
 case class LiabilityReturnSuccess(processingDate: String, formBundleNumber: String, chargeReference: String)
 
@@ -28,8 +28,8 @@ object LiabilityReturnSuccess {
     LiabilitySuccessResponse(
       LiabilityReturnSuccess(
         processingDate = nowZonedDateTime,
-        formBundleNumber = "119000004320",
-        chargeReference = "XTC01234123412"
+        formBundleNumber = generateFormBundleNumber(),
+        chargeReference = generateChargeReference()
       )
     )
 }
@@ -42,7 +42,7 @@ object NilReturnSuccess {
   def successfulNilReturnResponse: NilSuccessResponse = NilSuccessResponse(
     NilReturnSuccess(
       processingDate = nowZonedDateTime,
-      formBundleNumber = "119000004320"
+      formBundleNumber = generateFormBundleNumber()
     )
   )
 }

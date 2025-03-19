@@ -42,6 +42,7 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
+import java.time.ZonedDateTime
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -80,7 +81,10 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
         val result = route(app, createRequest(validPlrId, validRequestBody)).get
         status(result) mustBe CREATED
-        contentAsJson(result) mustEqual Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)
+        val jsonResult = contentAsJson(result)
+        (jsonResult \ "success" \ "formBundleNumber").asOpt[String].isDefined mustBe true
+        (jsonResult \ "success" \ "chargeReference").asOpt[String].isDefined mustBe true
+        (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
       "should return CREATED with success response for a valid NIL return submission" in {
@@ -90,7 +94,9 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
         val result = route(app, createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))).get
         status(result) mustBe CREATED
-        contentAsJson(result) mustEqual Json.toJson(NilReturnSuccess.successfulNilReturnResponse)
+        val jsonResult = contentAsJson(result)
+        (jsonResult \ "success" \ "formBundleNumber").asOpt[String].isDefined mustBe true
+        (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
       "should return ETMPBadRequest when the request body is invalid JSON" in {
