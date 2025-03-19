@@ -27,7 +27,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.DetailedErrorResponse
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 
 import scala.concurrent.ExecutionContext
@@ -60,22 +60,23 @@ class UKTRSubmissionRepositorySpec
       "successfully handle amendments" in {
         repository.insert(liabilitySubmission, validPlrId).futureValue
 
-        repository.update(nilSubmission, validPlrId).futureValue.isRight shouldBe true
+        repository.update(nilSubmission, validPlrId).futureValue._1.isInstanceOf[ObjectId] shouldBe true
+        repository.update(nilSubmission, validPlrId).futureValue._2                        shouldBe None
       }
     }
 
     "handling invalid submissions" should {
       "fail when attempting to update non-existent submission" in {
-        val result: Either[DetailedErrorResponse, ObjectId] = repository.update(liabilitySubmission, validPlrId).futureValue
+        val result = repository.update(liabilitySubmission, validPlrId)
 
-        result.isLeft shouldBe true
+        result.failed.futureValue shouldBe a[RequestCouldNotBeProcessed.type]
       }
     }
 
     "handling deletions" should {
       "successfully delete all submissions for a given pillar2Id" in {
         repository.insert(liabilitySubmission, validPlrId).futureValue
-        repository.insert(nilSubmission, validPlrId, isAmendment = true).futureValue
+        repository.insert(nilSubmission, validPlrId, chargeReference = Some(chargeReference)).futureValue
 
         repository.findByPillar2Id(validPlrId).futureValue.isDefined shouldBe true
 

@@ -88,7 +88,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
             argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
             any[String]
           )
-        ).thenReturn(Future.successful(Right(new ObjectId())))
+        ).thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
 
         val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
@@ -104,7 +104,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
         when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
         when(mockUKTRRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
-          .thenReturn(Future.successful(Right(new ObjectId())))
+          .thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
         when(
           mockOasRepository.insert(
             argThat((submission: BaseSubmission) => submission.isInstanceOf[UKTRNilReturn]),
@@ -292,7 +292,7 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
             argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
             any[String]
           )
-        ).thenReturn(Future.successful(Right(new ObjectId())))
+        ).thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
         when(
           mockOasRepository.insert(
             argThat((submission: BaseSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),

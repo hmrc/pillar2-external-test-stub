@@ -467,7 +467,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
   val validGetByPillar2IdResponse: UKTRMongoSubmission = UKTRMongoSubmission(
     _id = new ObjectId(),
     pillar2Id = validPlrId,
-    isAmendment = false,
+    chargeReference = Some(chargeReference),
     data = Json.fromJson[UKTRSubmission](validRequestBody).get,
     submittedAt = Instant.now()
   )

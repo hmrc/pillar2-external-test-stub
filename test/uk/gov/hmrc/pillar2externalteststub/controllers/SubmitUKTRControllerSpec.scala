@@ -76,7 +76,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
     "when submitting a UK tax return" - {
       "should return CREATED with success response for a valid liability submission" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
+        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[Option[String]])).thenReturn(Future.successful(new ObjectId()))
         when(mockOasRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[ObjectId])).thenReturn(Future.successful(true))
 
         val result = route(app, createRequest(validPlrId, validRequestBody)).get
@@ -89,7 +89,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
 
       "should return CREATED with success response for a valid NIL return submission" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
-        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
+        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[Option[String]])).thenReturn(Future.successful(new ObjectId()))
         when(mockOasRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[ObjectId])).thenReturn(Future.successful(true))
 
         val result = route(app, createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))).get
@@ -265,7 +265,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
           mockUKTRRepository.insert(
             argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRSubmission]),
             anyString(),
-            eqTo(false)
+            eqTo(None)
           )
         ).thenReturn(Future.successful(new ObjectId()))
         when(

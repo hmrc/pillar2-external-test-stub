@@ -24,12 +24,12 @@ case class LiabilityReturnSuccess(processingDate: String, formBundleNumber: Stri
 object LiabilityReturnSuccess {
   implicit val format: OFormat[LiabilityReturnSuccess] = Json.format[LiabilityReturnSuccess]
 
-  def successfulUKTRResponse: LiabilitySuccessResponse =
+  def successfulUKTRResponse(chargeReference: Option[String] = None): LiabilitySuccessResponse =
     LiabilitySuccessResponse(
       LiabilityReturnSuccess(
         processingDate = nowZonedDateTime,
         formBundleNumber = generateFormBundleNumber(),
-        chargeReference = generateChargeReference()
+        chargeReference = chargeReference.fold(generateChargeReference())(identity)
       )
     )
 }

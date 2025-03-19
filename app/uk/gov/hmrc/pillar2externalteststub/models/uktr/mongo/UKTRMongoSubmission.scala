@@ -24,7 +24,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 
 import java.time.Instant
 
-case class UKTRMongoSubmission(_id: ObjectId, pillar2Id: String, isAmendment: Boolean, data: UKTRSubmission, submittedAt: Instant)
+case class UKTRMongoSubmission(_id: ObjectId, pillar2Id: String, chargeReference: Option[String], data: UKTRSubmission, submittedAt: Instant)
 
 object UKTRMongoSubmission {
   implicit val format: OFormat[UKTRMongoSubmission] = Json.format[UKTRMongoSubmission]
