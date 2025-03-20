@@ -82,8 +82,8 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         val result = route(app, createRequest(validPlrId, validRequestBody)).get
         status(result) mustBe CREATED
         val jsonResult = contentAsJson(result)
-        (jsonResult \ "success" \ "formBundleNumber").asOpt[String].isDefined mustBe true
-        (jsonResult \ "success" \ "chargeReference").asOpt[String].isDefined mustBe true
+        formBundleNumberRegex.matches((jsonResult \ "success" \ "formBundleNumber").as[String]) mustBe true
+        chargeReferenceRegex.matches((jsonResult \ "success" \ "chargeReference").as[String]) mustBe true
         (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
@@ -95,7 +95,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
         val result = route(app, createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))).get
         status(result) mustBe CREATED
         val jsonResult = contentAsJson(result)
-        (jsonResult \ "success" \ "formBundleNumber").asOpt[String].isDefined mustBe true
+        formBundleNumberRegex.matches((jsonResult \ "success" \ "formBundleNumber").as[String]) mustBe true
         (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
