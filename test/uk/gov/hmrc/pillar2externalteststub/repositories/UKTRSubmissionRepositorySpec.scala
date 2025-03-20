@@ -30,7 +30,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class UKTRSubmissionRepositorySpec
     extends AnyWordSpec
@@ -47,46 +47,77 @@ class UKTRSubmissionRepositorySpec
   val repository: UKTRSubmissionRepository =
     new UKTRSubmissionRepository(config, mongoComponent)(app.injector.instanceOf[ExecutionContext])
 
+  def submitLiabilityUktr(chargeReference: Option[String] = None): Future[ObjectId] =
+    repository.insert(liabilitySubmission, validPlrId, chargeReference)
+  def submitNilUktr:                                     Future[ObjectId]                    = repository.insert(nilSubmission, validPlrId)
+  def amendWithLiabilityUktr:                            Future[(ObjectId, Option[String])]  = repository.update(liabilitySubmission, validPlrId)
+  def amendWithNilUktr:                                  Future[(ObjectId, Option[String])]  = repository.update(nilSubmission, validPlrId)
+  def deleteSubmissions(pillar2Id: String = validPlrId): Future[Boolean]                     = repository.deleteByPillar2Id(pillar2Id)
+  def findSubmissions(pillar2Id: String = validPlrId):   Future[Option[UKTRMongoSubmission]] = repository.findByPillar2Id(pillar2Id)
+
   "UKTRSubmissionRepository" when {
     "handling valid submissions" should {
       "successfully insert a liability return" in {
-        repository.insert(liabilitySubmission, validPlrId).futureValue shouldBe a[ObjectId]
+        submitLiabilityUktr().futureValue shouldBe a[ObjectId]
       }
 
       "successfully insert a nil return" in {
-        repository.insert(nilSubmission, validPlrId).futureValue shouldBe a[ObjectId]
+        submitNilUktr.futureValue shouldBe a[ObjectId]
       }
 
-      "successfully handle amendments" in {
-        repository.insert(liabilitySubmission, validPlrId).futureValue
+      "successfully handle amendments" should {
+        "Liability -> Liability" in {
+          submitLiabilityUktr(Some(chargeReference)).futureValue
 
-        repository.update(nilSubmission, validPlrId).futureValue._1.isInstanceOf[ObjectId] shouldBe true
-        repository.update(nilSubmission, validPlrId).futureValue._2                        shouldBe None
+          val amendedSubmission = amendWithLiabilityUktr.futureValue
+          amendedSubmission._1.isInstanceOf[ObjectId] shouldBe true
+          amendedSubmission._2.get                    shouldBe chargeReference
+        }
+
+        "Liability -> Nil" in {
+          submitLiabilityUktr().futureValue
+
+          val amendedSubmission = amendWithNilUktr.futureValue
+          amendedSubmission._1.isInstanceOf[ObjectId] shouldBe true
+        }
+
+        "Nil -> Liability" in {
+          submitNilUktr.futureValue
+
+          val amendedSubmission = amendWithLiabilityUktr.futureValue
+          amendedSubmission._1.isInstanceOf[ObjectId] shouldBe true
+          amendedSubmission._2.isDefined              shouldBe true
+        }
+
+        "Nil -> Nil" in {
+          submitNilUktr.futureValue
+
+          val amendedSubmission = amendWithNilUktr.futureValue
+          amendedSubmission._1.isInstanceOf[ObjectId] shouldBe true
+          amendedSubmission._2                        shouldBe None
+        }
       }
     }
 
     "handling invalid submissions" should {
       "fail when attempting to update non-existent submission" in {
-        val result = repository.update(liabilitySubmission, validPlrId)
-
-        result.failed.futureValue shouldBe a[RequestCouldNotBeProcessed.type]
+        amendWithLiabilityUktr.failed.futureValue shouldBe a[RequestCouldNotBeProcessed.type]
       }
     }
 
     "handling deletions" should {
       "successfully delete all submissions for a given pillar2Id" in {
-        repository.insert(liabilitySubmission, validPlrId).futureValue
-        repository.insert(nilSubmission, validPlrId, chargeReference = Some(chargeReference)).futureValue
+        submitNilUktr.futureValue
+        submitLiabilityUktr(chargeReference = Some(chargeReference)).futureValue
 
-        repository.findByPillar2Id(validPlrId).futureValue.isDefined shouldBe true
+        findSubmissions().futureValue.isDefined shouldBe true
 
-        repository.deleteByPillar2Id(validPlrId).futureValue         shouldBe true
-        repository.findByPillar2Id(validPlrId).futureValue.isDefined shouldBe false
+        deleteSubmissions().futureValue         shouldBe true
+        findSubmissions().futureValue.isDefined shouldBe false
       }
 
       "return true when attempting to delete non-existent pillar2Id" in {
-        val deleteResult = repository.deleteByPillar2Id("NONEXISTENT").futureValue
-        deleteResult shouldBe true
+        deleteSubmissions("NONEXISTENT").futureValue shouldBe true
       }
     }
   }
