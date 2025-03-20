@@ -95,8 +95,11 @@ class AmendUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneApp
         val result = route(app, request).value
         status(result) mustBe OK
         val jsonResult = contentAsJson(result)
+
+        val responseChargeReference = (jsonResult \ "success" \ "chargeReference").as[String]
+        chargeReferenceRegex.matches(chargeReference) mustBe true
+        responseChargeReference mustEqual chargeReference
         formBundleNumberRegex.matches((jsonResult \ "success" \ "formBundleNumber").as[String]) mustBe true
-        chargeReferenceRegex.matches((jsonResult \ "success" \ "chargeReference").as[String]) mustBe true
         (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
