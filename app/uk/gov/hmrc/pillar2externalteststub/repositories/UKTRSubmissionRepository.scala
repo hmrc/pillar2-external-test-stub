@@ -71,7 +71,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .toFuture()
       .map(_ => document._id)
       .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to ${if (chargeReference.isDefined) "amend" else "create"} UKTR - ${e.getMessage}"))
+        Future.failed(DatabaseError(s"Failed to ${if (chargeReference.isEmpty) "amend" else "create"} UKTR - ${e.getMessage}"))
       }
   }
 
