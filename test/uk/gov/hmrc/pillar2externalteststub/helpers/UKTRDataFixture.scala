@@ -26,9 +26,9 @@ import scala.util.matching.Regex
 
 trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
 
-  val invalidUKTRAmounts: Seq[BigDecimal] = Seq(-5, 1e+13, 10.999)
-  val formBundleNumberRegex: Regex = "^[0-9]{12}$".r
-  val chargeReferenceRegex: Regex = "^[A-Za-z0-9]{1,14}$".r
+  val invalidUKTRAmounts:    Seq[BigDecimal] = Seq(-5, 1e+13, 10.999)
+  val formBundleNumberRegex: Regex           = "^[0-9]{12}$".r
+  val chargeReferenceRegex:  Regex           = "^[A-Za-z0-9]{1,14}$".r
 
   val validLiableEntity: JsObject = Json.obj(
     "ukChargeableEntityName" -> "New Company",
