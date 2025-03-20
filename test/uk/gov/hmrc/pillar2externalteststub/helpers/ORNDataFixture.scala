@@ -19,8 +19,9 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import org.bson.types.ObjectId
 import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{POST, PUT}
+import play.api.test.Helpers.{GET, POST, PUT}
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
 
@@ -54,16 +55,20 @@ trait ORNDataFixture extends Pillar2DataFixture {
   )
 
   def createSubmitRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
-    FakeRequest(POST, "/RESTAdapter/PLR/overseas-return-notification")
+    FakeRequest(POST, "/RESTAdapter/plr/overseas-return-notification")
       .withHeaders(HeaderNames.CONTENT_TYPE -> "application/json", authHeader, "X-Pillar2-Id" -> plrId)
       .withBody(body)
 
   def createAmendRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
-    FakeRequest(PUT, "/RESTAdapter/PLR/overseas-return-notification")
+    FakeRequest(PUT, "/RESTAdapter/plr/overseas-return-notification")
       .withHeaders(HeaderNames.CONTENT_TYPE -> "application/json", authHeader, "X-Pillar2-Id" -> plrId)
       .withBody(body)
 
   def createRequestWithBody(plrId: String, request: ORNRequest, isAmend: Boolean = false): FakeRequest[JsValue] =
     if (isAmend) createAmendRequest(plrId, Json.toJson(request))
     else createSubmitRequest(plrId, Json.toJson(request))
+
+  def getORNRequest(plrId: String, fromDate: String, toDate: String): FakeRequest[AnyContentAsEmpty.type] =
+    FakeRequest(GET, s"/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=$fromDate&accountingPeriodTo=$toDate")
+      .withHeaders(authHeader, "X-Pillar2-Id" -> plrId)
 }

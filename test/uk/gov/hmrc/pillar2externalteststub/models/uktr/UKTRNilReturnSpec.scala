@@ -22,19 +22,18 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
+import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class UKTRNilReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFixture with MockitoSugar {
+class UKTRNilReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFixture with MockitoSugar with TestOrgDataFixture {
 
-  override implicit val mockOrgService: OrganisationService = mock[OrganisationService]
-  when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+  when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
   "UKTRNilReturn validation" - {
     val validNilReturn = Json.fromJson[UKTRNilReturn](nilReturnBody(obligationMTT = false, electionUKGAAP = false)).get
@@ -54,7 +53,7 @@ class UKTRNilReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFixture w
     }
 
     "should fail validation when electionUKGAAP is true for non-domestic organisation" in {
-      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
       val invalidReturn = validNilReturn.copy(
         electionUKGAAP = true
       )

@@ -8,9 +8,9 @@ PUT         /RESTAdapter/plr/uk-tax-return                       uk.gov.hmrc.pil
 POST        /RESTAdapter/plr/below-threshold-notification        uk.gov.hmrc.pillar2externalteststub.controllers.BTNController.submitBTN
 
 GET         /RESTAdapter/plr/obligations-and-submissions     uk.gov.hmrc.pillar2externalteststub.controllers.ObligationsAndSubmissionsController.getObligationsAndSubmissions(fromDate: String, toDate: String)
-POST        /RESTAdapter/PLR/overseas-return-notification    uk.gov.hmrc.pillar2externalteststub.controllers.ORNController.submitORN
-PUT         /RESTAdapter/PLR/overseas-return-notification    uk.gov.hmrc.pillar2externalteststub.controllers.ORNController.amendORN
-GET         /RESTAdapter/PLR/overseas-return-notification    uk.gov.hmrc.pillar2externalteststub.controllers.ORNController.getORN(accountingPeriodFrom: String, accountingPeriodTo: String)
+POST        /RESTAdapter/plr/overseas-return-notification    uk.gov.hmrc.pillar2externalteststub.controllers.ORNController.submitORN
+PUT         /RESTAdapter/plr/overseas-return-notification    uk.gov.hmrc.pillar2externalteststub.controllers.ORNController.amendORN
+GET         /RESTAdapter/plr/overseas-return-notification    uk.gov.hmrc.pillar2externalteststub.controllers.ORNController.getORN(accountingPeriodFrom: String, accountingPeriodTo: String)
 
 # organisation routes
 POST        /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.create(pillar2Id: String)

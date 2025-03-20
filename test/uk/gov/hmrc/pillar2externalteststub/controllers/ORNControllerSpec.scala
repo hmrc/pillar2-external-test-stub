@@ -33,7 +33,6 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.{ORNDataFixture, TestOrgDataF
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
-import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.{ORNService, OrganisationService}
 
 import java.time.LocalDate
@@ -50,13 +49,11 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
     }
   }
 
-  private val mockRepository = mock[ORNSubmissionRepository]
   private val mockORNService = mock[ORNService]
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
-      .overrides(inject.bind[ORNSubmissionRepository].toInstance(mockRepository))
       .overrides(inject.bind[ORNService].toInstance(mockORNService))
       .build()
 
@@ -74,7 +71,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
       }
 
       "should return Pillar2IdMissing when X-Pillar2-Id header is missing" in {
-        val request = FakeRequest(POST, "/RESTAdapter/PLR/overseas-return-notification")
+        val request = FakeRequest(POST, "/RESTAdapter/plr/overseas-return-notification")
           .withHeaders("Content-Type" -> "application/json", authHeader)
           .withBody(validRequestBody)
 
@@ -110,7 +107,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
     "when amending an ORN" - {
       "should return OK with success response for a valid amendment" in {
-        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockORNService.amendORN(eqTo(validPlrId), any[ORNRequest])).thenReturn(Future.successful(true))
 
         val result = route(app, createRequestWithBody(validPlrId, validORNRequest, isAmend = true)).get
@@ -120,7 +117,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         (json \ "success" \ "formBundleNumber").asOpt[String].isDefined shouldBe true
       }
 
-      "should return UNPROCESSABLE_ENTITY when organisation not found during amendment" in {
+      "should return NoActiveSubscription when organisation not found during amendment" in {
         when(mockOrgService.getOrganisation(any[String]))
           .thenReturn(Future.failed(OrganisationNotFound("Organisation not found")))
 
@@ -128,7 +125,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         result shouldFailWith NoActiveSubscription
       }
 
-      "should return BAD_REQUEST when amendment request body is invalid JSON" in {
+      "should return ETMPBadRequest when amendment request body is invalid JSON" in {
         val result = route(app, createAmendRequest(validPlrId, Json.obj("invalid" -> "request"))).get
         result shouldFailWith ETMPBadRequest
       }
@@ -143,10 +140,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         when(mockORNService.getORN(eqTo(validPlrId), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(Some(ornMongoSubmission)))
 
-        val request = FakeRequest(GET, s"/RESTAdapter/PLR/overseas-return-notification?accountingPeriodFrom=$fromDate&accountingPeriodTo=$toDate")
-          .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> validPlrId)
-
-        val result = route(app, request).get
+        val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
         status(result) shouldBe OK
         val json = contentAsJson(result)
         (json \ "success" \ "processingDate").asOpt[String].isDefined shouldBe true
@@ -163,10 +157,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         when(mockORNService.getORN(eqTo(validPlrId), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(None))
 
-        val request = FakeRequest(GET, s"/RESTAdapter/PLR/overseas-return-notification?accountingPeriodFrom=$fromDate&accountingPeriodTo=$toDate")
-          .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> validPlrId)
-
-        val result = route(app, request).get
+        val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
         result shouldFailWith RequestCouldNotBeProcessed
       }
 
@@ -174,10 +165,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         val fromDate = "invalid-date"
         val toDate   = "2024-12-31"
 
-        val request = FakeRequest(GET, s"/RESTAdapter/PLR/overseas-return-notification?accountingPeriodFrom=$fromDate&accountingPeriodTo=$toDate")
-          .withHeaders("Content-Type" -> "application/json", authHeader, "X-Pillar2-Id" -> validPlrId)
-
-        val result = route(app, request).get
+        val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
         result shouldFailWith ETMPBadRequest
       }
     }

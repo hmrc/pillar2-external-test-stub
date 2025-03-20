@@ -18,15 +18,13 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{ServerErrorPlrId, pillar2Regex}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNSuccessResponse.{ORN_SUCCESS_200, ORN_SUCCESS_201}
-import uk.gov.hmrc.pillar2externalteststub.models.orn.{ORNGetResponse, ORNRequest}
-import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.models.orn._
 import uk.gov.hmrc.pillar2externalteststub.services.{ORNService, OrganisationService}
+import uk.gov.hmrc.pillar2externalteststub.validation.syntax._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.LocalDate
@@ -39,86 +37,80 @@ class ORNController @Inject() (
   cc:                  ControllerComponents,
   authFilter:          AuthActionFilter,
   ornService:          ORNService,
-  repository:          ORNSubmissionRepository,
   organisationService: OrganisationService
 )(implicit ec:         ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
   def submitORN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
-    validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap(checkForServerErrorId).flatMap { pillar2Id =>
-      request.body
-        .validate[ORNRequest]
-        .fold(
-          _ => Future.failed(ETMPBadRequest),
-          ornRequest =>
-            organisationService
-              .getOrganisation(pillar2Id)
-              .flatMap(_ => ornService.submitORN(pillar2Id, ornRequest))
-              .map(_ => Created(Json.toJson(ORN_SUCCESS_201)))
-              .recoverWith { case _: OrganisationNotFound =>
-                Future.failed(NoActiveSubscription)
-              }
-        )
-    }
+    validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+      .flatMap { pillar2Id =>
+        request.body
+          .validate[ORNRequest]
+          .fold(
+            _ => Future.failed(ETMPBadRequest),
+            ornRequest => validateORN(pillar2Id, ornRequest, isAmendment = false)
+          )
+      }
   }
 
   def amendORN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
-    validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap(checkForServerErrorId).flatMap { pillar2Id =>
-      request.body
-        .validate[ORNRequest]
-        .fold(
-          _ => Future.failed(ETMPBadRequest),
-          ornRequest =>
-            organisationService
-              .getOrganisation(pillar2Id)
-              .flatMap(_ => ornService.amendORN(pillar2Id, ornRequest))
-              .map(_ => Ok(Json.toJson(ORN_SUCCESS_200)))
-              .recoverWith { case _: OrganisationNotFound =>
-                Future.failed(NoActiveSubscription)
-              }
-        )
-    }
+    validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+      .flatMap { pillar2Id =>
+        request.body
+          .validate[ORNRequest]
+          .fold(
+            _ => Future.failed(ETMPBadRequest),
+            ornRequest => validateORN(pillar2Id, ornRequest, isAmendment = true)
+          )
+      }
   }
 
   def getORN(accountingPeriodFrom: String, accountingPeriodTo: String): Action[AnyContent] = (Action andThen authFilter).async { implicit request =>
-    validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap(checkForServerErrorId).flatMap { pillar2Id =>
-      try {
-        val fromDate = LocalDate.parse(accountingPeriodFrom)
-        val toDate   = LocalDate.parse(accountingPeriodTo)
+    validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+      .flatMap { pillar2Id =>
+        try {
+          val fromDate = LocalDate.parse(accountingPeriodFrom)
+          val toDate   = LocalDate.parse(accountingPeriodTo)
 
-        ornService
-          .getORN(pillar2Id, fromDate, toDate)
-          .flatMap {
-            case Some(submission) => Future.successful(Ok(Json.toJson(ORNGetResponse.fromSubmission(submission))))
-            case None             => Future.failed(RequestCouldNotBeProcessed)
+          ornService
+            .getORN(pillar2Id, fromDate, toDate)
+            .flatMap {
+              case Some(submission) => Future.successful(Ok(Json.toJson(ORNGetResponse.fromSubmission(submission))))
+              case None             => Future.failed(RequestCouldNotBeProcessed)
+            }
+        } catch {
+          case e: DateTimeParseException =>
+            logger.error(s"Invalid date format: ${e.getMessage}")
+            Future.failed(ETMPBadRequest)
+        }
+      }
+  }
+
+  private def validateORN(pillar2Id: String, request: ORNRequest, isAmendment: Boolean): Future[Result] = {
+    logger.info(s"Validating ORN submission for pillar2Id: $pillar2Id")
+
+    ORNValidator.ornValidator(pillar2Id)(organisationService, ec).flatMap { validator =>
+      val validationResult = request.validate(validator)
+
+      validationResult.toEither match {
+        case Left(errors) =>
+          errors.head match {
+            case ORNValidationError(error) => Future.failed(error)
+            case _                         => Future.failed(ETMPInternalServerError)
           }
-          .recoverWith { case _: OrganisationNotFound =>
-            Future.failed(NoActiveSubscription)
+        case Right(_) =>
+          logger.info(s"ORN validation succeeded for pillar2Id: $pillar2Id")
+          if (isAmendment) {
+            ornService
+              .amendORN(pillar2Id, request)
+              .map(_ => Ok(Json.toJson(ORN_SUCCESS_200)))
+          } else {
+            ornService
+              .submitORN(pillar2Id, request)
+              .map(_ => Created(Json.toJson(ORN_SUCCESS_201)))
           }
-      } catch {
-        case e: DateTimeParseException =>
-          logger.error(s"Invalid date format: ${e.getMessage}")
-          Future.failed(ETMPBadRequest)
       }
     }
   }
-
-  private def validatePillar2Id(pillar2Id: Option[String]): Future[String] =
-    pillar2Id match {
-      case Some(id) if pillar2Regex.matches(id) =>
-        logger.info(s"Valid Pillar2Id received: $id")
-        Future.successful(id)
-      case other =>
-        logger.warn(s"Invalid Pillar2Id received: $other")
-        Future.failed(Pillar2IdMissing)
-    }
-
-  private def checkForServerErrorId(pillar2Id: String): Future[String] =
-    if (pillar2Id == ServerErrorPlrId) {
-      logger.warn("Server error triggered by special PLR ID")
-      Future.failed(ETMPInternalServerError)
-    } else {
-      Future.successful(pillar2Id)
-    }
 }

@@ -33,6 +33,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
+import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
@@ -45,7 +46,14 @@ import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with UKTRDataFixture with MockitoSugar {
+class SubmitUKTRControllerSpec
+    extends AnyFreeSpec
+    with Matchers
+    with GuiceOneAppPerSuite
+    with OptionValues
+    with UKTRDataFixture
+    with MockitoSugar
+    with TestOrgDataFixture {
 
   implicit class AwaitFuture(fut: Future[Result]) {
     def shouldFailWith(expected: Throwable): Assertion = {
@@ -74,7 +82,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
   "UK Tax Return Submission" - {
     "when submitting a UK tax return" - {
       "should return CREATED with success response for a valid liability submission" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
         when(mockOasRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[ObjectId])).thenReturn(Future.successful(true))
 
@@ -84,7 +92,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return CREATED with success response for a valid NIL return submission" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
         when(mockOasRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[ObjectId])).thenReturn(Future.successful(true))
 
@@ -94,7 +102,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return ETMPBadRequest when the request body is invalid JSON" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidJsonBody = Json.obj(
           "someField" -> "someValue"
@@ -121,7 +129,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return InvalidReturn when accounting period doesn't match" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidAccountingPeriodBody = validRequestBody.deepMerge(
           Json.obj(
@@ -135,7 +143,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return InvalidReturn when liableEntities array is empty" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val emptyLiableEntitiesBody = validRequestBody.deepMerge(
           Json.obj(
@@ -169,7 +177,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return InvalidTotalLiability when submitting with invalid amounts" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidAmountsBody: JsValue = validRequestBody.deepMerge(
           Json.obj(
@@ -185,7 +193,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return InvalidTotalLiability when total liability does not match sum of components" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val mismatchedTotalBody = validRequestBody.deepMerge(
           Json.obj(
@@ -200,7 +208,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return InvalidTotalLiability when any component is invalid" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidComponentBody = validRequestBody.deepMerge(
           Json.obj(
@@ -218,7 +226,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return ETMPBadRequest when UKTRSubmission is neither a UKTRNilReturn nor a UKTRLiabilityReturn" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val customSubmissionBody = Json.obj(
           "accountingPeriodFrom" -> "2024-01-01",
@@ -236,7 +244,7 @@ class SubmitUKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAp
       }
 
       "should return InvalidReturn when submitting with invalid ID type" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrganisation))
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidIdTypeBody = validRequestBody.deepMerge(
           Json.obj(

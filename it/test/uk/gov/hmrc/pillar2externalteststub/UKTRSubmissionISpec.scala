@@ -38,6 +38,7 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository,
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
+import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 
 class UKTRSubmissionISpec
     extends AnyWordSpec
@@ -46,7 +47,8 @@ class UKTRSubmissionISpec
     with IntegrationPatience
     with GuiceOneServerPerSuite
     with DefaultPlayMongoRepositorySupport[UKTRMongoSubmission]
-    with UKTRDataFixture {
+    with UKTRDataFixture
+    with TestOrgDataFixture {
 
   override protected val databaseName: String = "test-uktr-submission-integration"
   private val httpClient = app.injector.instanceOf[HttpClientV2]

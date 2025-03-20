@@ -23,6 +23,7 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.Implicits._
 import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
+import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn}
 
 import java.time.{Instant, LocalDate}
@@ -48,6 +49,7 @@ object ObligationsAndSubmissionsMongoSubmission {
     val submissionType = submission match {
       case _: UKTRNilReturn | _: UKTRLiabilityReturn => SubmissionType.UKTR
       case _: BTNRequest => SubmissionType.BTN
+      case _: ORNRequest => SubmissionType.ORN
       case _ => throw new IllegalArgumentException("Unsupported submission type")
     }
 

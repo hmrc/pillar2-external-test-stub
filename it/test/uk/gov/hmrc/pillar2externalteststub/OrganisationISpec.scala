@@ -63,19 +63,13 @@ class OrganisationISpec
       )
       .build()
 
-  private val testOrgDetails = OrgDetails(
-    domesticOnly = false,
-    organisationName = "Test Integration Org",
-    registrationDate = LocalDate.of(2024, 1, 1)
-  )
-
   private val testAccountingPeriod = AccountingPeriod(
     startDate = LocalDate.of(2024, 1, 1),
     endDate = LocalDate.of(2024, 12, 31)
   )
 
   private val testOrganisationRequest = TestOrganisationRequest(
-    orgDetails = testOrgDetails,
+    orgDetails = orgDetails,
     accountingPeriod = testAccountingPeriod
   )
 
@@ -121,18 +115,18 @@ class OrganisationISpec
       "support the full CRUD lifecycle" in {
         val createResponse = createOrganisation(validPlrId, testOrganisationRequest)
         createResponse.status                                    shouldBe 201
-        extractOrganisationName(Json.parse(createResponse.body)) shouldBe "Test Integration Org"
+        extractOrganisationName(Json.parse(createResponse.body)) shouldBe "Test Org"
 
         val storedOrg = repository.findByPillar2Id(validPlrId).futureValue
         storedOrg.isDefined                                    shouldBe true
-        storedOrg.get.organisation.orgDetails.organisationName shouldBe "Test Integration Org"
+        storedOrg.get.organisation.orgDetails.organisationName shouldBe "Test Org"
 
         val getResponse = getOrganisation(validPlrId)
         getResponse.status                                    shouldBe 200
-        extractOrganisationName(Json.parse(getResponse.body)) shouldBe "Test Integration Org"
+        extractOrganisationName(Json.parse(getResponse.body)) shouldBe "Test Org"
 
         val updatedRequest = testOrganisationRequest.copy(
-          orgDetails = testOrgDetails.copy(organisationName = "Updated Integration Org")
+          orgDetails = orgDetails.copy(organisationName = "Updated Integration Org")
         )
         val updateResponse = updateOrganisation(validPlrId, updatedRequest)
         updateResponse.status                                    shouldBe 200

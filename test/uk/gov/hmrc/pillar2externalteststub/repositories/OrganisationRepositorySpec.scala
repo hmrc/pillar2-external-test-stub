@@ -25,6 +25,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
@@ -36,7 +37,8 @@ class OrganisationRepositorySpec
     with ScalaFutures
     with IntegrationPatience
     with UKTRDataFixture
-    with BTNDataFixture {
+    with BTNDataFixture
+    with TestOrgDataFixture {
 
   override protected val databaseName: String = "test-organisation-repository"
 
