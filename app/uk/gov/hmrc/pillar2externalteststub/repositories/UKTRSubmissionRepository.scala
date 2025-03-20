@@ -23,10 +23,11 @@ import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.generateChargeReference
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.{Liability, UKTRSubmission}
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -79,7 +80,13 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
     findByPillar2Id(pillar2Id)
       .map(_.head)
       .recoverWith { case _: Exception => throw RequestCouldNotBeProcessed }
-      .flatMap(parentSubmission => insert(submission, pillar2Id).map(objectId => (objectId, parentSubmission.chargeReference)))
+      .flatMap { parentSubmission =>
+        val chargeReference: Option[String] =
+          if (submission.liabilities.isInstanceOf[Liability] && parentSubmission.chargeReference.isEmpty)
+            Some(generateChargeReference())
+          else parentSubmission.chargeReference
+        insert(submission, pillar2Id, chargeReference).map(objectId => (objectId, chargeReference))
+      }
 
   def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
     collection
