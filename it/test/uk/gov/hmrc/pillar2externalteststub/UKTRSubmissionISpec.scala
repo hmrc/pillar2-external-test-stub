@@ -38,6 +38,7 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository,
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
+import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 
 class UKTRSubmissionISpec
     extends AnyWordSpec
@@ -46,7 +47,8 @@ class UKTRSubmissionISpec
     with IntegrationPatience
     with GuiceOneServerPerSuite
     with DefaultPlayMongoRepositorySupport[UKTRMongoSubmission]
-    with UKTRDataFixture {
+    with UKTRDataFixture
+    with TestOrgDataFixture {
 
   override protected val databaseName: String = "test-uktr-submission-integration"
   private val httpClient = app.injector.instanceOf[HttpClientV2]
@@ -190,7 +192,7 @@ class UKTRSubmissionISpec
   private def submitUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
     val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
-      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
       .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
@@ -200,7 +202,7 @@ class UKTRSubmissionISpec
   private def submitUKTRWithoutAuth(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
     val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
-      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
       .setHeader("X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
@@ -209,7 +211,7 @@ class UKTRSubmissionISpec
 
   private def submitCustomPayload(payload: JsObject, pillar2Id: String): HttpResponse = {
     httpClient
-      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(payload)
       .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
@@ -219,7 +221,7 @@ class UKTRSubmissionISpec
   private def amendUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
     val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
-      .put(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
       .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
@@ -229,7 +231,7 @@ class UKTRSubmissionISpec
   private def amendUKTRWithoutAuth(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
     val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
-      .put(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
       .setHeader("X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
@@ -238,7 +240,7 @@ class UKTRSubmissionISpec
  
   private def submitNilReturn(pillar2Id: String): HttpResponse = {
     httpClient
-      .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(correctNilReturnJson)
       .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
@@ -248,7 +250,7 @@ class UKTRSubmissionISpec
  
   private def amendNilReturn(pillar2Id: String): HttpResponse = {
     httpClient
-      .put(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+      .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(correctNilReturnJson)
       .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
       .execute[HttpResponse]
@@ -344,7 +346,7 @@ class UKTRSubmissionISpec
     "handle error cases" should {
       "return 400 for invalid JSON" in {
         val response = httpClient
-          .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+          .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
           .withBody(Json.obj("invalid" -> "data"))
           .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> validPlrId)
           .execute[HttpResponse]
@@ -355,7 +357,7 @@ class UKTRSubmissionISpec
 
       "return 422 when Pillar2 ID header is missing" in {
         val response = httpClient
-          .post(url"$baseUrl/RESTAdapter/PLR/UKTaxReturn")
+          .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
           .withBody(Json.toJson(liabilitySubmission))
           .setHeader("Authorization" -> authToken)
           .execute[HttpResponse]

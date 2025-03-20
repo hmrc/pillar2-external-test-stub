@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
+import org.bson.types.ObjectId
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -65,14 +66,17 @@ class ORNSubmissionRepository @Inject() (
       )
     ) {
 
-  def insert(pillar2Id: String, submission: ORNRequest): Future[Boolean] =
+  def insert(pillar2Id: String, submission: ORNRequest): Future[ObjectId] = {
+    val document = ORNSubmission.fromRequest(pillar2Id, submission)
+
     collection
-      .insertOne(ORNSubmission.fromRequest(pillar2Id, submission))
+      .insertOne(document)
       .toFuture()
-      .map(_ => true)
+      .map(_ => document._id)
       .recoverWith { case e: Exception =>
         Future.failed(DatabaseError(s"Failed to save ORN submission: ${e.getMessage}"))
       }
+  }
 
   def findByPillar2Id(pillar2Id: String): Future[Seq[ORNSubmission]] =
     collection
