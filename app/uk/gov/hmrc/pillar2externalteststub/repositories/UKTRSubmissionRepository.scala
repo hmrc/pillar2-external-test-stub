@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
-import cats.implicits.toTraverseOps
 import org.bson.types.ObjectId
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Indexes.descending
@@ -24,10 +23,11 @@ import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.generateChargeReference
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRDetailedError.RequestCouldNotBeProcessed
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.{DetailedErrorResponse, UKTRSubmission}
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.{Liability, UKTRSubmission}
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -58,11 +58,11 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       replaceIndexes = true
     ) {
 
-  def insert(submission: UKTRSubmission, pillar2Id: String, isAmendment: Boolean = false): Future[ObjectId] = {
+  def insert(submission: UKTRSubmission, pillar2Id: String, chargeReference: Option[String] = None): Future[ObjectId] = {
     val document = UKTRMongoSubmission(
       _id = new ObjectId(),
       pillar2Id = pillar2Id,
-      isAmendment = isAmendment,
+      chargeReference = chargeReference,
       data = submission,
       submittedAt = Instant.now()
     )
@@ -72,15 +72,21 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .toFuture()
       .map(_ => document._id)
       .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to ${if (isAmendment) "amend" else "create"} UKTR - ${e.getMessage}"))
+        Future.failed(DatabaseError(s"Failed to ${if (chargeReference.isEmpty) "amend" else "create"} UKTR - ${e.getMessage}"))
       }
   }
 
-  def update(submission: UKTRSubmission, pillar2Id: String): Future[Either[DetailedErrorResponse, ObjectId]] =
-    findByPillar2Id(pillar2Id).flatMap(
-      _.toRight(RequestCouldNotBeProcessed)
-        .traverse(_ => insert(submission, pillar2Id, isAmendment = true))
-    )
+  def update(submission: UKTRSubmission, pillar2Id: String): Future[(ObjectId, Option[String])] =
+    findByPillar2Id(pillar2Id)
+      .map(_.head)
+      .recoverWith { case _: Exception => throw RequestCouldNotBeProcessed }
+      .flatMap { parentSubmission =>
+        val chargeReference: Option[String] =
+          if (submission.liabilities.isInstanceOf[Liability] && parentSubmission.chargeReference.isEmpty)
+            Some(generateChargeReference())
+          else parentSubmission.chargeReference
+        insert(submission, pillar2Id, chargeReference).map(objectId => (objectId, chargeReference))
+      }
 
   def findByPillar2Id(pillar2Id: String): Future[Option[UKTRMongoSubmission]] =
     collection

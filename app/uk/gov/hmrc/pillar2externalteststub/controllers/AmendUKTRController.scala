@@ -21,6 +21,8 @@ import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -47,9 +49,7 @@ class AmendUKTRController @Inject() (
       .flatMap { pillar2Id =>
         organisationService
           .getOrganisation(pillar2Id)
-          .flatMap { _ =>
-            checkExistingSubmission(pillar2Id, request)
-          }
+          .flatMap(_ => checkExistingSubmission(pillar2Id, request))
           .recoverWith { case OrganisationNotFound(_) =>
             logger.warn(s"Organisation not found for pillar2Id: $pillar2Id")
             Future.failed(NoActiveSubscription)
@@ -75,19 +75,14 @@ class AmendUKTRController @Inject() (
     val successAction: (UKTRSubmission, String) => Future[Result] = (submission, plrRef) =>
       submission match {
         case nilReturn: UKTRNilReturn =>
-          uktrRepository.update(nilReturn, plrRef).flatMap { sub =>
-            oasRepository.insert(nilReturn, plrRef, sub.toOption.get).map { _ =>
-              Ok(Json.toJson(NilReturnSuccess.successfulNilReturnResponse))
-            }
+          uktrRepository.update(nilReturn, plrRef).flatMap { result =>
+            oasRepository.insert(nilReturn, plrRef, id = result._1).map(_ => Ok(Json.toJson(successfulNilReturnResponse)))
           }
         case liability: UKTRLiabilityReturn =>
-          uktrRepository.update(liability, plrRef).flatMap { sub =>
-            oasRepository.insert(liability, plrRef, sub.toOption.get).map { _ =>
-              Ok(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse))
-            }
+          uktrRepository.update(liability, plrRef).flatMap { result =>
+            oasRepository.insert(liability, plrRef, id = result._1).map(_ => Ok(Json.toJson(successfulUKTRResponse(chargeReference = result._2))))
           }
-        case _ =>
-          Future.failed(ETMPBadRequest)
+        case _ => Future.failed(ETMPBadRequest)
       }
 
     // Use the common validation and processing logic

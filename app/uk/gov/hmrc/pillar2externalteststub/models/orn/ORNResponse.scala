@@ -17,6 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.models.orn
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.generateFormBundleNumber
 
 import java.time.temporal.ChronoUnit
 import java.time.{ZoneOffset, ZonedDateTime}
@@ -45,11 +46,6 @@ object ORNSuccessResponse {
       formBundleNumber = generateFormBundleNumber()
     )
   )
-
-  private def generateFormBundleNumber(): String = {
-    val random = new scala.util.Random
-    f"${119000000000L + random.nextInt(999999)}%012d"
-  }
 }
 
 case class ORNSuccess(processingDate: ZonedDateTime, formBundleNumber: String)

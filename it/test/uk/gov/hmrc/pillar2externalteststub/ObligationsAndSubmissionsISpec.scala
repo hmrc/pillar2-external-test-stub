@@ -288,7 +288,6 @@ class ObligationsAndSubmissionsISpec
     "handle error cases correctly" in {
       // Test organisation not found
       val nonExistentPlrIdResponse = getObligationsAndSubmissions("NONEXISTENT")
-      println("nonExistentPlrIdResponse.body: " + nonExistentPlrIdResponse.body)
       val nonExistentPlrIdJson = Json.parse(nonExistentPlrIdResponse.body)
       (nonExistentPlrIdJson \ "errors" \ "text").as[String] shouldBe "No associated data found"
       nonExistentPlrIdResponse.status shouldBe 422
@@ -298,7 +297,6 @@ class ObligationsAndSubmissionsISpec
         domesticOrganisation.pillar2Id,
         fromDate = "invalid-date"
       )
-      println("invalidDateResponse.body: " + invalidDateResponse.body)
       val invalidDateJson = Json.parse(invalidDateResponse.body)
       (invalidDateJson \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
       invalidDateResponse.status shouldBe 422
@@ -308,7 +306,6 @@ class ObligationsAndSubmissionsISpec
         fromDate = "2024-12-31",
         toDate = "2024-01-01"
       )
-      println("invalidDateRangeResponse.body: " + invalidDateRangeResponse.body)
       invalidDateRangeResponse.status shouldBe 422
       val invalidDateRangeJson = Json.parse(invalidDateRangeResponse.body)
       (invalidDateRangeJson \ "errors" \ "text").as[String] shouldBe "Request could not be processed"

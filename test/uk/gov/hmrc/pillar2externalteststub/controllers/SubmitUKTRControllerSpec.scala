@@ -43,6 +43,7 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
+import java.time.ZonedDateTime
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -83,22 +84,27 @@ class SubmitUKTRControllerSpec
     "when submitting a UK tax return" - {
       "should return CREATED with success response for a valid liability submission" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
+        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[Option[String]])).thenReturn(Future.successful(new ObjectId()))
         when(mockOasRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[ObjectId])).thenReturn(Future.successful(true))
 
         val result = route(app, createRequest(validPlrId, validRequestBody)).get
         status(result) mustBe CREATED
-        contentAsJson(result) mustEqual Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse)
+        val jsonResult = contentAsJson(result)
+        formBundleNumberRegex.matches((jsonResult \ "success" \ "formBundleNumber").as[String]) mustBe true
+        chargeReferenceRegex.matches((jsonResult \ "success" \ "chargeReference").as[String]) mustBe true
+        (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
       "should return CREATED with success response for a valid NIL return submission" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), eqTo(false))).thenReturn(Future.successful(new ObjectId()))
+        when(mockUKTRRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[Option[String]])).thenReturn(Future.successful(new ObjectId()))
         when(mockOasRepository.insert(any[UKTRSubmission](), eqTo(validPlrId), any[ObjectId])).thenReturn(Future.successful(true))
 
         val result = route(app, createRequest(validPlrId, nilReturnBody(obligationMTT = false, electionUKGAAP = false))).get
         status(result) mustBe CREATED
-        contentAsJson(result) mustEqual Json.toJson(NilReturnSuccess.successfulNilReturnResponse)
+        val jsonResult = contentAsJson(result)
+        formBundleNumberRegex.matches((jsonResult \ "success" \ "formBundleNumber").as[String]) mustBe true
+        (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
       "should return ETMPBadRequest when the request body is invalid JSON" in {
@@ -267,7 +273,7 @@ class SubmitUKTRControllerSpec
           mockUKTRRepository.insert(
             argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRSubmission]),
             anyString(),
-            eqTo(false)
+            eqTo(None)
           )
         ).thenReturn(Future.successful(new ObjectId()))
         when(

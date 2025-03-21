@@ -81,7 +81,7 @@ class AmendUKTRControllerSpec
 
   "UK Tax Return Amendment" - {
     "when amending a UK tax return" - {
-      "should return OK with success response for a valid liability amendment" in {
+      "should return OK with success response with the correct chargeReference for a valid liability amendment" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
         when(
@@ -96,15 +96,18 @@ class AmendUKTRControllerSpec
             argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
             any[String]
           )
-        ).thenReturn(Future.successful(Right(new ObjectId())))
+        ).thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
 
         val request = createRequest(validPlrId, Json.toJson(validRequestBody))
 
         val result = route(app, request).value
         status(result) mustBe OK
         val jsonResult = contentAsJson(result)
-        (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
-        (jsonResult \ "success" \ "chargeReference").as[String] mustEqual "XTC01234123412"
+
+        val responseChargeReference = (jsonResult \ "success" \ "chargeReference").as[String]
+        chargeReferenceRegex.matches(chargeReference) mustBe true
+        responseChargeReference mustEqual chargeReference
+        formBundleNumberRegex.matches((jsonResult \ "success" \ "formBundleNumber").as[String]) mustBe true
         (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
@@ -112,7 +115,7 @@ class AmendUKTRControllerSpec
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
         when(mockUKTRRepository.update(argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRNilReturn]), any[String]))
-          .thenReturn(Future.successful(Right(new ObjectId())))
+          .thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
         when(
           mockOasRepository.insert(
             argThat((submission: BaseSubmission) => submission.isInstanceOf[UKTRNilReturn]),
@@ -126,7 +129,7 @@ class AmendUKTRControllerSpec
         val result = route(app, request).value
         status(result) mustBe OK
         val jsonResult = contentAsJson(result)
-        (jsonResult \ "success" \ "formBundleNumber").as[String] mustEqual "119000004320"
+        formBundleNumberRegex.matches((jsonResult \ "success" \ "formBundleNumber").as[String]) mustBe true
         (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
@@ -300,7 +303,7 @@ class AmendUKTRControllerSpec
             argThat((submission: UKTRSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),
             any[String]
           )
-        ).thenReturn(Future.successful(Right(new ObjectId())))
+        ).thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
         when(
           mockOasRepository.insert(
             argThat((submission: BaseSubmission) => submission.isInstanceOf[UKTRLiabilityReturn]),

@@ -26,6 +26,7 @@ trait Pillar2DataFixture {
   val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
 
   val validPlrId       = "XMPLR0000000000"
+  val chargeReference  = "XM000000000000"
   val nonDomesticPlrId = "XEPLR1234567890"
   val serverErrorPlrId = "XEPLR5000000000"
 

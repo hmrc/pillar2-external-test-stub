@@ -17,6 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.helpers
 import java.time.temporal.ChronoUnit
 import java.time.{ZoneOffset, ZonedDateTime}
+import scala.util.Random
 import scala.util.matching.Regex
 
 object Pillar2Helper {
@@ -24,5 +25,11 @@ object Pillar2Helper {
   val pillar2Regex: Regex = "^[A-Z0-9]{1,15}$".r
   val ServerErrorPlrId = "XEPLR5000000000"
 
-  def nowZonedDateTime: String = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString
+  def nowZonedDateTime:           String = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString
+  def generateFormBundleNumber(): String = f"${Random.nextLong(1000000000000L) % 1000000000000L}%012d"
+  def generateChargeReference(): String = {
+    val letters = Random.alphanumeric.filter(_.isLetter).map(_.toUpper).take(2).mkString
+    val digits  = f"${Random.nextLong(1000000000000L) % 1000000000000L}%012d"
+    s"$letters$digits"
+  }
 }

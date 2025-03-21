@@ -17,19 +17,19 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{generateChargeReference, generateFormBundleNumber, nowZonedDateTime}
 
 case class LiabilityReturnSuccess(processingDate: String, formBundleNumber: String, chargeReference: String)
 
 object LiabilityReturnSuccess {
   implicit val format: OFormat[LiabilityReturnSuccess] = Json.format[LiabilityReturnSuccess]
 
-  def successfulUKTRResponse: LiabilitySuccessResponse =
+  def successfulUKTRResponse(chargeReference: Option[String] = None): LiabilitySuccessResponse =
     LiabilitySuccessResponse(
       LiabilityReturnSuccess(
         processingDate = nowZonedDateTime,
-        formBundleNumber = "119000004320",
-        chargeReference = "XTC01234123412"
+        formBundleNumber = generateFormBundleNumber(),
+        chargeReference = chargeReference.fold(generateChargeReference())(identity)
       )
     )
 }
@@ -42,7 +42,7 @@ object NilReturnSuccess {
   def successfulNilReturnResponse: NilSuccessResponse = NilSuccessResponse(
     NilReturnSuccess(
       processingDate = nowZonedDateTime,
-      formBundleNumber = "119000004320"
+      formBundleNumber = generateFormBundleNumber()
     )
   )
 }

@@ -21,6 +21,8 @@ import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -68,14 +70,13 @@ class SubmitUKTRController @Inject() (
         case nilReturn: UKTRNilReturn =>
           uktrRepository.insert(nilReturn, plrRef).flatMap { sub =>
             oasRepository.insert(nilReturn, plrRef, sub).map { _ =>
-              Created(Json.toJson(NilReturnSuccess.successfulNilReturnResponse))
+              Created(Json.toJson(successfulNilReturnResponse))
             }
           }
         case liability: UKTRLiabilityReturn =>
-          uktrRepository.insert(liability, plrRef).flatMap { sub =>
-            oasRepository.insert(liability, plrRef, sub).map { _ =>
-              Created(Json.toJson(LiabilityReturnSuccess.successfulUKTRResponse))
-            }
+          val response = successfulUKTRResponse()
+          uktrRepository.insert(liability, plrRef, Some(response.success.chargeReference)).flatMap { sub =>
+            oasRepository.insert(liability, plrRef, sub).map(_ => Created(Json.toJson(response)))
           }
         case _ =>
           Future.failed(ETMPBadRequest)
