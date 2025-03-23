@@ -46,11 +46,11 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
 
   "StubErrorHandler" should {
     "handle client errors" in {
-      val result = errorHandler.onClientError(dummyRequest, BAD_REQUEST, "Bad Request Message")
-      status(result) shouldBe BAD_REQUEST
-      val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "400"
-      (json \ "message").as[String] shouldBe "Bad Request Message"
+      val badRequest = errorHandler.onClientError(dummyRequest, BAD_REQUEST)
+      val notFound   = errorHandler.onClientError(dummyRequest, NOT_FOUND)
+
+      status(badRequest) shouldBe BAD_REQUEST
+      status(notFound)   shouldBe NOT_FOUND
     }
 
     "handle InvalidJson error" in {
@@ -185,16 +185,18 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val result = errorHandler.onServerError(dummyRequest, ETMPBadRequest)
       status(result) shouldBe BAD_REQUEST
       val json = contentAsJson(result)
-      (json \ "errors" \ "code").as[String] shouldBe "400"
-      (json \ "errors" \ "text").as[String] shouldBe "Bad request"
+      (json \ "error" \ "code").as[String]    shouldBe "400"
+      (json \ "error" \ "message").as[String] shouldBe "Bad request"
+      (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000400"
     }
 
     "handle ETMPInternalServerError error" in {
       val result = errorHandler.onServerError(dummyRequest, ETMPInternalServerError)
       status(result) shouldBe INTERNAL_SERVER_ERROR
       val json = contentAsJson(result)
-      (json \ "errors" \ "code").as[String] shouldBe "500"
-      (json \ "errors" \ "text").as[String] shouldBe "Internal server error"
+      (json \ "error" \ "code").as[String]    shouldBe "500"
+      (json \ "error" \ "message").as[String] shouldBe "Internal server error"
+      (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000500"
     }
 
     "handle unknown errors" in {

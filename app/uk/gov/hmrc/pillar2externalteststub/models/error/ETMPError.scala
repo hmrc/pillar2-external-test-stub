@@ -19,7 +19,8 @@ package uk.gov.hmrc.pillar2externalteststub.models.error
 sealed trait ETMPError extends Exception {
   def code:    String
   def message: String
-  override def getMessage: String = message
+  def logID:               Option[String] = None
+  override def getMessage: String         = message
 }
 
 object ETMPError {
@@ -89,12 +90,14 @@ object ETMPError {
   }
 
   case object ETMPBadRequest extends ETMPError {
-    override val code:    String = "400"
-    override val message: String = "Bad request"
+    override val code:    String         = "400"
+    override val message: String         = "Bad request"
+    override val logID:   Option[String] = Some("C0000000000000000000000000000400")
   }
 
   case object ETMPInternalServerError extends ETMPError {
-    override val code:    String = "500"
-    override val message: String = "Internal server error"
+    override val code:    String         = "500"
+    override val message: String         = "Internal server error"
+    override val logID:   Option[String] = Some("C0000000000000000000000000000500")
   }
 }
