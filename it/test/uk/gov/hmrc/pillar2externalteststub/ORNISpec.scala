@@ -290,7 +290,7 @@ class ORNISpec
 
       response.status shouldBe 500
       val json = Json.parse(response.body)
-      (json \ "errors" \ "code").as[String] shouldBe "500"
+      (json \ "error" \ "code").as[String] shouldBe "500"
 
       ornRepository.findByPillar2Id(serverErrorPlrId).futureValue shouldBe empty
     }
@@ -344,8 +344,9 @@ class ORNISpec
       val getResponse = getORN(validPlrId, "invalid-date", "2025-12-31")
       getResponse.status shouldBe 400
       val json = Json.parse(getResponse.body)
-      (json \ "errors" \ "code").as[String] shouldBe "400"
-      (json \ "errors" \ "text").as[String] shouldBe "Bad request"
+      (json \ "error" \ "code").as[String] shouldBe "400"
+      (json \ "error" \ "message").as[String] shouldBe "Bad request"
+      (json \ "error" \ "logID").as[String] shouldBe "C0000000000000000000000000000400"
     }
 
     "return 422 when Pillar2 ID is missing" in {
@@ -378,7 +379,9 @@ class ORNISpec
       val getResponse = getORN(serverErrorPlrId, "2024-01-01", "2024-12-31")
       getResponse.status shouldBe 500
       val json = Json.parse(getResponse.body)
-      (json \ "errors" \ "code").as[String] shouldBe "500"
+      (json \ "error" \ "code").as[String] shouldBe "500"
+      (json \ "error" \ "message").as[String] shouldBe "Internal server error"
+      (json \ "error" \ "logID").as[String] shouldBe "C0000000000000000000000000000500"
     }
   }
 }
