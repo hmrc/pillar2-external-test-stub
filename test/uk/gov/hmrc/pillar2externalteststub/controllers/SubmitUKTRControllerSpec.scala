@@ -21,14 +21,12 @@ import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito.when
 import org.mongodb.scala.bson.ObjectId
 import org.scalatest.OptionValues
-import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
-import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
@@ -44,8 +42,7 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.UKTRSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time.ZonedDateTime
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class SubmitUKTRControllerSpec
     extends AnyFreeSpec
@@ -55,13 +52,6 @@ class SubmitUKTRControllerSpec
     with UKTRDataFixture
     with MockitoSugar
     with TestOrgDataFixture {
-
-  implicit class AwaitFuture(fut: Future[Result]) {
-    def shouldFailWith(expected: Throwable): Assertion = {
-      val err = Await.result(fut.failed, 5.seconds)
-      err mustEqual expected
-    }
-  }
 
   private val mockUKTRRepository = mock[UKTRSubmissionRepository]
   private val mockOasRepository  = mock[ObligationsAndSubmissionsRepository]

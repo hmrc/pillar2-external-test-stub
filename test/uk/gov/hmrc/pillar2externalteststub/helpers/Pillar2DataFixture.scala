@@ -16,12 +16,25 @@
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
+import org.scalatest.Assertion
+import org.scalatest.matchers.should.Matchers._
+import play.api.mvc.Result
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.AccountingPeriod
 
 import java.time.LocalDate
+import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 trait Pillar2DataFixture {
+
+  implicit class AwaitFuture(fut: Future[Result]) {
+    def shouldFailWith(expected: Throwable): Assertion = {
+      val err = Await.result(fut.failed, 5.seconds)
+      err shouldBe expected
+    }
+  }
 
   val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
 

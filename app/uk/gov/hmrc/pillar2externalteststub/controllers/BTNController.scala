@@ -20,11 +20,10 @@ import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{ServerErrorPlrId, pillar2Regex}
-import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNErrorResponse.{BTN_ERROR_400, BTN_ERROR_500}
-import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNFailureResponse._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNSuccessResponse.BTN_SUCCESS_201
 import uk.gov.hmrc.pillar2externalteststub.models.btn._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -45,31 +44,25 @@ class BTNController @Inject() (
     with Logging {
 
   def submitBTN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
-    validatePillar2Id(request.headers.get("X-Pillar2-Id")).fold(
-      error => Future.successful(error),
-      pillar2Id =>
+    validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+      .flatMap { pillar2Id =>
         request.body
           .validate[BTNRequest]
           .fold(
-            _ => Future.successful(BadRequest(Json.toJson(BTN_ERROR_400("Invalid request payload")))),
+            _ => Future.failed(ETMPBadRequest),
             btnRequest =>
               if (!btnRequest.accountingPeriodValid) {
-                Future.successful(UnprocessableEntity(Json.toJson(BTN_REQUEST_INVALID_003)))
+                Future.failed(RequestCouldNotBeProcessed)
               } else {
                 handleSubmission(pillar2Id, btnRequest)
               }
           )
-    )
+      }
   }
-
-  private def validatePillar2Id(pillar2Id: Option[String]): Either[Result, String] =
-    pillar2Id
-      .filter(pillar2Regex.matches)
-      .toRight(UnprocessableEntity(Json.toJson(BTN_PILLAR2_MISSING_OR_INVALID_002)))
 
   private def handleSubmission(pillar2Id: String, request: BTNRequest): Future[Result] =
     pillar2Id match {
-      case ServerErrorPlrId => Future.successful(InternalServerError(Json.toJson(BTN_ERROR_500())))
+      case ServerErrorPlrId => Future.failed(ETMPInternalServerError)
       case _ =>
         organisationService
           .getOrganisation(pillar2Id)
@@ -85,7 +78,7 @@ class BTNController @Inject() (
                       && submission.accountingPeriodTo == request.accountingPeriodTo
                   )
                 )
-                  Future.successful(UnprocessableEntity(Json.toJson(BTN_DUPLICATE_SUBMISSION_004)))
+                  Future.failed(DuplicateSubmissionError)
                 else
                   btnRepository.insert(pillar2Id, request).flatMap { sub =>
                     oasRepository.insert(request, pillar2Id, sub).map { _ =>
@@ -93,10 +86,10 @@ class BTNController @Inject() (
                     }
                   }
               }
-            } else Future.successful(UnprocessableEntity(Json.toJson(BTN_REQUEST_INVALID_003)))
+            } else Future.failed(RequestCouldNotBeProcessed)
           }
           .recoverWith { case _: OrganisationNotFound =>
-            Future.successful(UnprocessableEntity(Json.toJson(BTN_BUSINESS_PARTNER_NOT_ACTIVE_007)))
+            Future.failed(NoActiveSubscription)
           }
     }
 }

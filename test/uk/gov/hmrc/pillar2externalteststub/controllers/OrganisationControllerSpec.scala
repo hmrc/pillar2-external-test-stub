@@ -18,13 +18,11 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.when
-import org.scalatest.compatible.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.mvc.Result
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
@@ -32,17 +30,9 @@ import uk.gov.hmrc.pillar2externalteststub.models.error._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with TestOrgDataFixture {
-
-  implicit class AwaitFuture(fut: Future[Result]) {
-    def shouldFailWith(expected: Throwable): Assertion = {
-      val err = Await.result(fut.failed, 5.seconds)
-      err shouldEqual expected
-    }
-  }
 
   private val cc         = Helpers.stubControllerComponents()
   private val controller = new OrganisationController(cc, mockOrgService)
