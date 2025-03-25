@@ -225,7 +225,7 @@ class AmendUKTRControllerSpec
         route(app, request).value shouldFailWith InvalidReturn
       }
 
-      "should return InvalidTotalLiability when amending with invalid amounts" in {
+      "should return ETMPBadRequest when amending with invalid amounts" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
@@ -238,10 +238,10 @@ class AmendUKTRControllerSpec
           )
         )
 
-        route(app, createRequest(validPlrId, invalidAmountsBody)).value shouldFailWith InvalidTotalLiability
+        route(app, createRequest(validPlrId, invalidAmountsBody)).value shouldFailWith ETMPBadRequest
       }
 
-      "should return InvalidTotalLiability when total liability does not match sum of components in amendment" in {
+      "should return ETMPBadRequest when total liability does not match sum of components in amendment" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
@@ -253,7 +253,7 @@ class AmendUKTRControllerSpec
           )
         )
 
-        route(app, createRequest(validPlrId, mismatchedTotalBody)).value shouldFailWith InvalidTotalLiability
+        route(app, createRequest(validPlrId, mismatchedTotalBody)).value shouldFailWith ETMPBadRequest
       }
 
       "should return InvalidReturn when amending with invalid ID type" in {

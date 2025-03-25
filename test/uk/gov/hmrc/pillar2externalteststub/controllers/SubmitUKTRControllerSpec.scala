@@ -182,7 +182,7 @@ class SubmitUKTRControllerSpec
         status(result) mustBe FORBIDDEN
       }
 
-      "should return InvalidTotalLiability when submitting with invalid amounts" in {
+      "should return ETMPBadRequest when submitting with invalid amounts" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidAmountsBody: JsValue = validRequestBody.deepMerge(
@@ -195,10 +195,10 @@ class SubmitUKTRControllerSpec
         )
         val request = createRequest(validPlrId, invalidAmountsBody)
 
-        route(app, request).value shouldFailWith InvalidTotalLiability
+        route(app, request).value shouldFailWith ETMPBadRequest
       }
 
-      "should return InvalidTotalLiability when total liability does not match sum of components" in {
+      "should return ETMPBadRequest when total liability does not match sum of components" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val mismatchedTotalBody = validRequestBody.deepMerge(
@@ -210,10 +210,10 @@ class SubmitUKTRControllerSpec
         )
         val request = createRequest(validPlrId, mismatchedTotalBody)
 
-        route(app, request).value shouldFailWith InvalidTotalLiability
+        route(app, request).value shouldFailWith ETMPBadRequest
       }
 
-      "should return InvalidTotalLiability when any component is invalid" in {
+      "should return ETMPBadRequest when any component is invalid" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidComponentBody = validRequestBody.deepMerge(
@@ -228,7 +228,7 @@ class SubmitUKTRControllerSpec
         )
         val request = createRequest(validPlrId, invalidComponentBody)
 
-        route(app, request).value shouldFailWith InvalidTotalLiability
+        route(app, request).value shouldFailWith ETMPBadRequest
       }
 
       "should return ETMPBadRequest when UKTRSubmission is neither a UKTRNilReturn nor a UKTRLiabilityReturn" in {
