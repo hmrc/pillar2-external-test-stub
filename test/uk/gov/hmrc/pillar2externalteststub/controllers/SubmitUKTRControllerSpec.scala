@@ -113,7 +113,7 @@ class SubmitUKTRControllerSpec
           .withHeaders(authHeader)
           .withBody(validRequestBody)
 
-        route(app, request).value shouldFailWith Pillar2IdMissing
+        route(app, request).value shouldFailWith IdMissingOrInvalid
       }
 
       "should return NoActiveSubscription when organisation not found" in {

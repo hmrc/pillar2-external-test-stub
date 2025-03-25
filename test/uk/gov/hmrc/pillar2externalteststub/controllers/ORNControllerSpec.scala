@@ -64,13 +64,13 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
           .withBody(validRequestBody)
 
         val result = route(app, request).get
-        result shouldFailWith Pillar2IdMissing
+        result shouldFailWith IdMissingOrInvalid
       }
 
       "should return Pillar2IdMissing when Pillar2 ID format is invalid" in {
         val invalidPlrId = "invalid@id"
         val result       = route(app, createRequestWithBody(invalidPlrId, validORNRequest)).get
-        result shouldFailWith Pillar2IdMissing
+        result shouldFailWith IdMissingOrInvalid
       }
 
       "should return NoActiveSubscription when organisation not found" in {

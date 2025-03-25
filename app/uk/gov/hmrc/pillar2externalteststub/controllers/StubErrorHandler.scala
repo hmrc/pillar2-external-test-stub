@@ -48,7 +48,7 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
         Future.successful(ret)
       case e: ETMPError =>
         val ret = e match {
-          case Pillar2IdMissing | RequestCouldNotBeProcessed | DuplicateSubmission | NoActiveSubscription | NoAssociatedDataFound |
+          case IdMissingOrInvalid | RequestCouldNotBeProcessed | DuplicateSubmission | NoActiveSubscription | NoAssociatedDataFound |
               TaxObligationAlreadyFulfilled | InvalidReturn | InvalidDTTElection | InvalidUTPRElection | InvalidTotalLiability |
               InvalidTotalLiabilityIIR | InvalidTotalLiabilityDTT | InvalidTotalLiabilityUTPR =>
             Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))

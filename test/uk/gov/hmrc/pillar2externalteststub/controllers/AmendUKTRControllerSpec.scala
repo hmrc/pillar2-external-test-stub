@@ -128,7 +128,7 @@ class AmendUKTRControllerSpec
           .withHeaders("Content-Type" -> "application/json", authHeader)
           .withBody(Json.toJson(validRequestBody))
 
-        route(app, request).value shouldFailWith Pillar2IdMissing
+        route(app, request).value shouldFailWith IdMissingOrInvalid
       }
 
       "should return NoActiveSubscription when organisation not found" in {

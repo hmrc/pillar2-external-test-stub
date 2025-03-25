@@ -18,7 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub
 
 import play.api.i18n.Lang.logger
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{ServerErrorPlrId, pillar2Regex}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, Pillar2IdMissing}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, IdMissingOrInvalid}
 
 import scala.concurrent.Future
 
@@ -34,6 +34,6 @@ package object controllers {
         Future.successful(id)
       case other =>
         logger.warn(s"Invalid Pillar2Id received: $other")
-        Future.failed(Pillar2IdMissing)
+        Future.failed(IdMissingOrInvalid)
     }
 }
