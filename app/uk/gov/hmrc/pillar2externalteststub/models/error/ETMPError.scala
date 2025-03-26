@@ -34,7 +34,7 @@ object ETMPError {
     override val message: String = "Request could not be processed"
   }
 
-  case object DuplicateSubmissionError extends ETMPError {
+  case object DuplicateSubmission extends ETMPError {
     override val code:    String = "004"
     override val message: String = "Duplicate submission acknowledgment reference"
   }

@@ -20,8 +20,8 @@ import org.bson.types.ObjectId
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoFormats.Implicits._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.Implicits._
-import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
+import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn}

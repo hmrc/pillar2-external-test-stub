@@ -29,8 +29,8 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, TestOrgDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
+import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
@@ -114,7 +114,7 @@ class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         when(mockBTNRepository.findByPillar2Id(any[String])).thenReturn(Future.successful(Seq(BTNMongoSubmission)))
 
         val result = route(app, createRequestWithBody(validPlrId, validBTNRequest)).get
-        result shouldFailWith DuplicateSubmissionError
+        result shouldFailWith DuplicateSubmission
       }
 
       "should return RequestCouldNotBeProcessed when accounting period is invalid" in {

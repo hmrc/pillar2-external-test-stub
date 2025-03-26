@@ -17,7 +17,9 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
@@ -166,24 +168,27 @@ object UKTRLiabilityReturn {
   def uktrSubmissionValidator(
     plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
-    for {
-      obligationMTTRule    <- UKTRValidationRules.obligationMTTRule[UKTRLiabilityReturn](plrReference)
-      electionUKGAAPRule   <- UKTRValidationRules.electionUKGAAPRule[UKTRLiabilityReturn](plrReference)
-      accountingPeriodRule <- UKTRValidationRules.accountingPeriodRule[UKTRLiabilityReturn](plrReference)
-    } yield ValidationRule.compose(
-      obligationMTTRule,
-      electionUKGAAPRule,
-      accountingPeriodRule,
-      liabilityEntityRule,
-      totalLiabilityRule,
-      totalLiabilityDTTRule,
-      totalLiabilityIIRRule,
-      totalLiabilityUTPRRule,
-      ukChargeableEntityNameRule,
-      idTypeRule,
-      idValueRule,
-      amountOwedDTTRule,
-      amountOwedIIRRule,
-      amountOwedUTPRRule
-    )(FailFast)
+    organisationService
+      .getOrganisation(plrReference)
+      .map { org =>
+        ValidationRule.compose(
+          UKTRValidationRules.obligationMTTRule[UKTRLiabilityReturn](org),
+          UKTRValidationRules.electionUKGAAPRule[UKTRLiabilityReturn](org),
+          BaseSubmissionValidationRules.accountingPeriodMatchesOrgRule[UKTRLiabilityReturn](org, UKTRSubmissionError(InvalidReturn)),
+          liabilityEntityRule,
+          totalLiabilityRule,
+          totalLiabilityDTTRule,
+          totalLiabilityIIRRule,
+          totalLiabilityUTPRRule,
+          ukChargeableEntityNameRule,
+          idTypeRule,
+          idValueRule,
+          amountOwedDTTRule,
+          amountOwedIIRRule,
+          amountOwedUTPRRule
+        )(FailFast)
+      }
+      .recover { case _: OrganisationNotFound =>
+        ValidationRule[UKTRLiabilityReturn](_ => invalid(UKTRSubmissionError(RequestCouldNotBeProcessed)))
+      }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pillar2externalteststub.models
+package uk.gov.hmrc.pillar2externalteststub.models.common
 
 import java.time.LocalDate
 

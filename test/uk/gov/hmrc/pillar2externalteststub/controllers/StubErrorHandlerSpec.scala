@@ -102,7 +102,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
     }
 
     "handle DuplicateSubmissionError error" in {
-      val result = errorHandler.onServerError(dummyRequest, DuplicateSubmissionError)
+      val result = errorHandler.onServerError(dummyRequest, DuplicateSubmission)
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "004"

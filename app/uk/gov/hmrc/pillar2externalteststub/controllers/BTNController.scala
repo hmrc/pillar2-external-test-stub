@@ -78,7 +78,7 @@ class BTNController @Inject() (
                       && submission.accountingPeriodTo == request.accountingPeriodTo
                   )
                 )
-                  Future.failed(DuplicateSubmissionError)
+                  Future.failed(DuplicateSubmission)
                 else
                   btnRepository.insert(pillar2Id, request).flatMap { sub =>
                     oasRepository.insert(request, pillar2Id, sub).map { _ =>

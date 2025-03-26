@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,11 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.btn
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
-import java.time.LocalDate
-
-case class BTNRequest(accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate) extends BaseSubmission {
-  def accountingPeriodValid: Boolean =
-    accountingPeriodFrom.isBefore(accountingPeriodTo)
-}
-
-object BTNRequest {
-  implicit val format: OFormat[BTNRequest] = Json.format[BTNRequest]
+case class BTNValidationError(error: ETMPError) extends ValidationError {
+  override def errorCode:    String = error.code
+  override def errorMessage: String = error.message
+  override def field:        String = "BTNRequest"
 }

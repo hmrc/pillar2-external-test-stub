@@ -16,18 +16,12 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
-import cats.data.NonEmptyChain
-import cats.implicits.toFoldableOps
 import play.api.libs.json._
-import play.api.mvc.Result
-import play.api.mvc.Results.UnprocessableEntity
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
-import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 
 import java.time.LocalDate
-import scala.concurrent.Future
 
 trait UKTRSubmission extends BaseSubmission {
   val accountingPeriodFrom: LocalDate
@@ -59,21 +53,4 @@ case class UKTRSubmissionError(error: ETMPError) extends ValidationError {
   override def errorCode:    String = error.code
   override def errorMessage: String = error.message
   override def field:        String = "UKTRSubmission"
-}
-
-object UKTRErrorTransformer {
-  def from422ToJson(errors: NonEmptyChain[ValidationError]): Future[Result] =
-    Future.successful(
-      UnprocessableEntity(
-        Json.obj(
-          "errors" -> errors.toList.headOption.map(error =>
-            Json.obj(
-              "processingDate" -> nowZonedDateTime,
-              "code"           -> error.errorCode,
-              "text"           -> error.errorMessage
-            )
-          )
-        )
-      )
-    )
 }
