@@ -280,7 +280,7 @@ class ORNISpec
 
       responseWithoutId.status shouldBe 422
       val json = Json.parse(responseWithoutId.body)
-      (json \ "errors" \ "code").as[String] shouldBe "002"
+      (json \ "errors" \ "code").as[String] shouldBe "089"
 
       ornRepository.findByPillar2Id(validPlrId).futureValue shouldBe empty
     }
@@ -363,7 +363,7 @@ class ORNISpec
 
       getResponse.status shouldBe 422
       val json = Json.parse(getResponse.body)
-      (json \ "errors" \ "code").as[String] shouldBe "002"
+      (json \ "errors" \ "code").as[String] shouldBe "089"
     }
 
     "return 422 when organisation does not exist" in {

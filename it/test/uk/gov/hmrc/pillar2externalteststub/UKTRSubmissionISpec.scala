@@ -310,7 +310,7 @@ class UKTRSubmissionISpec
         val response = amendUKTR(liabilitySubmission, "nonExistentId")
 
         response.status shouldBe UNPROCESSABLE_ENTITY
-        (response.json \ "errors" \ "code").as[String] shouldBe "002" 
+        (response.json \ "errors" \ "code").as[String] shouldBe "089"
         (response.json \ "errors" \ "text").as[String] shouldBe "ID number missing or invalid"
       }
 
@@ -318,7 +318,7 @@ class UKTRSubmissionISpec
         val response = amendUKTR(nilSubmission, "nonExistentId")
 
         response.status shouldBe UNPROCESSABLE_ENTITY
-        (response.json \ "errors" \ "code").as[String] shouldBe "002"
+        (response.json \ "errors" \ "code").as[String] shouldBe "089"
         (response.json \ "errors" \ "text").as[String] shouldBe "ID number missing or invalid"
       }
     }
