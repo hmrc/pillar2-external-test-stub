@@ -24,19 +24,19 @@ import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
 object BaseSubmissionValidationRules {
 
   def accountingPeriodMatchesOrgRule[T <: BaseSubmission](
-    org:                          TestOrganisationWithId,
-    error:                        ValidationError
+    org:   TestOrganisationWithId,
+    error: ValidationError
   ): ValidationRule[T] =
-      ValidationRule[T] { data =>
-        if (
-          data.accountingPeriodFrom == org.organisation.accountingPeriod.startDate &&
-          data.accountingPeriodTo == org.organisation.accountingPeriod.endDate
-        ) {
-          valid[T](data)
-        } else {
-          invalid(error)
-        }
+    ValidationRule[T] { data =>
+      if (
+        data.accountingPeriodFrom == org.organisation.accountingPeriod.startDate &&
+        data.accountingPeriodTo == org.organisation.accountingPeriod.endDate
+      ) {
+        valid[T](data)
+      } else {
+        invalid(error)
       }
+    }
 
   def accountingPeriodSanityCheckRule[T <: BaseSubmission](
     error: ValidationError

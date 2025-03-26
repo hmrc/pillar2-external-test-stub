@@ -34,12 +34,15 @@ object BTNValidator {
   )(implicit
     organisationService: OrganisationService,
     ec:                  ExecutionContext
-  ): Future[ValidationRule[BTNRequest]] ={
-    organisationService.getOrganisation(pillar2Id).map { org =>
-      ValidationRule.compose(
-        BaseSubmissionValidationRules.accountingPeriodMatchesOrgRule[BTNRequest](org, BTNValidationError(RequestCouldNotBeProcessed))
-      )(FailFast)}.recover{
-        case _: OrganisationNotFound => ValidationRule[BTNRequest](_ => invalid(BTNValidationError(RequestCouldNotBeProcessed)))
+  ): Future[ValidationRule[BTNRequest]] =
+    organisationService
+      .getOrganisation(pillar2Id)
+      .map { org =>
+        ValidationRule.compose(
+          BaseSubmissionValidationRules.accountingPeriodMatchesOrgRule[BTNRequest](org, BTNValidationError(RequestCouldNotBeProcessed))
+        )(FailFast)
       }
-    }
-  }
+      .recover { case _: OrganisationNotFound =>
+        ValidationRule[BTNRequest](_ => invalid(BTNValidationError(RequestCouldNotBeProcessed)))
+      }
+}
