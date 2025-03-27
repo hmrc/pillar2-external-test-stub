@@ -58,7 +58,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         (json \ "success" \ "formBundleNumber").asOpt[String].isDefined shouldBe true
       }
 
-      "should return Pillar2IdMissing when X-Pillar2-Id header is missing" in {
+      "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/RESTAdapter/plr/overseas-return-notification")
           .withHeaders("Content-Type" -> "application/json", authHeader)
           .withBody(validRequestBody)
@@ -67,7 +67,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         result shouldFailWith IdMissingOrInvalid
       }
 
-      "should return Pillar2IdMissing when Pillar2 ID format is invalid" in {
+      "should return IdMissingOrInvalid when Pillar2 ID format is invalid" in {
         val invalidPlrId = "invalid@id"
         val result       = route(app, createRequestWithBody(invalidPlrId, validORNRequest)).get
         result shouldFailWith IdMissingOrInvalid

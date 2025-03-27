@@ -123,7 +123,7 @@ class AmendUKTRControllerSpec
         (jsonResult \ "success" \ "processingDate").asOpt[ZonedDateTime].isDefined mustBe true
       }
 
-      "should return Pillar2IdMissing when X-Pillar2-Id header is missing" in {
+      "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(PUT, routes.AmendUKTRController.amendUKTR.url)
           .withHeaders("Content-Type" -> "application/json", authHeader)
           .withBody(Json.toJson(validRequestBody))

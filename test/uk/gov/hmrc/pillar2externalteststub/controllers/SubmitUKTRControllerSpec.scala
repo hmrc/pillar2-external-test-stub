@@ -108,7 +108,7 @@ class SubmitUKTRControllerSpec
         route(app, request).value shouldFailWith ETMPBadRequest
       }
 
-      "should return Pillar2IdMissing when X-Pillar2-Id header is missing" in {
+      "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest("POST", routes.SubmitUKTRController.submitUKTR.url)
           .withHeaders(authHeader)
           .withBody(validRequestBody)
