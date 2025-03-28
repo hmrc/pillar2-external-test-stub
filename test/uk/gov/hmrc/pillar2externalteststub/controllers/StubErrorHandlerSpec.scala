@@ -106,15 +106,15 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "004"
-      (json \ "errors" \ "text").as[String] shouldBe "Duplicate submission acknowledgment reference"
+      (json \ "errors" \ "text").as[String] shouldBe "Duplicate submission"
     }
 
     "handle NoActiveSubscription error" in {
       val result = errorHandler.onServerError(dummyRequest, NoActiveSubscription)
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
-      (json \ "errors" \ "code").as[String] shouldBe "007"
-      (json \ "errors" \ "text").as[String] shouldBe "Business partner does not have an Active subscription"
+      (json \ "errors" \ "code").as[String] shouldBe "063"
+      (json \ "errors" \ "text").as[String] shouldBe "Business Partner does not have an Active Subscription for this Regime"
     }
 
     "handle TaxObligationAlreadyFulfilled error" in {
@@ -123,6 +123,14 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "044"
       (json \ "errors" \ "text").as[String] shouldBe "Tax obligation already fulfilled"
+    }
+
+    "handle IdMissingOrInvalid error" in {
+      val result = errorHandler.onServerError(dummyRequest, IdMissingOrInvalid)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "089"
+      (json \ "errors" \ "text").as[String] shouldBe "ID number missing or invalid"
     }
 
     "handle InvalidReturn error" in {

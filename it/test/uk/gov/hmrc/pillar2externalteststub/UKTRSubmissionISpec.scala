@@ -310,16 +310,16 @@ class UKTRSubmissionISpec
         val response = amendUKTR(liabilitySubmission, "nonExistentId")
 
         response.status shouldBe UNPROCESSABLE_ENTITY
-        (response.json \ "errors" \ "code").as[String] shouldBe "002" 
-        (response.json \ "errors" \ "text").as[String] shouldBe "Pillar2 ID Missing or Invalid"
+        (response.json \ "errors" \ "code").as[String] shouldBe "089"
+        (response.json \ "errors" \ "text").as[String] shouldBe "ID number missing or invalid"
       }
 
       "return 422 when trying to amend non-existent nil return" in {
         val response = amendUKTR(nilSubmission, "nonExistentId")
 
         response.status shouldBe UNPROCESSABLE_ENTITY
-        (response.json \ "errors" \ "code").as[String] shouldBe "002"
-        (response.json \ "errors" \ "text").as[String] shouldBe "Pillar2 ID Missing or Invalid"
+        (response.json \ "errors" \ "code").as[String] shouldBe "089"
+        (response.json \ "errors" \ "text").as[String] shouldBe "ID number missing or invalid"
       }
     }
 
