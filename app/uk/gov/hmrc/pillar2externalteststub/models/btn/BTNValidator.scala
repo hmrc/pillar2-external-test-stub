@@ -16,17 +16,14 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.btn
 
-import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNValidationError
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoActiveSubscription, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-import uk.gov.hmrc.pillar2externalteststub.validation.FailFast
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.invalid
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
+import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 object BTNValidator {
 
   def btnValidator(
@@ -43,6 +40,6 @@ object BTNValidator {
         )(FailFast)
       }
       .recover { case _: OrganisationNotFound =>
-        ValidationRule[BTNRequest](_ => invalid(BTNValidationError(RequestCouldNotBeProcessed)))
+        ValidationRule[BTNRequest](_ => invalid(BTNValidationError(NoActiveSubscription)))
       }
 }

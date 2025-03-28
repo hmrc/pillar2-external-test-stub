@@ -137,7 +137,7 @@ class BTNISpec
 
       responseWithoutId.status shouldBe 422
       val json = Json.parse(responseWithoutId.body)
-      (json \ "errors" \ "code").as[String] shouldBe "002"
+      (json \ "errors" \ "code").as[String] shouldBe "089"
 
       repository.findByPillar2Id(validPlrId).futureValue shouldBe empty
     }
