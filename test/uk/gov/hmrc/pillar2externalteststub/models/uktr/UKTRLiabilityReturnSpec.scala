@@ -49,7 +49,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiability))
+      result mustEqual invalid(UKTRSubmissionError(ETMPBadRequest))
     }
 
     "should fail validation when total liability is negative" in {
@@ -59,7 +59,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiability))
+      result mustEqual invalid(UKTRSubmissionError(ETMPBadRequest))
     }
 
     "should fail validation when total liability exceeds maximum allowed amount" in {
@@ -69,7 +69,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiability))
+      result mustEqual invalid(UKTRSubmissionError(ETMPBadRequest))
     }
 
     "should fail validation when DTT total does not match sum of DTT amounts" in {
@@ -79,7 +79,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityDTT))
+      result mustEqual invalid(UKTRSubmissionError(ETMPBadRequest))
     }
 
     "should fail validation when DTT total is negative" in {
@@ -90,7 +90,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityDTT))
+      result mustEqual invalid(UKTRSubmissionError(ETMPBadRequest))
     }
 
     "should fail validation when IIR total does not match sum of IIR amounts" in {
@@ -101,7 +101,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityIIR))
+      result mustEqual invalid(UKTRSubmissionError(ETMPBadRequest))
     }
 
     "should fail validation when IIR total is negative" in {
@@ -112,7 +112,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityIIR))
+      result mustEqual invalid(UKTRSubmissionError(ETMPBadRequest))
     }
 
     "should fail validation when UTPR total does not match sum of UTPR amounts" in {
@@ -123,7 +123,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityUTPR))
+      result mustEqual invalid(UKTRSubmissionError(ETMPBadRequest))
     }
 
     "should fail validation when UTPR total is negative" in {
@@ -134,7 +134,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityUTPR))
+      result mustEqual invalid(UKTRSubmissionError(ETMPBadRequest))
     }
 
     "should fail validation when liableEntities is empty" in {
