@@ -17,7 +17,6 @@
 package uk.gov.hmrc.pillar2externalteststub.validation
 
 import cats.data.NonEmptyChain
-import cats.implicits._
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.pillar2externalteststub.validation.models.TestValidationError._
