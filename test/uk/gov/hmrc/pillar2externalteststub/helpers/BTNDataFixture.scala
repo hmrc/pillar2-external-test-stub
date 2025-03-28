@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,11 +35,11 @@ trait BTNDataFixture extends Pillar2DataFixture {
 
   val validBTNRequestBody: JsValue = Json.toJson(validBTNRequest)
 
-  val BTNMongoSubmission: BTNSubmission = BTNSubmission(
+  val btnMongoSubmission: BTNSubmission = BTNSubmission(
     _id = new ObjectId(),
     pillar2Id = validPlrId,
-    accountingPeriodFrom = validBTNRequest.accountingPeriodFrom,
-    accountingPeriodTo = validBTNRequest.accountingPeriodTo,
+    accountingPeriodFrom = accountingPeriod.startDate,
+    accountingPeriodTo = accountingPeriod.endDate,
     submittedAt = Instant.now()
   )
 

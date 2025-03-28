@@ -16,12 +16,14 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 
+import cats.data.Validated.{Invalid, Valid}
 import play.api.Logging
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
-import uk.gov.hmrc.pillar2externalteststub.models.btn.mongo.BTNSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNValidationError
+import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNValidator
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{DuplicateSubmission, ETMPInternalServerError}
 import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,33 +38,37 @@ class BTNService @Inject() (
 
   def submitBTN(pillar2Id: String, request: BTNRequest): Future[Boolean] = {
     logger.info(s"Submitting BTN for pillar2Id: $pillar2Id")
-    organisationService
-      .getOrganisation(pillar2Id)
-      .flatMap { testOrg =>
-        if (
-          testOrg.organisation.accountingPeriod.startDate == request.accountingPeriodFrom &&
-          testOrg.organisation.accountingPeriod.endDate == request.accountingPeriodTo
-        ) {
-          btnRepository.findByPillar2Id(pillar2Id).flatMap { submissions =>
-            if (
-              submissions.exists(submission =>
-                submission.accountingPeriodFrom == request.accountingPeriodFrom &&
-                  submission.accountingPeriodTo == request.accountingPeriodTo
-              )
-            )
-              Future.failed(DuplicateSubmission)
-            else
-              btnRepository.insert(pillar2Id, request).flatMap { submissionId =>
-                oasRepository.insert(request, pillar2Id, submissionId)
-              }
-          }
-        } else Future.failed(RequestCouldNotBeProcessed)
-      }
-      .recoverWith { case _: OrganisationNotFound =>
-        Future.failed(NoActiveSubscription)
-      }
+
+    for {
+      validator    <- BTNValidator.btnValidator(pillar2Id)(organisationService, ec)
+      _            <- validateRequest(validator, request)
+      _            <- checkForExistingSubmission(pillar2Id, request)
+      submissionId <- btnRepository.insert(pillar2Id, request)
+      _            <- oasRepository.insert(request, pillar2Id, submissionId)
+    } yield true
   }
 
-  def findBTNByPillar2Id(pillar2Id: String): Future[Seq[BTNSubmission]] =
-    btnRepository.findByPillar2Id(pillar2Id)
+  private def validateRequest(validator: ValidationRule[BTNRequest], request: BTNRequest): Future[Unit] =
+    validator.validate(request) match {
+      case Valid(_) => Future.successful(())
+      case Invalid(errors) =>
+        errors.head match {
+          case BTNValidationError(error) => Future.failed(error)
+          case _                         => Future.failed(ETMPInternalServerError)
+        }
+    }
+
+  private def checkForExistingSubmission(pillar2Id: String, request: BTNRequest): Future[Unit] =
+    btnRepository.findByPillar2Id(pillar2Id).flatMap { submissions =>
+      if (
+        submissions.exists(submission =>
+          submission.accountingPeriodFrom == request.accountingPeriodFrom &&
+            submission.accountingPeriodTo == request.accountingPeriodTo
+        )
+      ) {
+        Future.failed(DuplicateSubmission)
+      } else {
+        Future.successful(())
+      }
+    }
 }

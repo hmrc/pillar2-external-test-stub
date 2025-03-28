@@ -18,7 +18,6 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers._
-import play.api.mvc.Result
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.AccountingPeriod
 
@@ -29,7 +28,7 @@ import scala.concurrent.duration._
 
 trait Pillar2DataFixture {
 
-  implicit class AwaitFuture(fut: Future[Result]) {
+  implicit class AwaitFuture[T](fut: Future[T]) {
     def shouldFailWith(expected: Throwable): Assertion = {
       val err = Await.result(fut.failed, 5.seconds)
       err shouldBe expected

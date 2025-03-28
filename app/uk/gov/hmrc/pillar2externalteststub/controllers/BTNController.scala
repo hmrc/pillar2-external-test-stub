@@ -24,9 +24,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrI
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNSuccessResponse.BTN_SUCCESS_201
 import uk.gov.hmrc.pillar2externalteststub.models.btn._
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
-import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
-import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import uk.gov.hmrc.pillar2externalteststub.services.BTNService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -34,12 +32,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BTNController @Inject() (
-  cc:                  ControllerComponents,
-  authFilter:          AuthActionFilter,
-  btnRepository:       BTNSubmissionRepository,
-  organisationService: OrganisationService,
-  oasRepository:       ObligationsAndSubmissionsRepository
-)(implicit ec:         ExecutionContext)
+  cc:          ControllerComponents,
+  authFilter:  AuthActionFilter,
+  btnService:  BTNService
+)(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
@@ -50,12 +46,7 @@ class BTNController @Inject() (
           .validate[BTNRequest]
           .fold(
             _ => Future.failed(ETMPBadRequest),
-            btnRequest =>
-              if (!btnRequest.accountingPeriodValid) {
-                Future.failed(RequestCouldNotBeProcessed)
-              } else {
-                handleSubmission(pillar2Id, btnRequest)
-              }
+            btnRequest => handleSubmission(pillar2Id, btnRequest)
           )
       }
   }
@@ -64,32 +55,8 @@ class BTNController @Inject() (
     pillar2Id match {
       case ServerErrorPlrId => Future.failed(ETMPInternalServerError)
       case _ =>
-        organisationService
-          .getOrganisation(pillar2Id)
-          .flatMap { testOrg =>
-            if (
-              testOrg.organisation.accountingPeriod.startDate == request.accountingPeriodFrom &&
-              testOrg.organisation.accountingPeriod.endDate == request.accountingPeriodTo
-            ) {
-              btnRepository.findByPillar2Id(pillar2Id).flatMap { submissions =>
-                if (
-                  submissions.exists(submission =>
-                    submission.accountingPeriodFrom == request.accountingPeriodFrom
-                      && submission.accountingPeriodTo == request.accountingPeriodTo
-                  )
-                )
-                  Future.failed(DuplicateSubmission)
-                else
-                  btnRepository.insert(pillar2Id, request).flatMap { sub =>
-                    oasRepository.insert(request, pillar2Id, sub).map { _ =>
-                      Created(Json.toJson(BTN_SUCCESS_201))
-                    }
-                  }
-              }
-            } else Future.failed(RequestCouldNotBeProcessed)
-          }
-          .recoverWith { case _: OrganisationNotFound =>
-            Future.failed(NoActiveSubscription)
-          }
+        btnService
+          .submitBTN(pillar2Id, request)
+          .map(_ => Created(Json.toJson(BTN_SUCCESS_201)))
     }
 }
