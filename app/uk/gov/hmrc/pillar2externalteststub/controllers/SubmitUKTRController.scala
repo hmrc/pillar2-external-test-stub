@@ -50,11 +50,7 @@ class SubmitUKTRController @Inject() (
         organisationService
           .getOrganisation(pillar2Id)
           .flatMap { _ =>
-            request.body.validate[UKTRSubmission] match {
-              case JsSuccess(_, _) =>
-                processSubmission(pillar2Id, request)
-              case JsError(_) => Future.failed(ETMPBadRequest)
-            }
+            processSubmission(pillar2Id, request)
           }
           .recoverWith { case OrganisationNotFound(_) =>
             logger.warn(s"Organisation not found for pillar2Id: $pillar2Id")

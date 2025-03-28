@@ -18,14 +18,12 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.when
-import org.scalatest.compatible.Assertion
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
@@ -36,18 +34,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.services.{ORNService, OrganisationService}
 
 import java.time.LocalDate
-import scala.concurrent.Await
 import scala.concurrent.Future
-import scala.concurrent.duration._
-
 class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with ORNDataFixture with TestOrgDataFixture {
-
-  implicit class AwaitFuture(fut: Future[Result]) {
-    def shouldFailWith(expected: Throwable): Assertion = {
-      val err = Await.result(fut.failed, 5.seconds)
-      err shouldBe expected
-    }
-  }
 
   private val mockORNService = mock[ORNService]
 

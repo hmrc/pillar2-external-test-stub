@@ -18,7 +18,6 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito.when
-import org.mongodb.scala.bson.ObjectId
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -29,40 +28,25 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, TestOrgDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.models.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
-import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
-import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.services.BTNService
 
-import java.time.LocalDate
 import scala.concurrent.Future
 
 class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with BTNDataFixture with TestOrgDataFixture {
 
-  private val mockBTNRepository = mock[BTNSubmissionRepository]
-  private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
+  private val mockBTNService = mock[BTNService]
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
-      .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
-      .overrides(inject.bind[BTNSubmissionRepository].toInstance(mockBTNRepository))
-      .overrides(inject.bind[ObligationsAndSubmissionsRepository].toInstance(mockOasRepository))
+      .overrides(inject.bind[BTNService].toInstance(mockBTNService))
       .build()
 
   "Below Threshold Notification" - {
     "when submitting a notification" - {
       "should return CREATED with success response for a valid submission" in {
-        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
-        when(mockBTNRepository.findByPillar2Id(eqTo(validPlrId))).thenReturn(Future.successful(Seq.empty))
-        when(mockBTNRepository.insert(eqTo(validPlrId), any[BTNRequest])).thenReturn(Future.successful(new ObjectId()))
-        when(
-          mockOasRepository.insert(
-            argThat((submission: BaseSubmission) => submission.isInstanceOf[BTNRequest]),
-            anyString(),
-            any[ObjectId]
-          )
-        ).thenReturn(Future.successful(true))
+        when(mockBTNService.submitBTN(eqTo(validPlrId), any[BTNRequest])).thenReturn(Future.successful(true))
 
         val result = route(app, createRequestWithBody(validPlrId, validBTNRequest)).get
         status(result) shouldBe CREATED
@@ -70,94 +54,29 @@ class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         (json \ "success" \ "processingDate").asOpt[String].isDefined shouldBe true
       }
 
-      "should return UNPROCESSABLE_ENTITY when X-Pillar2-Id header is missing" in {
+      "should return Pillar2IdMissing when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/RESTAdapter/plr/below-threshold-notification")
           .withHeaders("Content-Type" -> "application/json", authHeader)
           .withBody(validBTNRequestBody)
 
         val result = route(app, request).get
-        status(result) shouldBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "code").as[String] shouldBe "002"
-        (json \ "errors" \ "text").as[String] shouldBe "Pillar2 ID is missing or invalid"
+        result shouldFailWith Pillar2IdMissing
       }
 
-      "should return UNPROCESSABLE_ENTITY when Pillar2 ID format is invalid" in {
+      "should return Pillar2IdMissing when Pillar2 ID format is invalid" in {
         val invalidPlrId = "invalid@id"
         val result       = route(app, createRequestWithBody(invalidPlrId, validBTNRequest)).get
-        status(result) shouldBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "code").as[String] shouldBe "002"
-        (json \ "errors" \ "text").as[String] shouldBe "Pillar2 ID is missing or invalid"
+        result shouldFailWith Pillar2IdMissing
       }
 
-      "should return UNPROCESSABLE_ENTITY when organisation not found" in {
-        when(mockOrgService.getOrganisation(any[String]))
-          .thenReturn(Future.failed(OrganisationNotFound("Organisation not found")))
-
-        val result = route(app, createRequestWithBody(validPlrId, validBTNRequest)).get
-        status(result) shouldBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "code").as[String] shouldBe "007"
-        (json \ "errors" \ "text").as[String] shouldBe "Business Partner does not have an Active Pillar 2 registration"
-      }
-
-      "should return UNPROCESSABLE_ENTITY when the accounting period doesn't match organisation's" in {
-        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
-
-        val mismatchedRequest = validBTNRequest.copy(
-          accountingPeriodFrom = LocalDate.of(2024, 2, 1),
-          accountingPeriodTo = LocalDate.of(2024, 12, 31)
-        )
-
-        when(mockOrgService.getOrganisation(validPlrId))
-          .thenReturn(Future.successful(organisationWithId))
-
-        val result = route(app, createRequestWithBody(validPlrId, mismatchedRequest)).get
-        status(result) shouldBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "code").as[String] shouldBe "003"
-        (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed or invalid"
-      }
-
-      "should return UNPROCESSABLE_ENTITY when duplicate submission exists" in {
-        when(mockOrgService.getOrganisation(validPlrId)).thenReturn(Future.successful(organisationWithId))
-        when(mockBTNRepository.findByPillar2Id(any[String])).thenReturn(Future.successful(Seq(BTNMongoSubmission)))
-
-        val result = route(app, createRequestWithBody(validPlrId, validBTNRequest)).get
-        status(result) shouldBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "code").as[String] shouldBe "004"
-        (json \ "errors" \ "text").as[String] shouldBe "Duplicate Submission"
-      }
-
-      "should return UNPROCESSABLE_ENTITY when accounting period is invalid" in {
-        val invalidBTNRequest = validBTNRequest.copy(
-          accountingPeriodFrom = LocalDate.of(2024, 12, 31),
-          accountingPeriodTo = LocalDate.of(2024, 1, 1)
-        )
-
-        val result = route(app, createRequestWithBody(validPlrId, invalidBTNRequest)).get
-        status(result) shouldBe UNPROCESSABLE_ENTITY
-        val json = contentAsJson(result)
-        (json \ "errors" \ "code").as[String] shouldBe "003"
-        (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed or invalid"
-      }
-
-      "should return BAD_REQUEST when request body is invalid JSON" in {
+      "should return ETMPBadRequest when request body is invalid JSON" in {
         val result = route(app, createRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        status(result) shouldBe BAD_REQUEST
-        val json = contentAsJson(result)
-        (json \ "error" \ "code").as[String]    shouldBe "400"
-        (json \ "error" \ "message").as[String] shouldBe "Invalid request payload"
+        result shouldFailWith ETMPBadRequest
       }
 
-      "should return INTERNAL_SERVER_ERROR when specific Pillar2 ID indicates server error" in {
+      "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {
         val result = route(app, createRequestWithBody(serverErrorPlrId, validBTNRequest)).get
-        status(result) shouldBe INTERNAL_SERVER_ERROR
-        val json = contentAsJson(result)
-        (json \ "error" \ "code").as[String]    shouldBe "500"
-        (json \ "error" \ "message").as[String] shouldBe "Internal server error"
+        result shouldFailWith ETMPInternalServerError
       }
     }
   }

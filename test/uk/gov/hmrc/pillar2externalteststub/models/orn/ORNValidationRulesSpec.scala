@@ -24,11 +24,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.pillar2externalteststub.helpers.ORNDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoActiveSubscription, RequestCouldNotBeProcessed}
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
-import uk.gov.hmrc.pillar2externalteststub.validation.syntax._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ORNValidationRulesSpec extends AnyWordSpec with Matchers with MockitoSugar with ScalaFutures with ORNDataFixture with TestOrgDataFixture {
@@ -38,43 +35,20 @@ class ORNValidationRulesSpec extends AnyWordSpec with Matchers with MockitoSugar
       "reject domestic-only organisations" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
 
-        val result = ORNValidationRules.domesticOnlyRule(validPlrId)(mockOrgService, global).flatMap { rule =>
-          Future.successful(validORNRequest.validate(rule))
-        }
+        val result = ORNValidationRules.domesticOnlyRule(domesticOrganisation).validate(validORNRequest)
 
-        whenReady(result) { validationResult =>
-          validationResult.isInvalid mustBe true
-          validationResult.toEither.left.map { errors =>
-            errors.head.asInstanceOf[ORNValidationError].error mustBe RequestCouldNotBeProcessed
-          }
+        result.isInvalid mustBe true
+        result.toEither.left.map { errors =>
+          errors.head.asInstanceOf[ORNValidationError].error mustBe RequestCouldNotBeProcessed
         }
       }
 
       "allow non-domestic organisations" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
-        val result = ORNValidationRules.domesticOnlyRule(validPlrId)(mockOrgService, global).flatMap { rule =>
-          Future.successful(validORNRequest.validate(rule))
-        }
+        val result = ORNValidationRules.domesticOnlyRule(nonDomesticOrganisation).validate(validORNRequest)
 
-        whenReady(result) { validationResult =>
-          validationResult.isValid mustBe true
-        }
-      }
-
-      "return NoActiveSubscription when organisation not found" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.failed(OrganisationNotFound(validPlrId)))
-
-        val result = ORNValidationRules.domesticOnlyRule(validPlrId)(mockOrgService, global).flatMap { rule =>
-          Future.successful(validORNRequest.validate(rule))
-        }
-
-        whenReady(result) { validationResult =>
-          validationResult.isInvalid mustBe true
-          validationResult.toEither.left.map { errors =>
-            errors.head.asInstanceOf[ORNValidationError].error mustBe NoActiveSubscription
-          }
-        }
+        result.isValid mustBe true
       }
     }
   }

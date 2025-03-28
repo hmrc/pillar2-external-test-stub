@@ -21,7 +21,6 @@ import scala.util.Random
 import scala.util.matching.Regex
 
 object Pillar2Helper {
-
   val pillar2Regex: Regex = "^[A-Z0-9]{1,15}$".r
   val ServerErrorPlrId = "XEPLR5000000000"
 
