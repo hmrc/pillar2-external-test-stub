@@ -115,7 +115,7 @@ class ObligationsAndSubmissionsISpec
 
   override protected def prepareDatabase(): Unit = {
     repository.collection.drop().toFuture().futureValue
-    repository.collection.createIndexes(repository.indexes).toFuture().futureValue
+    repository.collection.createIndexes(repository.indexes).toFuture()
     ()
   }
 
@@ -341,3 +341,4 @@ class ObligationsAndSubmissionsISpec
     }
   }
 } 
+
