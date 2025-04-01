@@ -386,14 +386,14 @@ class UKTRSubmissionISpec
         response.status shouldBe UNPROCESSABLE_ENTITY
       }
 
-      "return 400 for invalid amounts" in {
+      "return 422 for invalid amounts" in {
         val response = submitCustomPayload(invalidAmountsJson, validPlrId)
-        response.status shouldBe BAD_REQUEST
+        response.status shouldBe UNPROCESSABLE_ENTITY
       }
 
-      "return 400 for invalid ID type" in {
+      "return 422 for invalid ID type" in {
         val response = submitCustomPayload(invalidIdTypeJson, validPlrId)
-        response.status shouldBe BAD_REQUEST
+        response.status shouldBe UNPROCESSABLE_ENTITY
       }
 
       "return appropriate error for test PLR IDs" in {

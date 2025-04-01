@@ -48,7 +48,7 @@ object UKTRLiabilityReturn {
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(ETMPBadRequest)
+        UKTRSubmissionError(InvalidTotalLiability)
       )
   }
 
@@ -61,7 +61,9 @@ object UKTRLiabilityReturn {
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(ETMPBadRequest)
+        UKTRSubmissionError(
+          InvalidTotalLiabilityDTT
+        )
       )
   }
 
@@ -74,7 +76,7 @@ object UKTRLiabilityReturn {
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(ETMPBadRequest)
+        UKTRSubmissionError(InvalidTotalLiabilityIIR)
       )
   }
 
@@ -87,7 +89,9 @@ object UKTRLiabilityReturn {
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(ETMPBadRequest)
+        UKTRSubmissionError(
+          InvalidTotalLiabilityUTPR
+        )
       )
   }
 
@@ -135,7 +139,9 @@ object UKTRLiabilityReturn {
     if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedDTT))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(ETMPBadRequest)
+        UKTRSubmissionError(
+          InvalidTotalLiabilityDTT
+        )
       )
   }
 
@@ -143,7 +149,9 @@ object UKTRLiabilityReturn {
     if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedIIR))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(ETMPBadRequest)
+        UKTRSubmissionError(
+          InvalidTotalLiabilityIIR
+        )
       )
   }
 
@@ -151,7 +159,9 @@ object UKTRLiabilityReturn {
     if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedUTPR))) valid[UKTRLiabilityReturn](data)
     else
       invalid(
-        UKTRSubmissionError(ETMPBadRequest)
+        UKTRSubmissionError(
+          InvalidTotalLiabilityUTPR
+        )
       )
   }
 
