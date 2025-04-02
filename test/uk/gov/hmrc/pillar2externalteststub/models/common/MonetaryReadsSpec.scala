@@ -22,8 +22,10 @@ import play.api.libs.json._
 
 class MonetaryReadsSpec extends AnyFreeSpec with Matchers {
 
-  val reads           = MonetaryReads.monetaryValueReads
-  val validationError: JsonValidationError = JsonValidationError("Invalid monetary amount: must be between 0 and 9999999999999.99 with up to 2 decimal places.")
+  val reads = MonetaryReads.monetaryValueReads
+  val validationError: JsonValidationError = JsonValidationError(
+    "Invalid monetary amount: must be between 0 and 9999999999999.99 with up to 2 decimal places."
+  )
 
   "MonetaryReads" - {
 
