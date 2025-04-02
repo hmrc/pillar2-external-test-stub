@@ -173,5 +173,34 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
       result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
     }
+
+    "should fail when a domestic-only organisation with obligationMTT = false has a positive total" - {
+      "total IIR liability is not nil" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(
+          liabilities = validLiabilityReturn.liabilities.copy(
+            totalLiability = BigDecimal(300),
+            totalLiabilityIIR = BigDecimal(100)
+          )
+        )
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityIIR))
+      }
+      "total UTPR liability is not nil" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(
+          liabilities = validLiabilityReturn.liabilities.copy(
+            totalLiability = BigDecimal(200),
+            totalLiabilityIIR = BigDecimal(0),
+            totalLiabilityUTPR = BigDecimal(100),
+            liableEntities = validLiabilityReturn.liabilities.liableEntities.map(entity => entity.copy(amountOwedIIR = BigDecimal(0)))
+          )
+        )
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityUTPR))
+      }
+    }
   }
 }
