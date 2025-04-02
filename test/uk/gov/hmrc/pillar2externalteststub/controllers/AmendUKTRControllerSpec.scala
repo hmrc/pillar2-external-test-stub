@@ -215,23 +215,25 @@ class AmendUKTRControllerSpec
         route(app, request).value shouldFailWith InvalidReturn
       }
 
-      "should return InvalidTotalLiability when amending with invalid amounts" in {
+      "should return ETMPBadRequest when amending with invalid amounts" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
-        val invalidAmountsBody = validRequestBody.deepMerge(
+        val invalidAmountsBody: JsValue = validRequestBody.deepMerge(
           Json.obj(
             "liabilities" -> Json.obj(
-              "totalLiability"    -> -500,
-              "totalLiabilityDTT" -> 10000000000000.99
+              "totalLiability"    -> -500.00,
+              "totalLiabilityDTT" -> 10000000000000.00
             )
           )
         )
 
-        route(app, createRequest(validPlrId, invalidAmountsBody)).value shouldFailWith InvalidTotalLiability
+        val request = createRequest(validPlrId, invalidAmountsBody)
+
+        route(app, request).value shouldFailWith ETMPBadRequest
       }
 
-      "should return InvalidTotalLiability when total liability does not match sum of components in amendment" in {
+      "should return InvalidTotalLiability when total liability does not match sum of components" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
@@ -244,6 +246,60 @@ class AmendUKTRControllerSpec
         )
 
         route(app, createRequest(validPlrId, mismatchedTotalBody)).value shouldFailWith InvalidTotalLiability
+      }
+
+      "should return ETMPBadRequest when any component is invalid (e.g., negative)" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+
+        val invalidComponentBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "totalLiabilityDTT"  -> 5000.99,
+              "totalLiabilityIIR"  -> -100.00, // This negative value should cause BadRequest
+              "totalLiabilityUTPR" -> 10000.99,
+              "totalLiability"     -> 15001.98 // Provide valid total
+            )
+          )
+        )
+
+        val request = createRequest(validPlrId, invalidComponentBody)
+
+        route(app, request).value shouldFailWith ETMPBadRequest
+      }
+
+      "should return ETMPBadRequest when any amount has incorrect scale" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+
+        val invalidScaleBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "totalLiability" -> 15001.987 // Too many decimal places
+            )
+          )
+        )
+        val request = createRequest(validPlrId, invalidScaleBody)
+
+        route(app, request).value shouldFailWith ETMPBadRequest
+      }
+
+      "should return ETMPBadRequest when any liable entity amount is invalid" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+        when(mockUKTRRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+
+        val invalidEntityAmountBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "liableEntities" -> Json.arr(
+                validLiableEntity.as[JsObject] ++ Json.obj("amountOwedDTT" -> -1.00) // Invalid amount in entity
+              )
+            )
+          )
+        )
+        val request = createRequest(validPlrId, invalidEntityAmountBody)
+
+        route(app, request).value shouldFailWith ETMPBadRequest
       }
 
       "should return InvalidReturn when amending with invalid ID type" in {

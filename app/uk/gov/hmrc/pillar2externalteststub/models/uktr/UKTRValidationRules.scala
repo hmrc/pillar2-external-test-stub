@@ -23,13 +23,6 @@ import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
 
 object UKTRValidationRules {
 
-  val boundaryUKTRAmount: BigDecimal = BigDecimal("9999999999999.99")
-
-  def isValidUKTRAmount(number: BigDecimal): Boolean =
-    number >= 0 &&
-      number <= boundaryUKTRAmount &&
-      number.scale <= 2
-
   // Common validation for obligationMTT - checks if domestic organisations can have obligationMTT set to true
   def obligationMTTRule[T <: UKTRSubmission](
     org: TestOrganisationWithId

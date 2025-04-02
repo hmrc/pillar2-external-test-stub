@@ -172,20 +172,20 @@ class SubmitUKTRControllerSpec
         status(result) mustBe FORBIDDEN
       }
 
-      "should return InvalidTotalLiability when submitting with invalid amounts" in {
+      "should return ETMPBadRequest when submitting with invalid amounts" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidAmountsBody: JsValue = validRequestBody.deepMerge(
           Json.obj(
             "liabilities" -> Json.obj(
-              "totalLiability"    -> -500,
-              "totalLiabilityDTT" -> 10000000000000.99
+              "totalLiability"    -> -500.00,
+              "totalLiabilityDTT" -> 10000000000000.00
             )
           )
         )
         val request = createRequest(validPlrId, invalidAmountsBody)
 
-        route(app, request).value shouldFailWith InvalidTotalLiability
+        route(app, request).value shouldFailWith ETMPBadRequest
       }
 
       "should return InvalidTotalLiability when total liability does not match sum of components" in {
@@ -203,7 +203,7 @@ class SubmitUKTRControllerSpec
         route(app, request).value shouldFailWith InvalidTotalLiability
       }
 
-      "should return InvalidTotalLiability when any component is invalid" in {
+      "should return ETMPBadRequest when any component is invalid (e.g., negative)" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidComponentBody = validRequestBody.deepMerge(
@@ -212,13 +212,45 @@ class SubmitUKTRControllerSpec
               "totalLiabilityDTT"  -> 5000.99,
               "totalLiabilityIIR"  -> -100.00,
               "totalLiabilityUTPR" -> 10000.99,
-              "totalLiability"     -> 15901.98 // Sum would be correct if IIR wasn't negative
+              "totalLiability"     -> 15001.98
             )
           )
         )
         val request = createRequest(validPlrId, invalidComponentBody)
 
-        route(app, request).value shouldFailWith InvalidTotalLiability
+        route(app, request).value shouldFailWith ETMPBadRequest
+      }
+
+      "should return ETMPBadRequest when any amount has incorrect scale" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidScaleBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "totalLiability" -> 15001.987
+            )
+          )
+        )
+        val request = createRequest(validPlrId, invalidScaleBody)
+
+        route(app, request).value shouldFailWith ETMPBadRequest
+      }
+
+      "should return ETMPBadRequest when any liable entity amount is invalid" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidEntityAmountBody = validRequestBody.deepMerge(
+          Json.obj(
+            "liabilities" -> Json.obj(
+              "liableEntities" -> Json.arr(
+                validLiableEntity.as[JsObject] ++ Json.obj("amountOwedDTT" -> -1.00)
+              )
+            )
+          )
+        )
+        val request = createRequest(validPlrId, invalidEntityAmountBody)
+
+        route(app, request).value shouldFailWith ETMPBadRequest
       }
 
       "should return ETMPBadRequest when UKTRSubmission is neither a UKTRNilReturn nor a UKTRLiabilityReturn" in {
