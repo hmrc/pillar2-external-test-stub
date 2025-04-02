@@ -80,8 +80,7 @@ class ObligationsAndSubmissionsController @Inject() (
         createAccountingPeriodDetails(
           testOrg.organisation.accountingPeriod.startDate,
           testOrg.organisation.accountingPeriod.endDate,
-          Seq.empty,
-          testOrg.organisation.orgDetails.domesticOnly
+          Seq.empty
         )
       )
     } else {
@@ -90,8 +89,7 @@ class ObligationsAndSubmissionsController @Inject() (
         createAccountingPeriodDetails(
           accountingPeriod.startDate,
           accountingPeriod.endDate,
-          submissions.map(toSubmission),
-          testOrg.organisation.orgDetails.domesticOnly
+          submissions.map(toSubmission)
         )
       }.toSeq
     }
@@ -116,16 +114,15 @@ class ObligationsAndSubmissionsController @Inject() (
     )
 
   private def createAccountingPeriodDetails(
-    startDate:      LocalDate,
-    endDate:        LocalDate,
-    submissions:    Seq[Submission],
-    isDomesticOnly: Boolean
+    startDate:   LocalDate,
+    endDate:     LocalDate,
+    submissions: Seq[Submission]
   ): AccountingPeriodDetails = {
     val dueDate  = endDate.plusMonths(15)
     val canAmend = !LocalDate.now().isAfter(dueDate)
 
     val p2TaxReturnSubmissions = submissions.filter(s => s.submissionType == UKTR || s.submissionType == BTN)
-    val girSubmissions         = submissions.filter(s => s.submissionType == BTN || s.submissionType == GIR || s.submissionType == ORN)
+    val girSubmissions         = submissions.filter(s => s.submissionType == GIR || s.submissionType == ORN)
 
     val domesticObligation = Seq(
       Obligation(
@@ -136,16 +133,14 @@ class ObligationsAndSubmissionsController @Inject() (
       )
     )
 
-    val obligations = if (!isDomesticOnly) {
+    val obligations = if (!p2TaxReturnSubmissions.exists(_.submissionType == BTN)) {
       domesticObligation :+ Obligation(
         obligationType = GlobeInformationReturn,
         status = if (girSubmissions.isEmpty) Open else Fulfilled,
         canAmend = canAmend,
         submissions = girSubmissions
       )
-    } else {
-      domesticObligation
-    }
+    } else domesticObligation
 
     AccountingPeriodDetails(
       startDate = startDate,

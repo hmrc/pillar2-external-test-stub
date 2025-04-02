@@ -140,11 +140,14 @@ class ObligationsAndSubmissionsControllerSpec
         val result = route(app, createRequest()).value
         status(result) mustBe OK
 
-        val jsonResponse = contentAsJson(result)
-        val obligations  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
+        val jsonResponse         = contentAsJson(result)
+        val obligations          = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
+        val firstOligationType   = obligations.head.obligationType
+        val secondObligationType = obligations(1).obligationType
 
-        obligations.size mustBe 1
-        obligations.head.obligationType mustBe Pillar2TaxReturn
+        obligations.size mustBe 2
+        firstOligationType mustBe Pillar2TaxReturn
+        secondObligationType mustBe GlobeInformationReturn
       }
 
       "should return OK with successful response for non-domestic organisation" in {
@@ -176,18 +179,17 @@ class ObligationsAndSubmissionsControllerSpec
         submissions.head.country.value mustBe "FR"
       }
 
-      "should handle BTN submission type" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+      "should remove GIR obligation if a BTN is submitted" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
         mockBySubmissionType(BTN)
 
         val result = route(app, createRequest()).value
         status(result) mustBe OK
 
-        val jsonResponse  = contentAsJson(result)
-        val p2Submission  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 0 \ "submissions").as[Seq[Submission]]
-        val girSubmission = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "submissions").as[Seq[Submission]]
-        p2Submission.head.submissionType mustBe BTN
-        girSubmission.head.submissionType mustBe BTN
+        val jsonResponse = contentAsJson(result)
+        val obligations  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
+
+        obligations.size mustBe 1
       }
 
       "should set canAmend to false when current date is after due date" in {
