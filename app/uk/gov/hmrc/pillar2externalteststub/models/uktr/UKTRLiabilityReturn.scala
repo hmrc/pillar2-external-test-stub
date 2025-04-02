@@ -44,7 +44,7 @@ object UKTRLiabilityReturn {
   private[uktr] val totalLiabilityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     val totalLiability = data.liabilities.totalLiabilityDTT + data.liabilities.totalLiabilityIIR + data.liabilities.totalLiabilityUTPR
 
-    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiability) && data.liabilities.totalLiability == totalLiability)
+    if (data.liabilities.totalLiability == totalLiability)
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -57,7 +57,7 @@ object UKTRLiabilityReturn {
       acc + entity.amountOwedDTT
     }
 
-    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityDTT) && data.liabilities.totalLiabilityDTT == totalDTTAmountOwed)
+    if (data.liabilities.totalLiabilityDTT == totalDTTAmountOwed)
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -72,7 +72,7 @@ object UKTRLiabilityReturn {
       acc + entity.amountOwedIIR
     }
 
-    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityIIR) && data.liabilities.totalLiabilityIIR == totalIIRAmountOwed)
+    if (data.liabilities.totalLiabilityIIR == totalIIRAmountOwed)
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -85,7 +85,7 @@ object UKTRLiabilityReturn {
       acc + entity.amountOwedUTPR
     }
 
-    if (UKTRValidationRules.isValidUKTRAmount(data.liabilities.totalLiabilityUTPR) && data.liabilities.totalLiabilityUTPR == totalUTPRAmountOwed)
+    if (data.liabilities.totalLiabilityUTPR == totalUTPRAmountOwed)
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -135,36 +135,6 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private[uktr] val amountOwedDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedDTT))) valid[UKTRLiabilityReturn](data)
-    else
-      invalid(
-        UKTRSubmissionError(
-          InvalidTotalLiabilityDTT
-        )
-      )
-  }
-
-  private[uktr] val amountOwedIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedIIR))) valid[UKTRLiabilityReturn](data)
-    else
-      invalid(
-        UKTRSubmissionError(
-          InvalidTotalLiabilityIIR
-        )
-      )
-  }
-
-  private[uktr] val amountOwedUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => UKTRValidationRules.isValidUKTRAmount(f.amountOwedUTPR))) valid[UKTRLiabilityReturn](data)
-    else
-      invalid(
-        UKTRSubmissionError(
-          InvalidTotalLiabilityUTPR
-        )
-      )
-  }
-
   def uktrSubmissionValidator(
     plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
@@ -182,10 +152,7 @@ object UKTRLiabilityReturn {
           totalLiabilityUTPRRule,
           ukChargeableEntityNameRule,
           idTypeRule,
-          idValueRule,
-          amountOwedDTTRule,
-          amountOwedIIRRule,
-          amountOwedUTPRRule
+          idValueRule
         )(FailFast)
       }
       .recover { case _: OrganisationNotFound =>

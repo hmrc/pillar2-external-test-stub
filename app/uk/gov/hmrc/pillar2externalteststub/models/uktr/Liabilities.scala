@@ -18,7 +18,8 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import enumeratum.EnumEntry.UpperSnakecase
 import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, OFormat, Reads}
+import uk.gov.hmrc.pillar2externalteststub.models.common.MonetaryReads
 
 sealed trait Liabilities
 
@@ -35,7 +36,9 @@ case class Liability(
 ) extends Liabilities
 
 object Liability {
-  implicit val liabilityDataFormat: OFormat[Liability] = Json.format[Liability]
+
+  implicit val monetaryReads: Reads[BigDecimal]  = MonetaryReads.monetaryValueReads
+  implicit val format:        OFormat[Liability] = Json.format[Liability]
 }
 
 case class LiabilityNilReturn(returnType: ReturnType) extends Liabilities
@@ -54,7 +57,8 @@ case class LiableEntity(
 )
 
 object LiableEntity {
-  implicit val format: OFormat[LiableEntity] = Json.format[LiableEntity]
+  implicit val monetaryReads: Reads[BigDecimal]     = MonetaryReads.monetaryValueReads
+  implicit val format:        OFormat[LiableEntity] = Json.format[LiableEntity]
 }
 
 sealed trait ReturnType extends EnumEntry with UpperSnakecase
