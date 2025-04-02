@@ -137,12 +137,14 @@ class ObligationsAndSubmissionsISpec
       accountingPeriodDetails.size shouldBe 1
       
       val obligations = (accountingPeriodDetails.head \ "obligations").as[Seq[JsValue]]
-      obligations.size shouldBe 1
-      
+      obligations.size shouldBe 2
+
       // Verify obligations for domestic organisation
       (obligations.head \ "obligationType").as[String] shouldBe "Pillar2TaxReturn"
+      (obligations(1)   \ "obligationType").as[String] shouldBe "GlobeInformationReturn"
       (obligations.head \ "status").as[String] shouldBe "Fulfilled"
-      
+      (obligations(1)   \ "status").as[String] shouldBe "Open"
+
       // Verify submissions
       val submissions = (obligations.head \ "submissions").as[Seq[JsValue]]
       submissions.size shouldBe 1
@@ -268,21 +270,15 @@ class ObligationsAndSubmissionsISpec
       
       val response = getObligationsAndSubmissions(nonDomesticOrganisation.pillar2Id)
       response.status shouldBe 200
-      
-      val json = Json.parse(response.body)
+
+      val json                    = Json.parse(response.body)
       val accountingPeriodDetails = (json \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
-      val obligations = (accountingPeriodDetails.head \ "obligations").as[Seq[JsValue]]
-      
-      // BTN should fulfill both P2 and GIR obligations
-      (obligations.head \ "status").as[String] shouldBe "Fulfilled"
-      (obligations(1) \ "status").as[String] shouldBe "Fulfilled"
-      
-      // Verify BTN appears in both obligation types
-      val p2Submissions = (obligations.head \ "submissions").as[Seq[JsValue]]
-      val girSubmissions = (obligations(1) \ "submissions").as[Seq[JsValue]]
-      
+      val obligations             = (accountingPeriodDetails.head \ "obligations").as[Seq[JsValue]]
+      val p2Submissions           = (obligations.head \ "submissions").as[Seq[JsValue]]
+
+      obligations.size                                   shouldBe 1
+      (obligations.head \ "status").as[String]           shouldBe "Fulfilled"
       (p2Submissions.head \ "submissionType").as[String] shouldBe "BTN"
-      (girSubmissions.head \ "submissionType").as[String] shouldBe "BTN"
     }
 
     "handle error cases correctly" in {
