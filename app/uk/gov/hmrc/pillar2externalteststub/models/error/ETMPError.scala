@@ -61,32 +61,32 @@ object ETMPError {
 
   case object InvalidDTTElection extends ETMPError {
     override val code:    String = "094"
-    override val message: String = "Invalid DTT election"
+    override val message: String = "Invalid DTT Election"
   }
 
   case object InvalidUTPRElection extends ETMPError {
     override val code:    String = "095"
-    override val message: String = "Invalid UTPR election"
+    override val message: String = "Invalid UTPR Election"
   }
 
   case object InvalidTotalLiability extends ETMPError {
     override val code:    String = "096"
-    override val message: String = "Invalid total liability"
+    override val message: String = "Invalid Total Liability"
   }
 
   case object InvalidTotalLiabilityIIR extends ETMPError {
     override val code:    String = "097"
-    override val message: String = "Invalid total liability IIR"
+    override val message: String = "Invalid Total Liability IIR"
   }
 
   case object InvalidTotalLiabilityDTT extends ETMPError {
     override val code:    String = "098"
-    override val message: String = "Invalid total liability DTT"
+    override val message: String = "Invalid Total Liability DTT"
   }
 
   case object InvalidTotalLiabilityUTPR extends ETMPError {
     override val code:    String = "099"
-    override val message: String = "Invalid total liability UTPR"
+    override val message: String = "Invalid Total Liability UTPR"
   }
 
   case object ETMPBadRequest extends ETMPError {
