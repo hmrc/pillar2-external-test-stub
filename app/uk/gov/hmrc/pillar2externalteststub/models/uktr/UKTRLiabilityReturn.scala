@@ -20,6 +20,7 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
@@ -33,9 +34,7 @@ case class UKTRLiabilityReturn(
   obligationMTT:        Boolean,
   electionUKGAAP:       Boolean,
   liabilities:          Liability
-) extends UKTRSubmission {
-  def isNilReturn: Boolean = false
-}
+) extends UKTRSubmission
 
 object UKTRLiabilityReturn {
 
@@ -67,12 +66,14 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private[uktr] val totalLiabilityIIRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+  private[uktr] def totalLiabilityIIRRule(org: TestOrganisationWithId): ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     val totalIIRAmountOwed = data.liabilities.liableEntities.foldLeft(BigDecimal(0)) { (acc, entity) =>
       acc + entity.amountOwedIIR
     }
+    val totalIIR                     = data.liabilities.totalLiabilityIIR
+    val notMTTLiableYetPositiveTotal = org.organisation.orgDetails.domesticOnly && !data.obligationMTT && totalIIR != 0
 
-    if (data.liabilities.totalLiabilityIIR == totalIIRAmountOwed)
+    if (!notMTTLiableYetPositiveTotal && totalIIR == totalIIRAmountOwed)
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -80,12 +81,14 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private[uktr] val totalLiabilityUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+  private[uktr] def totalLiabilityUTPRRule(org: TestOrganisationWithId): ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     val totalUTPRAmountOwed = data.liabilities.liableEntities.foldLeft(BigDecimal(0)) { (acc, entity) =>
       acc + entity.amountOwedUTPR
     }
+    val totalUTPR                    = data.liabilities.totalLiabilityUTPR
+    val notMTTLiableYetPositiveTotal = org.organisation.orgDetails.domesticOnly && !data.obligationMTT && totalUTPR != 0
 
-    if (data.liabilities.totalLiabilityUTPR == totalUTPRAmountOwed)
+    if (!notMTTLiableYetPositiveTotal && totalUTPR == totalUTPRAmountOwed)
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
@@ -148,8 +151,8 @@ object UKTRLiabilityReturn {
           liabilityEntityRule,
           totalLiabilityRule,
           totalLiabilityDTTRule,
-          totalLiabilityIIRRule,
-          totalLiabilityUTPRRule,
+          totalLiabilityIIRRule(org),
+          totalLiabilityUTPRRule(org),
           ukChargeableEntityNameRule,
           idTypeRule,
           idValueRule

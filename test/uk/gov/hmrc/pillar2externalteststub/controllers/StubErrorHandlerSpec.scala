@@ -138,7 +138,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "093"
-      (json \ "errors" \ "text").as[String] shouldBe "Invalid return"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid Return"
     }
 
     "handle InvalidDTTElection error" in {
@@ -146,7 +146,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "094"
-      (json \ "errors" \ "text").as[String] shouldBe "Invalid DTT election"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid DTT Election"
     }
 
     "handle InvalidUTPRElection error" in {
@@ -154,7 +154,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "095"
-      (json \ "errors" \ "text").as[String] shouldBe "Invalid UTPR election"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid UTPR Election"
     }
 
     "handle InvalidTotalLiability error" in {
@@ -162,7 +162,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "096"
-      (json \ "errors" \ "text").as[String] shouldBe "Invalid total liability"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid Total Liability"
     }
 
     "handle InvalidTotalLiabilityIIR error" in {
@@ -170,7 +170,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "097"
-      (json \ "errors" \ "text").as[String] shouldBe "Invalid total liability IIR"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid Total Liability IIR"
     }
 
     "handle InvalidTotalLiabilityDTT error" in {
@@ -178,7 +178,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "098"
-      (json \ "errors" \ "text").as[String] shouldBe "Invalid total liability DTT"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid Total Liability DTT"
     }
 
     "handle InvalidTotalLiabilityUTPR error" in {
@@ -186,7 +186,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "099"
-      (json \ "errors" \ "text").as[String] shouldBe "Invalid total liability UTPR"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid Total Liability UTPR"
     }
 
     "handle ETMPBadRequest error" in {
