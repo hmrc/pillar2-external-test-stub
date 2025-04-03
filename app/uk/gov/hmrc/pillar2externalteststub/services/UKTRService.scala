@@ -53,19 +53,20 @@ class UKTRService @Inject() (
     logger.info(s"Amending UKTR for pillar2Id: $pillar2Id")
     for {
       existingSubmission <- checkExistingSubmission(pillar2Id)
-      validator         <- getValidator(pillar2Id, request)
-      _                 <- validateRequest(validator, request)
-      _                 <- processSubmission(pillar2Id, request, isAmendment = true)
+      validator          <- getValidator(pillar2Id, request)
+      _                  <- validateRequest(validator, request)
+      _                  <- processSubmission(pillar2Id, request, isAmendment = true)
     } yield createResponse(request, existingSubmission.chargeReference)
   }
 
-  private def getValidator(pillar2Id: String, request: UKTRSubmission): Future[ValidationRule[UKTRSubmission]] = {
+  private def getValidator(pillar2Id: String, request: UKTRSubmission): Future[ValidationRule[UKTRSubmission]] =
     request match {
-      case _: UKTRLiabilityReturn => UKTRLiabilityReturn.uktrSubmissionValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
-      case _: UKTRNilReturn       => UKTRNilReturn.uktrNilReturnValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
-      case _                      => Future.failed(ETMPBadRequest)
+      case _: UKTRLiabilityReturn =>
+        UKTRLiabilityReturn.uktrSubmissionValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
+      case _: UKTRNilReturn =>
+        UKTRNilReturn.uktrNilReturnValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
+      case _ => Future.failed(ETMPBadRequest)
     }
-  }
 
   private def validateRequest(validator: ValidationRule[UKTRSubmission], request: UKTRSubmission): Future[Unit] =
     validator.validate(request) match {
@@ -80,7 +81,7 @@ class UKTRService @Inject() (
   private def checkExistingSubmission(pillar2Id: String): Future[UKTRMongoSubmission] =
     uktrRepository.findByPillar2Id(pillar2Id).flatMap {
       case Some(submission) => Future.successful(submission)
-      case None            => Future.failed(NoAssociatedDataFound)
+      case None             => Future.failed(NoAssociatedDataFound)
     }
 
   private def processSubmission(pillar2Id: String, request: UKTRSubmission, isAmendment: Boolean): Future[Unit] =
@@ -112,6 +113,6 @@ class UKTRService @Inject() (
   private def createResponse(request: UKTRSubmission, existingChargeRef: Option[String] = None): UKTRResponse = request match {
     case _: UKTRLiabilityReturn => successfulUKTRResponse(existingChargeRef)
     case _: UKTRNilReturn       => successfulNilReturnResponse
-    case _                      => throw ETMPBadRequest
+    case _ => throw ETMPBadRequest
   }
-} 
+}

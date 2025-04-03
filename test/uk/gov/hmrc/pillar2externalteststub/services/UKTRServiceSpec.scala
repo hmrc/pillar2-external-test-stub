@@ -57,9 +57,9 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
         val result = Await.result(service.submitUKTR(validPlrId, liabilitySubmission), 5.seconds)
         result match {
           case LiabilitySuccessResponse(success) =>
-            success.processingDate should not be empty
+            success.processingDate   should not be empty
             success.formBundleNumber should not be empty
-            success.chargeReference should not be empty
+            success.chargeReference  should not be empty
           case _ => fail("Expected LiabilitySuccessResponse")
         }
       }
@@ -75,7 +75,7 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
         val result = Await.result(service.submitUKTR(validPlrId, nilSubmission), 5.seconds)
         result match {
           case NilSuccessResponse(success) =>
-            success.processingDate should not be empty
+            success.processingDate   should not be empty
             success.formBundleNumber should not be empty
           case _ => fail("Expected NilSuccessResponse")
         }
@@ -105,8 +105,8 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
         val result = Await.result(service.amendUKTR(validPlrId, liabilitySubmission), 5.seconds)
         result match {
           case LiabilitySuccessResponse(success) =>
-            success.processingDate should not be empty
-            success.formBundleNumber should not be empty
+            success.processingDate    should not be empty
+            success.formBundleNumber  should not be empty
             success.chargeReference shouldBe "existing-ref"
           case _ => fail("Expected LiabilitySuccessResponse")
         }
@@ -135,7 +135,7 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
         val result = Await.result(service.amendUKTR(validPlrId, nilSubmission), 5.seconds)
         result match {
           case NilSuccessResponse(success) =>
-            success.processingDate should not be empty
+            success.processingDate   should not be empty
             success.formBundleNumber should not be empty
           case _ => fail("Expected NilSuccessResponse")
         }
@@ -245,4 +245,4 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
       }
     }
   }
-} 
+}

@@ -106,7 +106,7 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
         val json = contentAsJson(result)
         (json \ "success" \ "processingDate").asOpt[String].isDefined   shouldBe true
         (json \ "success" \ "formBundleNumber").asOpt[String].isDefined shouldBe true
-        (json \ "success" \ "chargeReference").as[String]              shouldBe "EXISTING-REF"
+        (json \ "success" \ "chargeReference").as[String]               shouldBe "EXISTING-REF"
       }
 
       "should return OK with success response for a valid nil return amendment" in {
@@ -144,4 +144,4 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
     FakeRequest(PUT, "/RESTAdapter/plr/uk-tax-return")
       .withHeaders("Content-Type" -> "application/json", "X-Pillar2-Id" -> pillar2Id, authHeader)
       .withBody(body)
-} 
+}
