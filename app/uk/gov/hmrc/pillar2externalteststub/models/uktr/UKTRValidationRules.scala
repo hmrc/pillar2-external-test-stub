@@ -29,7 +29,6 @@ object UKTRValidationRules {
   ): ValidationRule[T] =
     ValidationRule[T] { data =>
       if (data.obligationMTT && org.organisation.orgDetails.domesticOnly) {
-        println(s"obligationMTTRule invalid: data = $data, isDomestic = ${org.organisation.orgDetails.domesticOnly}")
         invalid(
           UKTRSubmissionError(
             InvalidReturn
@@ -46,7 +45,6 @@ object UKTRValidationRules {
       val isDomestic = org.organisation.orgDetails.domesticOnly
       (data.electionUKGAAP, isDomestic) match {
         case (true, false) =>
-          println(s"electionUKGAAPRule invalid: data = $data, isDomestic = $isDomestic")
           invalid(
             UKTRSubmissionError(
               InvalidReturn
