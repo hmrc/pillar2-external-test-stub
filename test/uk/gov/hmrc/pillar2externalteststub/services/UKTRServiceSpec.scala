@@ -26,16 +26,13 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.pillar2externalteststub.helpers.{TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, InvalidTotalLiability, NoAssociatedDataFound}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRLiabilityReturn
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRNilReturn
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 
 import java.time.Instant
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with UKTRDataFixture with TestOrgDataFixture {
@@ -48,7 +45,7 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
     "when submitting a return" - {
       "should successfully submit a liability return" in {
         when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-          .thenReturn(Future.successful(domesticOrganisation))
+          .thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.insert(any[UKTRLiabilityReturn], eqTo(validPlrId), any[Option[String]]))
           .thenReturn(Future.successful(new ObjectId()))
         when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId]))
@@ -92,7 +89,7 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
           submittedAt = Instant.now()
         )
         when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-          .thenReturn(Future.successful(domesticOrganisation))
+          .thenReturn(Future.successful(nonDomesticOrganisation))
 
         when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
           .thenReturn(Future.successful(Some(existingSubmission)))
@@ -187,7 +184,7 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
 
         "should fail when ukChargeableEntityName is invalid" in {
           when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(domesticOrganisation))
+            .thenReturn(Future.successful(nonDomesticOrganisation))
 
           val invalidSubmission = Json.fromJson[UKTRLiabilityReturn](invalidUkChargeableEntityNameRequestBody).get
 
@@ -197,7 +194,7 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
 
         "should fail when idType is invalid" in {
           when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(domesticOrganisation))
+            .thenReturn(Future.successful(nonDomesticOrganisation))
 
           val invalidSubmission = Json.fromJson[UKTRLiabilityReturn](invalidIdTypeRequestBody).get
 
@@ -207,7 +204,7 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
 
         "should fail when idValue is invalid" in {
           when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(domesticOrganisation))
+            .thenReturn(Future.successful(nonDomesticOrganisation))
 
           val invalidSubmission = Json.fromJson[UKTRLiabilityReturn](invalidIdValueLengthExceeds15RequestBody).get
 
