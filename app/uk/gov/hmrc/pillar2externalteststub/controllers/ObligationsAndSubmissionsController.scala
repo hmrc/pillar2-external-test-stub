@@ -133,7 +133,7 @@ class ObligationsAndSubmissionsController @Inject() (
       )
     )
 
-    val obligations = if (!p2TaxReturnSubmissions.exists(_.submissionType == BTN)) {
+    val obligations = if (!p2TaxReturnSubmissions.sortBy(_.receivedDate).reverse.headOption.exists(_.submissionType == BTN)) {
       domesticObligation :+ Obligation(
         obligationType = GlobeInformationReturn,
         status = if (girSubmissions.isEmpty) Open else Fulfilled,

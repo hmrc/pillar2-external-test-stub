@@ -179,17 +179,33 @@ class ObligationsAndSubmissionsControllerSpec
         submissions.head.country.value mustBe "FR"
       }
 
-      "should remove GIR obligation if a BTN is submitted" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
-        mockBySubmissionType(BTN)
+      "should conditionally show the GIR obligation" - {
+        "not show if the last submission is a BTN" in {
+          when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+          mockBySubmissionType(UKTR)
+          mockBySubmissionType(BTN)
 
-        val result = route(app, createRequest()).value
-        status(result) mustBe OK
+          val result = route(app, createRequest()).value
+          status(result) mustBe OK
 
-        val jsonResponse = contentAsJson(result)
-        val obligations  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
+          val jsonResponse = contentAsJson(result)
+          val obligations  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
 
-        obligations.size mustBe 1
+          obligations.size mustBe 1
+        }
+        "show if the last submission is not a BTN" in {
+          when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+          mockBySubmissionType(BTN)
+          mockBySubmissionType(UKTR)
+
+          val result = route(app, createRequest()).value
+          status(result) mustBe OK
+
+          val jsonResponse = contentAsJson(result)
+          val obligations  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
+
+          obligations.size mustBe 2
+        }
       }
 
       "should set canAmend to false when current date is after due date" in {
