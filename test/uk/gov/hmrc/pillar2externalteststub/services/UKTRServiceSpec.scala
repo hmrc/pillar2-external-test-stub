@@ -32,8 +32,8 @@ import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissio
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with UKTRDataFixture with TestOrgDataFixture {
 
