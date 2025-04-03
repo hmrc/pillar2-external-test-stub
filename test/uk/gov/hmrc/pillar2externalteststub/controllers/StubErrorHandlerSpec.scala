@@ -138,7 +138,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "093"
-      (json \ "errors" \ "text").as[String] shouldBe "Invalid return"
+      (json \ "errors" \ "text").as[String] shouldBe "Invalid Return"
     }
 
     "handle InvalidDTTElection error" in {

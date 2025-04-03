@@ -56,7 +56,7 @@ object ETMPError {
 
   case object InvalidReturn extends ETMPError {
     override val code:    String = "093"
-    override val message: String = "Invalid return"
+    override val message: String = "Invalid Return"
   }
 
   case object InvalidDTTElection extends ETMPError {
