@@ -45,6 +45,7 @@ class UKTRService @Inject() (
     for {
       validator <- getValidator(pillar2Id, request)
       _         <- validateRequest(validator, request)
+      _         <- validateNoExistingSubmission(pillar2Id)
       _         <- processSubmission(pillar2Id, request, isAmendment = false)
     } yield createResponse(request)
   }
@@ -52,7 +53,7 @@ class UKTRService @Inject() (
   def amendUKTR(pillar2Id: String, request: UKTRSubmission): Future[UKTRResponse] = {
     logger.info(s"Amending UKTR for pillar2Id: $pillar2Id")
     for {
-      existingSubmission <- checkExistingSubmission(pillar2Id)
+      existingSubmission <- getExistingSubmission(pillar2Id)
       validator          <- getValidator(pillar2Id, request)
       _                  <- validateRequest(validator, request)
       _                  <- processSubmission(pillar2Id, request, isAmendment = true)
@@ -78,7 +79,13 @@ class UKTRService @Inject() (
         }
     }
 
-  private def checkExistingSubmission(pillar2Id: String): Future[UKTRMongoSubmission] =
+  private def validateNoExistingSubmission(pillar2Id: String): Future[Unit] =
+    uktrRepository.findByPillar2Id(pillar2Id).flatMap {
+      case Some(_) => Future.failed(TaxObligationAlreadyFulfilled)
+      case None    => Future.successful(())
+    }
+
+  private def getExistingSubmission(pillar2Id: String): Future[UKTRMongoSubmission] =
     uktrRepository.findByPillar2Id(pillar2Id).flatMap {
       case Some(submission) => Future.successful(submission)
       case None             => Future.failed(NoAssociatedDataFound)

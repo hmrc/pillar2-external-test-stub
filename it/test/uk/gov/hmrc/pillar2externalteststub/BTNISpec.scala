@@ -30,14 +30,16 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, TestOrgDataFixture}
+import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, ObligationsAndSubmissionsDataFixture, TestOrgDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.btn.mongo.BTNSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.BTNSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time.LocalDate
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
 
 class BTNISpec
     extends AnyWordSpec
@@ -48,15 +50,17 @@ class BTNISpec
     with DefaultPlayMongoRepositorySupport[BTNSubmission]
     with BeforeAndAfterEach
     with BTNDataFixture
-    with TestOrgDataFixture {
+    with TestOrgDataFixture
+    with ObligationsAndSubmissionsDataFixture {
 
   override protected val databaseName: String = "test-btn-integration"
 
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
-  override protected val repository: BTNSubmissionRepository = app.injector.instanceOf[BTNSubmissionRepository]
-  implicit val ec:                   ExecutionContext        = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier           = HeaderCarrier()
+  override protected val repository: BTNSubmissionRepository             = app.injector.instanceOf[BTNSubmissionRepository]
+  private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
+  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  implicit val hc: HeaderCarrier    = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -91,6 +95,8 @@ class BTNISpec
   override protected def prepareDatabase(): Unit = {
     repository.collection.drop().toFuture().futureValue
     repository.collection.createIndexes(repository.indexes).toFuture().futureValue
+    oasRepository.collection.drop().toFuture().futureValue
+    oasRepository.collection.createIndexes(oasRepository.indexes).toFuture().futureValue
     ()
   }
 
@@ -109,6 +115,27 @@ class BTNISpec
       submission.accountingPeriodTo   shouldBe validBTNRequest.accountingPeriodTo
     }
 
+    "fail with TaxObligationAlreadyFulfilled when submitting twice in a row" in {
+      when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+      // First submission should succeed
+      val firstResponse = submitBTN(validPlrId, validBTNRequest)
+      firstResponse.status shouldBe 201
+
+      // Second submission should fail with TaxObligationAlreadyFulfilled
+      val secondResponse = submitBTN(validPlrId, validBTNRequest)
+      secondResponse.status shouldBe 422
+
+      // Verify the error code
+      val json = Json.parse(secondResponse.body)
+      (json \ "errors" \ "code").as[String] shouldBe "044"
+      (json \ "errors" \ "text").as[String] shouldBe "Tax obligation already fulfilled"
+
+      // Verify only one submission exists
+      val submissions = repository.findByPillar2Id(validPlrId).futureValue
+      submissions.size shouldBe 1
+    }
+
     "support only one accountingPeriod per Pillar2 ID" in {
       submitBTN(validPlrId, validBTNRequest).status shouldBe 201
 
@@ -119,7 +146,7 @@ class BTNISpec
       submitBTN(validPlrId, secondRequest).status shouldBe 422
 
       val submissions = repository.findByPillar2Id(validPlrId).futureValue
-      submissions.size                      shouldBe 1
+      submissions.size shouldBe 1
     }
 
     "handle invalid requests appropriately" in {
