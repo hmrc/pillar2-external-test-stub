@@ -71,4 +71,4 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     submissionType = BTN,
     submittedAt = Instant.now()
   )
-} 
+}
