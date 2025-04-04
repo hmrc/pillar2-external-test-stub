@@ -21,7 +21,9 @@ import play.api.Logging
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNValidationError
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNValidator
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{DuplicateSubmission, ETMPInternalServerError}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.ETMPInternalServerError
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType.BTN
 import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
 
@@ -59,16 +61,20 @@ class BTNService @Inject() (
     }
 
   private def checkForExistingSubmission(pillar2Id: String, request: BTNRequest): Future[Unit] =
-    btnRepository.findByPillar2Id(pillar2Id).flatMap { submissions =>
-      if (
-        submissions.exists(submission =>
-          submission.accountingPeriodFrom == request.accountingPeriodFrom &&
-            submission.accountingPeriodTo == request.accountingPeriodTo
+    oasRepository.findByPillar2Id(pillar2Id, request.accountingPeriodFrom, request.accountingPeriodTo).map { obligationsAndSubmissions =>
+      val latestSubmissionInRequestPeriod = obligationsAndSubmissions
+        .filter(submission =>
+          submission.accountingPeriod.startDate == request.accountingPeriodFrom &&
+            submission.accountingPeriod.endDate == request.accountingPeriodTo
         )
-      ) {
-        Future.failed(DuplicateSubmission)
-      } else {
-        Future.successful(())
+        .sortBy(_.submittedAt)
+        .lastOption
+
+      latestSubmissionInRequestPeriod match {
+        case Some(submission) if submission.submissionType == BTN =>
+          throw TaxObligationAlreadyFulfilled
+        case _ =>
+          ()
       }
     }
 }
