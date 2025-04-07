@@ -130,7 +130,7 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
       (json \ "errors" \ "code").as[String] shouldBe "044"
-      (json \ "errors" \ "text").as[String] shouldBe "Tax obligation already Fulfilled"
+      (json \ "errors" \ "text").as[String] shouldBe "Tax obligation already fulfilled"
     }
 
     "handle IdMissingOrInvalid error" in {

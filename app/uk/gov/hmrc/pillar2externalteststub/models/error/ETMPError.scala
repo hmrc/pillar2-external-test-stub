@@ -46,7 +46,7 @@ object ETMPError {
 
   case object TaxObligationAlreadyFulfilled extends ETMPError {
     override val code:    String = "044"
-    override val message: String = "Tax obligation already Fulfilled"
+    override val message: String = "Tax obligation already fulfilled"
   }
 
   case object IdMissingOrInvalid extends ETMPError {
