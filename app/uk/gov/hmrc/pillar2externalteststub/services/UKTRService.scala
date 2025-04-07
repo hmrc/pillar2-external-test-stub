@@ -88,7 +88,7 @@ class UKTRService @Inject() (
   private def getExistingSubmission(pillar2Id: String): Future[UKTRMongoSubmission] =
     uktrRepository.findByPillar2Id(pillar2Id).flatMap {
       case Some(submission) => Future.successful(submission)
-      case None             => Future.failed(NoAssociatedDataFound)
+      case None             => Future.failed(NoDataFound)
     }
 
   private def processSubmission(pillar2Id: String, request: UKTRSubmission, isAmendment: Boolean): Future[Unit] =

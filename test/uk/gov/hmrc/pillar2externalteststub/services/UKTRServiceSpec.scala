@@ -27,6 +27,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDat
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, InvalidTotalLiability, NoAssociatedDataFound}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, InvalidTotalLiability, NoDataFound}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
@@ -160,7 +161,7 @@ class UKTRServiceSpec
           .thenReturn(Future.successful(None))
 
         val result = service.amendUKTR(validPlrId, liabilitySubmission)
-        result shouldFailWith NoAssociatedDataFound
+        result shouldFailWith NoDataFound
       }
     }
 

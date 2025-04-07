@@ -32,7 +32,7 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
 import uk.gov.hmrc.pillar2externalteststub.helpers.{TestOrgDataFixture, UKTRDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoAssociatedDataFound, RequestCouldNotBeProcessed}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GlobeInformationReturn, Pillar2TaxReturn}
@@ -263,7 +263,7 @@ class ObligationsAndSubmissionsControllerSpec
       "should return NoAssociatedDataFound when organisation not found" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.failed(OrganisationNotFound(validPlrId)))
 
-        route(app, createRequest()).value shouldFailWith NoAssociatedDataFound
+        route(app, createRequest()).value shouldFailWith NoDataFound
       }
 
       "should return RequestCouldNotBeProcessed for invalid date format" in {

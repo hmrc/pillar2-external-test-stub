@@ -39,14 +39,14 @@ object ETMPError {
     override val message: String = "Business Partner does not have an Active Subscription for this Regime"
   }
 
-  case object NoAssociatedDataFound extends ETMPError {
-    override val code:    String = "025"
-    override val message: String = "No associated data found"
+  case object NoDataFound extends ETMPError {
+    override val code:    String = "014"
+    override val message: String = "No data found"
   }
 
   case object TaxObligationAlreadyFulfilled extends ETMPError {
     override val code:    String = "044"
-    override val message: String = "Tax obligation already fulfilled"
+    override val message: String = "Tax obligation already Fulfilled"
   }
 
   case object IdMissingOrInvalid extends ETMPError {
