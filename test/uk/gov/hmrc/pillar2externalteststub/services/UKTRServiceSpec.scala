@@ -153,7 +153,7 @@ class UKTRServiceSpec
         }
       }
 
-      "should fail with NoAssociatedDataFound when no existing submission is found" in {
+      "should fail with NoDataFound when no existing submission is found" in {
         when(mockOrgService.getOrganisation(eqTo(validPlrId)))
           .thenReturn(Future.successful(domesticOrganisation))
 

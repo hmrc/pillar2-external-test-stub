@@ -260,7 +260,7 @@ class ObligationsAndSubmissionsControllerSpec
         (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "status").as[ObligationStatus] mustBe Open
       }
 
-      "should return NoAssociatedDataFound when organisation not found" in {
+      "should return NoDataFound when organisation not found" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.failed(OrganisationNotFound(validPlrId)))
 
         route(app, createRequest()).value shouldFailWith NoDataFound
