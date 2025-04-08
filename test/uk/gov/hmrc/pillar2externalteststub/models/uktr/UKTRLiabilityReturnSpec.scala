@@ -187,6 +187,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
         result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityIIR))
       }
+
       "total UTPR liability is not nil" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
 
@@ -200,6 +201,45 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
         val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
         result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityUTPR))
+      }
+    }
+
+    "should fail validation when election DTT data is invalid" - {
+      "opted for a single member yet multiple sub-groups were provided" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupDTT = 2))
+
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
+      }
+
+      "did not opted for a single member yet one sub-group was provided" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(electionDTTSingleMember = false))
+
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
+      }
+
+      "invalid number of sub-groups" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupDTT = 0))
+
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
+      }
+
+      "number of sub-groups does not match liabile entities with positive amountOwedDTT" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidReturn =
+          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(electionDTTSingleMember = false, numberSubGroupDTT = 2))
+
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
       }
     }
   }
