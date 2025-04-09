@@ -18,8 +18,8 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 
 import org.bson.types.ObjectId
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.{ReturnType, UKTRSubmission}
 
 import java.time.Instant
 import scala.util.matching.Regex
@@ -473,5 +473,89 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     chargeReference = Some(chargeReference),
     data = Json.fromJson[UKTRSubmission](validRequestBody).get,
     submittedAt = Instant.now()
+  )
+
+  val correctNilReturnJson: JsObject = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "returnType" -> ReturnType.NIL_RETURN.toString
+    )
+  )
+
+  val invalidAccountingPeriodJson: JsObject = Json.obj(
+    "accountingPeriodFrom" -> "2023-01-01",
+    "accountingPeriodTo"   -> "2023-12-31",
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> false,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 4,
+      "numberSubGroupUTPR"       -> 5,
+      "totalLiability"           -> 10000.99,
+      "totalLiabilityDTT"        -> 5000.99,
+      "totalLiabilityIIR"        -> 4000,
+      "totalLiabilityUTPR"       -> 10000.99,
+      "liableEntities"           -> Json.arr(validLiableEntity)
+    )
+  )
+
+  val emptyLiableEntitiesJson: JsObject = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> false,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 4,
+      "numberSubGroupUTPR"       -> 5,
+      "totalLiability"           -> 10000.99,
+      "totalLiabilityDTT"        -> 5000.99,
+      "totalLiabilityIIR"        -> 4000,
+      "totalLiabilityUTPR"       -> 10000.99,
+      "liableEntities"           -> Json.arr()
+    )
+  )
+
+  val invalidAmountsJson: JsObject = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> false,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 4,
+      "numberSubGroupUTPR"       -> 5,
+      "totalLiability"           -> -500,
+      "totalLiabilityDTT"        -> 10000000000000.99,
+      "totalLiabilityIIR"        -> 4000,
+      "totalLiabilityUTPR"       -> 10000.99,
+      "liableEntities"           -> Json.arr(validLiableEntity)
+    )
+  )
+
+  val invalidIdTypeJson: JsObject = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> false,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 4,
+      "numberSubGroupUTPR"       -> 5,
+      "totalLiability"           -> 10000.99,
+      "totalLiabilityDTT"        -> 5000.99,
+      "totalLiabilityIIR"        -> 4000,
+      "totalLiabilityUTPR"       -> 10000.99,
+      "liableEntities" -> Json.arr(
+        validLiableEntity.as[JsObject] ++ Json.obj("idType" -> "INVALID")
+      )
+    )
   )
 }

@@ -29,12 +29,12 @@ import uk.gov.hmrc.http.SessionKeys.authToken
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
-import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository, UKTRSubmissionRepository}
+import uk.gov.hmrc.pillar2externalteststub.repositories.{OrganisationRepository, UKTRSubmissionRepository, ObligationsAndSubmissionsRepository}
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
@@ -48,13 +48,15 @@ class UKTRSubmissionISpec
     with GuiceOneServerPerSuite
     with DefaultPlayMongoRepositorySupport[UKTRMongoSubmission]
     with UKTRDataFixture
-    with TestOrgDataFixture {
+    with TestOrgDataFixture
+    with ObligationsAndSubmissionsDataFixture {
 
   override protected val databaseName: String = "test-uktr-submission-integration"
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: UKTRSubmissionRepository = app.injector.instanceOf[UKTRSubmissionRepository]
   private val orgRepository: OrganisationRepository = app.injector.instanceOf[OrganisationRepository]
+  private val oasRepository: ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
   implicit val ec:                   ExecutionContext         = app.injector.instanceOf[ExecutionContext]
   implicit val hc:                   HeaderCarrier            = HeaderCarrier()
 
@@ -79,91 +81,6 @@ class UKTRSubmissionISpec
   private val invalidOrgWithId = TestOrganisationWithId(
     pillar2Id = invalidPlrId,
     organisation = testOrg
-  )
-
-
-  private val correctNilReturnJson = Json.obj(
-    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
-    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
-    "obligationMTT"        -> false,
-    "electionUKGAAP"       -> false,
-    "liabilities"          -> Json.obj(
-      "returnType" -> ReturnType.NIL_RETURN.toString
-    )
-  )
-
-  private val invalidAccountingPeriodJson = Json.obj(
-    "accountingPeriodFrom" -> "2023-01-01",
-    "accountingPeriodTo"   -> "2023-12-31",
-    "obligationMTT"        -> false,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "electionDTTSingleMember"  -> false,
-      "electionUTPRSingleMember" -> false,
-      "numberSubGroupDTT"        -> 4,
-      "numberSubGroupUTPR"       -> 5,
-      "totalLiability"           -> 10000.99,
-      "totalLiabilityDTT"        -> 5000.99,
-      "totalLiabilityIIR"        -> 4000,
-      "totalLiabilityUTPR"       -> 10000.99,
-      "liableEntities"           -> Json.arr(validLiableEntity)
-    )
-  )
-
-  private val emptyLiableEntitiesJson = Json.obj(
-    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
-    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
-    "obligationMTT"        -> false,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "electionDTTSingleMember"  -> false,
-      "electionUTPRSingleMember" -> false,
-      "numberSubGroupDTT"        -> 4,
-      "numberSubGroupUTPR"       -> 5,
-      "totalLiability"           -> 10000.99,
-      "totalLiabilityDTT"        -> 5000.99,
-      "totalLiabilityIIR"        -> 4000,
-      "totalLiabilityUTPR"       -> 10000.99,
-      "liableEntities"           -> Json.arr()
-    )
-  )
-
-  private val invalidAmountsJson = Json.obj(
-    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
-    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
-    "obligationMTT"        -> false,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "electionDTTSingleMember"  -> false,
-      "electionUTPRSingleMember" -> false,
-      "numberSubGroupDTT"        -> 4,
-      "numberSubGroupUTPR"       -> 5,
-      "totalLiability"           -> -500,
-      "totalLiabilityDTT"        -> 10000000000000.99,
-      "totalLiabilityIIR"        -> 4000,
-      "totalLiabilityUTPR"       -> 10000.99,
-      "liableEntities"           -> Json.arr(validLiableEntity)
-    )
-  )
-
-  private val invalidIdTypeJson = Json.obj(
-    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
-    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
-    "obligationMTT"        -> false,
-    "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
-      "electionDTTSingleMember"  -> false,
-      "electionUTPRSingleMember" -> false,
-      "numberSubGroupDTT"        -> 4,
-      "numberSubGroupUTPR"       -> 5,
-      "totalLiability"           -> 10000.99,
-      "totalLiabilityDTT"        -> 5000.99,
-      "totalLiabilityIIR"        -> 4000,
-      "totalLiabilityUTPR"       -> 10000.99,
-      "liableEntities"           -> Json.arr(
-        validLiableEntity.as[JsObject] ++ Json.obj("idType" -> "INVALID")
-      )
-    )
   )
 
   override def fakeApplication(): Application =
@@ -273,10 +190,12 @@ class UKTRSubmissionISpec
 
     repository.collection.drop()
     orgRepository.collection.drop()
+    oasRepository.collection.drop()
     
 
     orgRepository.ensureIndexes().futureValue
     repository.ensureIndexes().futureValue
+    oasRepository.ensureIndexes().futureValue
     
   
     setupTestOrganisations()
@@ -321,6 +240,20 @@ class UKTRSubmissionISpec
         (response.json \ "errors" \ "code").as[String] shouldBe "089"
         (response.json \ "errors" \ "text").as[String] shouldBe "ID number missing or invalid"
       }
+      
+      "fail with TaxObligationAlreadyFulfilled when submitting twice in a row" in {
+        val firstResponse = submitUKTR(liabilitySubmission, validPlrId)
+        firstResponse.status shouldBe CREATED
+        
+        val secondResponse = submitUKTR(liabilitySubmission, validPlrId)
+        secondResponse.status shouldBe UNPROCESSABLE_ENTITY
+        
+        (secondResponse.json \ "errors" \ "code").as[String] shouldBe "044"
+        (secondResponse.json \ "errors" \ "text").as[String] shouldBe "Tax obligation already fulfilled"
+        
+        val submissions = repository.findByPillar2Id(validPlrId).futureValue
+        submissions.size shouldBe 1
+      }
     }
 
     "handle nil returns" should {
@@ -340,6 +273,20 @@ class UKTRSubmissionISpec
     
         val response = amendNilReturn(validPlrId)
         response.status shouldBe OK
+      }
+      
+      "fail with TaxObligationAlreadyFulfilled when submitting twice in a row" in {
+        val firstResponse = submitNilReturn(validPlrId)
+        firstResponse.status shouldBe CREATED
+        
+        val secondResponse = submitNilReturn(validPlrId)
+        secondResponse.status shouldBe UNPROCESSABLE_ENTITY
+        
+        (secondResponse.json \ "errors" \ "code").as[String] shouldBe "044"
+        (secondResponse.json \ "errors" \ "text").as[String] shouldBe "Tax obligation already fulfilled"
+        
+        val submissions = repository.findByPillar2Id(validPlrId).futureValue
+        submissions.size shouldBe 1
       }
     }
 

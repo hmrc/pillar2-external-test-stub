@@ -23,8 +23,9 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
-import uk.gov.hmrc.pillar2externalteststub.helpers.{TestOrgDataFixture, UKTRDataFixture}
+import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, InvalidTotalLiability, NoAssociatedDataFound}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
@@ -35,7 +36,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with UKTRDataFixture with TestOrgDataFixture {
+class UKTRServiceSpec
+    extends AnyFreeSpec
+    with Matchers
+    with MockitoSugar
+    with UKTRDataFixture
+    with TestOrgDataFixture
+    with ObligationsAndSubmissionsDataFixture {
 
   private val mockUKTRRepository = mock[UKTRSubmissionRepository]
   private val mockOASRepository  = mock[ObligationsAndSubmissionsRepository]
@@ -46,6 +53,8 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
       "should successfully submit a liability return" in {
         when(mockOrgService.getOrganisation(eqTo(validPlrId)))
           .thenReturn(Future.successful(nonDomesticOrganisation))
+        when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
+          .thenReturn(Future.successful(None))
         when(mockUKTRRepository.insert(any[UKTRLiabilityReturn], eqTo(validPlrId), any[Option[String]]))
           .thenReturn(Future.successful(new ObjectId()))
         when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId]))
@@ -64,6 +73,8 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
       "should successfully submit a nil return" in {
         when(mockOrgService.getOrganisation(eqTo(validPlrId)))
           .thenReturn(Future.successful(domesticOrganisation))
+        when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
+          .thenReturn(Future.successful(None))
         when(mockUKTRRepository.insert(any[UKTRNilReturn], eqTo(validPlrId), any[Option[String]]))
           .thenReturn(Future.successful(new ObjectId()))
         when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId]))
@@ -77,25 +88,28 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
           case _ => fail("Expected NilSuccessResponse")
         }
       }
+
+      "should fail with TaxObligationAlreadyFulfilled when submitting twice in a row" in {
+        when(mockOrgService.getOrganisation(eqTo(validPlrId)))
+          .thenReturn(Future.successful(nonDomesticOrganisation))
+        when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
+          .thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+
+        val result = service.submitUKTR(validPlrId, liabilitySubmission)
+        result shouldFailWith TaxObligationAlreadyFulfilled
+      }
     }
 
     "when amending a return" - {
       "should successfully amend a liability return" in {
-        val existingSubmission = UKTRMongoSubmission(
-          _id = new ObjectId(),
-          pillar2Id = validPlrId,
-          chargeReference = Some("existing-ref"),
-          data = liabilitySubmission,
-          submittedAt = Instant.now()
-        )
         when(mockOrgService.getOrganisation(eqTo(validPlrId)))
           .thenReturn(Future.successful(nonDomesticOrganisation))
 
         when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
-          .thenReturn(Future.successful(Some(existingSubmission)))
+          .thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
         when(mockUKTRRepository.update(any[UKTRLiabilityReturn], eqTo(validPlrId)))
-          .thenReturn(Future.successful((new ObjectId(), Some("existing-ref"))))
+          .thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
         when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId]))
           .thenReturn(Future.successful(true))
 
@@ -104,7 +118,7 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
           case LiabilitySuccessResponse(success) =>
             success.processingDate    should not be empty
             success.formBundleNumber  should not be empty
-            success.chargeReference shouldBe "existing-ref"
+            success.chargeReference shouldBe chargeReference
           case _ => fail("Expected LiabilitySuccessResponse")
         }
       }
