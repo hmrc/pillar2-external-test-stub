@@ -244,5 +244,44 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
       }
     }
+
+    "should fail validation when election UTPR data is invalid" - {
+      "opted for a single member yet multiple sub-groups were provided" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupUTPR = 2))
+
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
+      }
+
+      "did not opted for a single member yet one sub-group was provided" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(electionUTPRSingleMember = false))
+
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
+      }
+
+      "invalid number of sub-groups" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupUTPR = 0))
+
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
+      }
+
+      "number of sub-groups does not match liabile entities with positive amountOwedUTPR" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val invalidReturn =
+          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(electionUTPRSingleMember = false, numberSubGroupUTPR = 2))
+
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
+      }
+    }
   }
 }

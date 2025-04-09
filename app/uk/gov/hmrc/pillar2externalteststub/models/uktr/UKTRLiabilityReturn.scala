@@ -120,6 +120,18 @@ object UKTRLiabilityReturn {
     else invalid(UKTRSubmissionError(InvalidDTTElection))
   }
 
+  private[uktr] val electionUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+    val isUTPRSingleMember             = data.liabilities.electionUTPRSingleMember
+    val subGroupUTPRCount              = data.liabilities.numberSubGroupUTPR
+    val positiveAmountOwedUTPREntities = data.liabilities.liableEntities.count(_.amountOwedUTPR > 0)
+
+    if (
+      (isUTPRSingleMember && subGroupUTPRCount == 1) || (!isUTPRSingleMember && subGroupUTPRCount > 1) &&
+      subGroupUTPRCount == positiveAmountOwedUTPREntities
+    ) valid[UKTRLiabilityReturn](data)
+    else invalid(UKTRSubmissionError(InvalidUTPRElection))
+  }
+
   private[uktr] val ukChargeableEntityNameRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$"))) valid[UKTRLiabilityReturn](data)
     else
@@ -161,6 +173,7 @@ object UKTRLiabilityReturn {
           UKTRValidationRules.electionUKGAAPRule[UKTRLiabilityReturn](org),
           BaseSubmissionValidationRules.accountingPeriodMatchesOrgRule[UKTRLiabilityReturn](org, UKTRSubmissionError(InvalidReturn)),
           electionDTTRule,
+          electionUTPRRule,
           liabilityEntityRule,
           totalLiabilityRule,
           totalLiabilityDTTRule,
