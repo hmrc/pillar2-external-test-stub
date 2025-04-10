@@ -174,6 +174,10 @@ class UKTRServiceSpec extends AnyFreeSpec with Matchers with MockitoSugar with U
           val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
           val invalidSubmission = liabilityReturn.copy(
             liabilities = liabilityReturn.liabilities.copy(
+              electionDTTSingleMember = false,
+              electionUTPRSingleMember = false,
+              numberSubGroupDTT = 0,
+              numberSubGroupUTPR = 0,
               liableEntities = Seq.empty
             )
           )
