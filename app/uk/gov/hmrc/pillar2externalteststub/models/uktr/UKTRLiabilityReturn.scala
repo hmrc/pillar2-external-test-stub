@@ -114,7 +114,7 @@ object UKTRLiabilityReturn {
     val positiveAmountOwedDTTEntities = data.liabilities.liableEntities.count(_.amountOwedDTT > 0)
 
     if (
-      (isDTTSingleMember && subGroupDTTCount == 1) || (!isDTTSingleMember && subGroupDTTCount > 1) &&
+      ((isDTTSingleMember && subGroupDTTCount > 0) || (!isDTTSingleMember && subGroupDTTCount >= 0)) &&
       subGroupDTTCount == positiveAmountOwedDTTEntities
     ) valid[UKTRLiabilityReturn](data)
     else invalid(UKTRSubmissionError(InvalidDTTElection))
@@ -126,7 +126,7 @@ object UKTRLiabilityReturn {
     val positiveAmountOwedUTPREntities = data.liabilities.liableEntities.count(_.amountOwedUTPR > 0)
 
     if (
-      (isUTPRSingleMember && subGroupUTPRCount == 1) || (!isUTPRSingleMember && subGroupUTPRCount > 1) &&
+      ((isUTPRSingleMember && subGroupUTPRCount > 0) || (!isUTPRSingleMember && subGroupUTPRCount >= 0)) &&
       subGroupUTPRCount == positiveAmountOwedUTPREntities
     ) valid[UKTRLiabilityReturn](data)
     else invalid(UKTRSubmissionError(InvalidUTPRElection))

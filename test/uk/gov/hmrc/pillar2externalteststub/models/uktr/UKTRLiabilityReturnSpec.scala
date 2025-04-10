@@ -140,6 +140,10 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     "should fail validation when liableEntities is empty" in {
       val invalidReturn = validLiabilityReturn.copy(
         liabilities = validLiabilityReturn.liabilities.copy(
+          electionDTTSingleMember = false,
+          electionUTPRSingleMember = false,
+          numberSubGroupDTT = 0,
+          numberSubGroupUTPR = 0,
           liableEntities = Seq.empty
         )
       )
@@ -208,25 +212,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       def result(implicit invalidReturn: UKTRLiabilityReturn): ValidationResult[UKTRLiabilityReturn] =
         Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
 
-      "opted for a single member yet multiple sub-groups were provided" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-
-        implicit val invalidReturn: UKTRLiabilityReturn =
-          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupDTT = 2))
-
-        result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
-      }
-
-      "did not opted for a single member yet one sub-group was provided" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-
-        implicit val invalidReturn: UKTRLiabilityReturn =
-          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(electionDTTSingleMember = false))
-
-        result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
-      }
-
-      "invalid number of sub-groups" in {
+      "electionDTTSingleMember = true yet numberSubGroupDTT = 0" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         implicit val invalidReturn: UKTRLiabilityReturn =
@@ -235,30 +221,30 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
       }
 
+      "invalid number of sub-groups" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        implicit val invalidReturn: UKTRLiabilityReturn =
+          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupDTT = -1))
+
+        result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
+      }
+
       "number of sub-groups does not match liabile entities with positive amountOwedDTT" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         implicit val invalidReturn: UKTRLiabilityReturn =
-          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(electionDTTSingleMember = false, numberSubGroupDTT = 2))
+          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupDTT = 2))
 
         result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
       }
     }
 
     "should fail validation when election UTPR data is invalid" - {
-      "opted for a single member yet multiple sub-groups were provided" in {
+      "electionUTPRSingleMember = true yet numberSubGroupUTPR = 0" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
-        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupUTPR = 2))
-
-        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-        result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
-      }
-
-      "did not opted for a single member yet one sub-group was provided" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-
-        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(electionUTPRSingleMember = false))
+        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupUTPR = 0))
 
         val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
         result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
@@ -267,7 +253,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       "invalid number of sub-groups" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
-        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupUTPR = 0))
+        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupUTPR = -1))
 
         val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
         result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
@@ -277,7 +263,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidReturn =
-          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(electionUTPRSingleMember = false, numberSubGroupUTPR = 2))
+          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupUTPR = 2))
 
         val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
         result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
