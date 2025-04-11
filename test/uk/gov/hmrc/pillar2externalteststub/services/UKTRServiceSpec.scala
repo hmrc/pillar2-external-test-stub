@@ -25,9 +25,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, InvalidTotalLiability, NoAssociatedDataFound}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, InvalidTotalLiability, NoDataFound}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, InvalidTotalLiability, NoDataFound, TaxObligationAlreadyFulfilled}
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
