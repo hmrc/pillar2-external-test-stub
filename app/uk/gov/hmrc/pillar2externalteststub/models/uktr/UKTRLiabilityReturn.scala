@@ -114,10 +114,22 @@ object UKTRLiabilityReturn {
     val positiveAmountOwedDTTEntities = data.liabilities.liableEntities.count(_.amountOwedDTT > 0)
 
     if (
-      (isDTTSingleMember && subGroupDTTCount == 1) || (!isDTTSingleMember && subGroupDTTCount > 1) &&
-      subGroupDTTCount == positiveAmountOwedDTTEntities
+      (isDTTSingleMember && subGroupDTTCount > 0 && subGroupDTTCount == positiveAmountOwedDTTEntities) ||
+      (!isDTTSingleMember && subGroupDTTCount >= 0)
     ) valid[UKTRLiabilityReturn](data)
     else invalid(UKTRSubmissionError(InvalidDTTElection))
+  }
+
+  private[uktr] val electionUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+    val isUTPRSingleMember             = data.liabilities.electionUTPRSingleMember
+    val subGroupUTPRCount              = data.liabilities.numberSubGroupUTPR
+    val positiveAmountOwedUTPREntities = data.liabilities.liableEntities.count(_.amountOwedUTPR > 0)
+
+    if (
+      (isUTPRSingleMember && subGroupUTPRCount > 0 && subGroupUTPRCount == positiveAmountOwedUTPREntities) ||
+      (!isUTPRSingleMember && subGroupUTPRCount >= 0)
+    ) valid[UKTRLiabilityReturn](data)
+    else invalid(UKTRSubmissionError(InvalidUTPRElection))
   }
 
   private[uktr] val ukChargeableEntityNameRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
@@ -161,6 +173,7 @@ object UKTRLiabilityReturn {
           UKTRValidationRules.electionUKGAAPRule[UKTRLiabilityReturn](org),
           BaseSubmissionValidationRules.accountingPeriodMatchesOrgRule[UKTRLiabilityReturn](org, UKTRSubmissionError(InvalidReturn)),
           electionDTTRule,
+          electionUTPRRule,
           liabilityEntityRule,
           totalLiabilityRule,
           totalLiabilityDTTRule,
