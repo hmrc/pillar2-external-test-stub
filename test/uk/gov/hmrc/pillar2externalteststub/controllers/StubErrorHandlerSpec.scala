@@ -117,6 +117,14 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       (json \ "errors" \ "text").as[String] shouldBe "Business Partner does not have an Active Subscription for this Regime"
     }
 
+    "handle NoDataFound error" in {
+      val result = errorHandler.onServerError(dummyRequest, NoDataFound)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "014"
+      (json \ "errors" \ "text").as[String] shouldBe "No data found"
+    }
+
     "handle TaxObligationAlreadyFulfilled error" in {
       val result = errorHandler.onServerError(dummyRequest, TaxObligationAlreadyFulfilled)
       status(result) shouldBe UNPROCESSABLE_ENTITY

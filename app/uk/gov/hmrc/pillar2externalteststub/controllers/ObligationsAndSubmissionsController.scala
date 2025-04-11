@@ -21,7 +21,7 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoAssociatedDataFound, RequestCouldNotBeProcessed}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GlobeInformationReturn, Pillar2TaxReturn}
@@ -62,7 +62,7 @@ class ObligationsAndSubmissionsController @Inject() (
         .recoverWith {
           case _: OrganisationNotFound =>
             logger.warn(s"Organisation not found pillar2Id: $pillar2Id")
-            Future.failed(NoAssociatedDataFound)
+            Future.failed(NoDataFound)
           case e: DateTimeParseException =>
             logger.error(s"Invalid date format: ${e.getMessage}")
             Future.failed(RequestCouldNotBeProcessed)

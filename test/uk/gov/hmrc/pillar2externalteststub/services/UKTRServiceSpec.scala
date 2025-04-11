@@ -25,8 +25,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, InvalidTotalLiability, NoAssociatedDataFound}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
@@ -152,7 +151,7 @@ class UKTRServiceSpec
         }
       }
 
-      "should fail with NoAssociatedDataFound when no existing submission is found" in {
+      "should fail with NoDataFound when no existing submission is found" in {
         when(mockOrgService.getOrganisation(eqTo(validPlrId)))
           .thenReturn(Future.successful(domesticOrganisation))
 
@@ -160,7 +159,7 @@ class UKTRServiceSpec
           .thenReturn(Future.successful(None))
 
         val result = service.amendUKTR(validPlrId, liabilitySubmission)
-        result shouldFailWith NoAssociatedDataFound
+        result shouldFailWith NoDataFound
       }
     }
 

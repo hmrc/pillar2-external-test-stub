@@ -285,7 +285,7 @@ class ObligationsAndSubmissionsISpec
       // Test organisation not found
       val nonExistentPlrIdResponse = getObligationsAndSubmissions("NONEXISTENT")
       val nonExistentPlrIdJson = Json.parse(nonExistentPlrIdResponse.body)
-      (nonExistentPlrIdJson \ "errors" \ "text").as[String] shouldBe "No associated data found"
+      (nonExistentPlrIdJson \ "errors" \ "text").as[String] shouldBe "No data found"
       nonExistentPlrIdResponse.status shouldBe 422
       
       // Test invalid date format
