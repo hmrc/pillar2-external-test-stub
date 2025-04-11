@@ -96,22 +96,22 @@ class UKTRService @Inject() (
       case nilReturn: UKTRNilReturn =>
         if (isAmendment) {
           uktrRepository.update(nilReturn, pillar2Id).flatMap { result =>
-            oasRepository.insert(nilReturn, pillar2Id, id = result._1).map(_ => ())
+            oasRepository.insert(nilReturn, pillar2Id, id = result._1, isAmendment = true).map(_ => ())
           }
         } else {
           uktrRepository.insert(nilReturn, pillar2Id).flatMap { sub =>
-            oasRepository.insert(nilReturn, pillar2Id, sub).map(_ => ())
+            oasRepository.insert(nilReturn, pillar2Id, sub, isAmendment = false).map(_ => ())
           }
         }
       case liability: UKTRLiabilityReturn =>
         if (isAmendment) {
           uktrRepository.update(liability, pillar2Id).flatMap { result =>
-            oasRepository.insert(liability, pillar2Id, id = result._1).map(_ => ())
+            oasRepository.insert(liability, pillar2Id, id = result._1, isAmendment = true).map(_ => ())
           }
         } else {
           val chargeRef = generateChargeReference()
           uktrRepository.insert(liability, pillar2Id, Some(chargeRef)).flatMap { sub =>
-            oasRepository.insert(liability, pillar2Id, sub).map(_ => ())
+            oasRepository.insert(liability, pillar2Id, sub, isAmendment = false).map(_ => ())
           }
         }
       case _ => Future.failed(ETMPBadRequest)
