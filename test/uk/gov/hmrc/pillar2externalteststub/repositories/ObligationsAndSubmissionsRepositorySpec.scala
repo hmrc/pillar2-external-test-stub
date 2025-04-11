@@ -82,7 +82,7 @@ class ObligationsAndSubmissionsRepositorySpec
       val submission = submissions.head
       submission.pillar2Id      shouldBe validPlrId
       submission.submissionId   shouldBe testSubmissionId
-      submission.submissionType shouldBe SubmissionType.UKTR
+      submission.submissionType shouldBe SubmissionType.UKTR_CREATE
     }
 
     "allow multiple submissions for the same pillar2Id" in {

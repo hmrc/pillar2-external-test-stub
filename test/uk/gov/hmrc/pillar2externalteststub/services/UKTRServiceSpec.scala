@@ -57,7 +57,7 @@ class UKTRServiceSpec
           .thenReturn(Future.successful(None))
         when(mockUKTRRepository.insert(any[UKTRLiabilityReturn], eqTo(validPlrId), any[Option[String]]))
           .thenReturn(Future.successful(new ObjectId()))
-        when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId]))
+        when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(false)))
           .thenReturn(Future.successful(true))
 
         val result = Await.result(service.submitUKTR(validPlrId, liabilitySubmission), 5.seconds)
@@ -77,7 +77,7 @@ class UKTRServiceSpec
           .thenReturn(Future.successful(None))
         when(mockUKTRRepository.insert(any[UKTRNilReturn], eqTo(validPlrId), any[Option[String]]))
           .thenReturn(Future.successful(new ObjectId()))
-        when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId]))
+        when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(false)))
           .thenReturn(Future.successful(true))
 
         val result = Await.result(service.submitUKTR(validPlrId, nilSubmission), 5.seconds)
@@ -110,7 +110,7 @@ class UKTRServiceSpec
 
         when(mockUKTRRepository.update(any[UKTRLiabilityReturn], eqTo(validPlrId)))
           .thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
-        when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId]))
+        when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(true)))
           .thenReturn(Future.successful(true))
 
         val result = Await.result(service.amendUKTR(validPlrId, liabilitySubmission), 5.seconds)
@@ -140,7 +140,7 @@ class UKTRServiceSpec
 
         when(mockUKTRRepository.update(any[UKTRNilReturn], eqTo(validPlrId)))
           .thenReturn(Future.successful((new ObjectId(), Some("existing-ref"))))
-        when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId]))
+        when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(true)))
           .thenReturn(Future.successful(true))
 
         val result = Await.result(service.amendUKTR(validPlrId, nilSubmission), 5.seconds)
