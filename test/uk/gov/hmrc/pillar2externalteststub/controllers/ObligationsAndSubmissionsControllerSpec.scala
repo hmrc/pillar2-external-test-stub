@@ -358,6 +358,49 @@ class ObligationsAndSubmissionsControllerSpec
         (accountingPeriodDetails.head \ "startDate").as[String] mustBe domesticOrganisation.organisation.accountingPeriod.startDate.toString
         (accountingPeriodDetails.head \ "endDate").as[String] mustBe domesticOrganisation.organisation.accountingPeriod.endDate.toString
       }
+
+      "should return only the latest 10 submissions for each accounting period" in {
+        val accountingPeriod = AccountingPeriod(
+          startDate = LocalDate.of(2023, 1, 1),
+          endDate = LocalDate.of(2023, 12, 31)
+        )
+
+        val allSubmissions = (1 to 31).map { i =>
+          ObligationsAndSubmissionsMongoSubmission(
+            _id = new ObjectId,
+            submissionId = new ObjectId,
+            pillar2Id = validPlrId,
+            accountingPeriod = accountingPeriod,
+            submissionType = if (i % 2 == 0) UKTR else ORN,
+            submittedAt = Instant.parse(f"2024-01-$i%02dT10:00:00Z")
+          )
+        }
+
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+        when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(allSubmissions))
+
+        val result = route(app, createRequest()).value
+        status(result) mustBe OK
+
+        val jsonResponse            = contentAsJson(result)
+        val accountingPeriodDetails = (jsonResponse \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
+        val obligations             = (accountingPeriodDetails.head \ "obligations").as[Seq[JsValue]]
+
+        val p2Submissions  = (obligations.head \ "submissions").as[Seq[JsValue]]
+        val girSubmissions = (obligations(1) \ "submissions").as[Seq[JsValue]]
+
+        // Only 10 submissions each
+        p2Submissions.size mustBe 10
+        girSubmissions.size mustBe 10
+
+        // Ensure they are sorted descending by receivedDate
+        val p2Dates  = p2Submissions.map(js => (js \ "receivedDate").as[String])
+        val girDates = girSubmissions.map(js => (js \ "receivedDate").as[String])
+
+        p2Dates mustBe p2Dates.sorted(Ordering[String].reverse)
+        girDates mustBe girDates.sorted(Ordering[String].reverse)
+      }
     }
   }
 }
