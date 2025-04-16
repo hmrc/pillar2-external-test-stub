@@ -97,6 +97,7 @@ class ObligationsAndSubmissionsISpec
       pillar2Id = pillar2Id,
       accountingPeriod = accountingPeriod,
       submissionType = submissionType,
+      ornCountryGir = if (submissionType == ORN) Some("US") else None,
       submittedAt = Instant.now()
     )
     repository.collection.insertOne(submission).toFuture().futureValue
@@ -182,7 +183,7 @@ class ObligationsAndSubmissionsISpec
       val submissions = (obligations(1) \ "submissions").as[Seq[JsValue]]
       submissions.size shouldBe 1
       (submissions.head \ "submissionType").as[String] shouldBe "ORN"
-      (submissions.head \ "country").as[String] shouldBe "FR"
+      (submissions.head \ "country").as[String] shouldBe "US"
     }
 
     "group submissions by accounting period" in {
