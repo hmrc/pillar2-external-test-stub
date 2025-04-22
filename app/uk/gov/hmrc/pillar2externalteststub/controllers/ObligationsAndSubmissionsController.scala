@@ -121,8 +121,17 @@ class ObligationsAndSubmissionsController @Inject() (
     val dueDate  = endDate.plusMonths(15)
     val canAmend = !LocalDate.now().isAfter(dueDate)
 
-    val p2TaxReturnSubmissions = submissions.filter(s => s.submissionType == UKTR || s.submissionType == BTN)
-    val girSubmissions         = submissions.filter(s => s.submissionType == GIR || s.submissionType == ORN)
+    val p2TaxReturnSubmissions = submissions
+      .filter(s => s.submissionType == UKTR || s.submissionType == BTN)
+      .sortBy(_.receivedDate)
+      .reverse
+      .take(10)
+
+    val girSubmissions = submissions
+      .filter(s => s.submissionType == GIR || s.submissionType == ORN)
+      .sortBy(_.receivedDate)
+      .reverse
+      .take(10)
 
     val domesticObligation = Seq(
       Obligation(
