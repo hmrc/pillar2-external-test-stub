@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import org.bson.types.ObjectId
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito.when
 import org.mockito.stubbing.OngoingStubbing
@@ -37,11 +38,11 @@ import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.Obli
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GlobeInformationReturn, Pillar2TaxReturn}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.ObligationsAndSubmissionsMongoSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
-import java.time.LocalDate
+import java.time.{Instant, LocalDate}
 import scala.concurrent.Future
 
 class ObligationsAndSubmissionsControllerSpec
@@ -328,6 +329,7 @@ class ObligationsAndSubmissionsControllerSpec
             pillar2Id = validPlrId,
             accountingPeriod = accountingPeriod,
             submissionType = if (i % 2 == 0) UKTR else ORN,
+            ornCountryGir = if (i % 2 == 0) None else Some("US"),
             submittedAt = Instant.parse(f"2024-01-$i%02dT10:00:00Z")
           )
         }
