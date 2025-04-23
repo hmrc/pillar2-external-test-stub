@@ -38,7 +38,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     submissionId = new ObjectId(),
     pillar2Id = validPlrId,
     accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
-    submissionType = UKTR,
+    submissionType = UKTR_CREATE,
     submittedAt = Instant.now()
   )
 
@@ -47,7 +47,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     submissionId = new ObjectId(),
     pillar2Id = validPlrId,
     accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
-    submissionType = ORN,
+    submissionType = ORN_CREATE,
     submittedAt = Instant.now()
   )
 

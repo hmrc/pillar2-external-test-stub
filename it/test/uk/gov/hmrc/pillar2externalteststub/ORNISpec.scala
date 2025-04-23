@@ -164,7 +164,7 @@ class ORNISpec
       oasSubmission.pillar2Id shouldBe validPlrId
       oasSubmission.accountingPeriod.startDate shouldBe validORNRequest.accountingPeriodFrom
       oasSubmission.accountingPeriod.endDate shouldBe validORNRequest.accountingPeriodTo
-      oasSubmission.submissionType shouldBe SubmissionType.ORN
+      oasSubmission.submissionType shouldBe SubmissionType.ORN_CREATE
     }
 
     "return 422 with tax obligation already fulfilled when submitting duplicate ORN" in {
@@ -248,7 +248,11 @@ class ORNISpec
         submission.pillar2Id shouldBe validPlrId
         submission.accountingPeriod.startDate shouldBe validORNRequest.accountingPeriodFrom
         submission.accountingPeriod.endDate shouldBe validORNRequest.accountingPeriodTo
-        submission.submissionType shouldBe SubmissionType.ORN
+        submission.submissionType match {
+          case SubmissionType.ORN_CREATE => true shouldBe true  // First submission
+          case SubmissionType.ORN_AMEND => true shouldBe true   // Amended submission
+          case _ => fail(s"Unexpected submission type: ${submission.submissionType}")
+        }
       }
     }
 

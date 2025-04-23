@@ -45,11 +45,16 @@ object AccountingPeriod {
 
 object ObligationsAndSubmissionsMongoSubmission {
 
-  def fromRequest(pillar2Id: String, submission: BaseSubmission, id: ObjectId): ObligationsAndSubmissionsMongoSubmission = {
+  def fromRequest(
+    pillar2Id:   String,
+    submission:  BaseSubmission,
+    id:          ObjectId,
+    isAmendment: Boolean = false
+  ): ObligationsAndSubmissionsMongoSubmission = {
     val submissionType = submission match {
-      case _: UKTRNilReturn | _: UKTRLiabilityReturn => SubmissionType.UKTR
+      case _: UKTRNilReturn | _: UKTRLiabilityReturn => if (isAmendment) SubmissionType.UKTR_AMEND else SubmissionType.UKTR_CREATE
       case _: BTNRequest => SubmissionType.BTN
-      case _: ORNRequest => SubmissionType.ORN
+      case _: ORNRequest => if (isAmendment) SubmissionType.ORN_AMEND else SubmissionType.ORN_CREATE
       case _ => throw new IllegalArgumentException("Unsupported submission type")
     }
 
