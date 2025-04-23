@@ -46,7 +46,7 @@ class UKTRService @Inject() (
       validator <- getValidator(pillar2Id, request)
       _         <- validateRequest(validator, request)
       _         <- validateNoExistingSubmission(pillar2Id)
-      _         <- processSubmission(pillar2Id, request, isAmendment = false)
+      _         <- processSubmission(pillar2Id, request)
     } yield createResponse(request)
   }
 
@@ -91,7 +91,7 @@ class UKTRService @Inject() (
       case None             => Future.failed(NoDataFound)
     }
 
-  private def processSubmission(pillar2Id: String, request: UKTRSubmission, isAmendment: Boolean): Future[Unit] =
+  private def processSubmission(pillar2Id: String, request: UKTRSubmission, isAmendment: Boolean = false): Future[Unit] =
     request match {
       case nilReturn: UKTRNilReturn =>
         if (isAmendment) {
@@ -100,7 +100,7 @@ class UKTRService @Inject() (
           }
         } else {
           uktrRepository.insert(nilReturn, pillar2Id).flatMap { sub =>
-            oasRepository.insert(nilReturn, pillar2Id, sub, isAmendment = false).map(_ => ())
+            oasRepository.insert(nilReturn, pillar2Id, sub).map(_ => ())
           }
         }
       case liability: UKTRLiabilityReturn =>
@@ -111,7 +111,7 @@ class UKTRService @Inject() (
         } else {
           val chargeRef = generateChargeReference()
           uktrRepository.insert(liability, pillar2Id, Some(chargeRef)).flatMap { sub =>
-            oasRepository.insert(liability, pillar2Id, sub, isAmendment = false).map(_ => ())
+            oasRepository.insert(liability, pillar2Id, sub).map(_ => ())
           }
         }
       case _ => Future.failed(ETMPBadRequest)

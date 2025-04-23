@@ -40,7 +40,7 @@ class ORNService @Inject() (
         Future.failed(TaxObligationAlreadyFulfilled)
       case None =>
         ornRepository.insert(pillar2Id, request).flatMap { submissionId =>
-          oasRepository.insert(request, pillar2Id, submissionId, isAmendment = false)
+          oasRepository.insert(request, pillar2Id, submissionId)
         }
     }
 

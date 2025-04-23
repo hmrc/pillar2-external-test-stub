@@ -371,7 +371,7 @@ class ObligationsAndSubmissionsControllerSpec
             submissionId = new ObjectId,
             pillar2Id = validPlrId,
             accountingPeriod = accountingPeriod,
-            submissionType = if (i % 2 == 0) UKTR else ORN,
+            submissionType = if (i % 2 == 0) UKTR_CREATE else ORN_CREATE,
             submittedAt = Instant.parse(f"2024-01-$i%02dT10:00:00Z")
           )
         }

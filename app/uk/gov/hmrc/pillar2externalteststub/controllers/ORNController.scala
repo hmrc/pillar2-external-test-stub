@@ -49,7 +49,7 @@ class ORNController @Inject() (
           .validate[ORNRequest]
           .fold(
             _ => Future.failed(ETMPBadRequest),
-            ornRequest => validateORN(pillar2Id, ornRequest, isAmendment = false)
+            ornRequest => validateORN(pillar2Id, ornRequest)
           )
       }
   }
@@ -87,7 +87,7 @@ class ORNController @Inject() (
       }
   }
 
-  private def validateORN(pillar2Id: String, request: ORNRequest, isAmendment: Boolean): Future[Result] = {
+  private def validateORN(pillar2Id: String, request: ORNRequest, isAmendment: Boolean = false): Future[Result] = {
     logger.info(s"Validating ORN submission for pillar2Id: $pillar2Id")
 
     ORNValidator.ornValidator(pillar2Id)(organisationService, ec).flatMap { validator =>
