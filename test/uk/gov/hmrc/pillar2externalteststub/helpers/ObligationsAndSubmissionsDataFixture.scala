@@ -15,8 +15,8 @@
  */
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
-
-import org.bson.types.ObjectId
+import org.mongodb.scala.bson.ObjectId
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 
@@ -24,51 +24,27 @@ import java.time.Instant
 
 trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
 
-  val btnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
-    _id = new ObjectId(),
-    submissionId = new ObjectId(),
-    pillar2Id = validPlrId,
-    accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
-    submissionType = BTN,
-    submittedAt = Instant.now()
-  )
+  def generateObligationsAndSubmissionsMongoSubmission(subtype: SubmissionType): ObligationsAndSubmissionsMongoSubmission =
+    ObligationsAndSubmissionsMongoSubmission(
+      _id = new ObjectId,
+      submissionId = new ObjectId,
+      pillar2Id = validPlrId,
+      accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
+      submissionType = subtype,
+      ornCountryGir = if (subtype == ORN) Some("US") else None,
+      submittedAt = Instant.now()
+    )
 
-  val uktrObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
-    _id = new ObjectId(),
-    submissionId = new ObjectId(),
-    pillar2Id = validPlrId,
-    accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
-    submissionType = UKTR,
-    submittedAt = Instant.now()
-  )
-
-  val ornObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
-    _id = new ObjectId(),
-    submissionId = new ObjectId(),
-    pillar2Id = validPlrId,
-    accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
-    submissionType = ORN,
-    submittedAt = Instant.now()
-  )
-
-  val olderBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
-    _id = new ObjectId(),
-    submissionId = new ObjectId(),
-    pillar2Id = validPlrId,
-    accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
-    submissionType = BTN,
-    submittedAt = Instant.now().minusSeconds(3600) // 1 hour older
-  )
-
-  val differentPeriodBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
-    _id = new ObjectId(),
-    submissionId = new ObjectId(),
-    pillar2Id = validPlrId,
-    accountingPeriod = AccountingPeriod(
-      accountingPeriod.startDate.plusYears(1),
-      accountingPeriod.endDate.plusYears(1)
-    ),
-    submissionType = BTN,
-    submittedAt = Instant.now()
-  )
+  val btnObligationsAndSubmissionsMongoSubmission:  ObligationsAndSubmissionsMongoSubmission = generateObligationsAndSubmissionsMongoSubmission(BTN)
+  val uktrObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = generateObligationsAndSubmissionsMongoSubmission(UKTR)
+  val ornObligationsAndSubmissionsMongoSubmission:  ObligationsAndSubmissionsMongoSubmission = generateObligationsAndSubmissionsMongoSubmission(ORN)
+  val olderBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    btnObligationsAndSubmissionsMongoSubmission.copy(submittedAt = Instant.now().minusSeconds(3600))
+  val differentPeriodBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    btnObligationsAndSubmissionsMongoSubmission.copy(accountingPeriod =
+      AccountingPeriod(
+        accountingPeriod.startDate.plusYears(1),
+        accountingPeriod.endDate.plusYears(1)
+      )
+    )
 }

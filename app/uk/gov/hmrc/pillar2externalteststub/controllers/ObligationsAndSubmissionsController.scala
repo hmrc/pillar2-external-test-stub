@@ -110,7 +110,7 @@ class ObligationsAndSubmissionsController @Inject() (
     Submission(
       submissionType = submission.submissionType,
       receivedDate = submission.submittedAt.atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS),
-      country = if (submission.submissionType == ORN) Some("FR") else None
+      country = submission.ornCountryGir
     )
 
   private def createAccountingPeriodDetails(
