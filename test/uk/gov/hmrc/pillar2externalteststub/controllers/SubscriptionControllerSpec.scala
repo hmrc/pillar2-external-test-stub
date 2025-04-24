@@ -44,7 +44,7 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
 
       "must return FORBIDDEN response when 'Authorization' header is missing" in {
         val result: Future[Result] = route(app, unauthorizedRequest("XEPLR0123456400")).value
-        status(result) shouldBe FORBIDDEN
+        status(result) shouldBe UNAUTHORIZED
       }
 
       "must return NOT_FOUND for plrReference 'XEPLR5555555554' with SUBSCRIPTION_NOT_FOUND" in {
