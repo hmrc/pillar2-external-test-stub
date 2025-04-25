@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import org.bson.types.ObjectId
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito.when
 import org.mockito.stubbing.OngoingStubbing
-import org.mongodb.scala.bson.ObjectId
 import org.scalatest.OptionValues
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
@@ -31,7 +31,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
-import uk.gov.hmrc.pillar2externalteststub.helpers.{TestOrgDataFixture, UKTRDataFixture}
+import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
@@ -52,68 +52,34 @@ class ObligationsAndSubmissionsControllerSpec
     with OptionValues
     with MockitoSugar
     with TestOrgDataFixture
-    with UKTRDataFixture {
+    with UKTRDataFixture
+    with ObligationsAndSubmissionsDataFixture {
 
   private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
 
-  def mockBySubmissionType(subType: SubmissionType): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] =
-    when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(
-      Future.successful(
-        Seq(
-          ObligationsAndSubmissionsMongoSubmission(
-            _id = new ObjectId,
-            submissionId = new ObjectId,
-            pillar2Id = validPlrId,
-            accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
-            submissionType = subType,
-            submittedAt = Instant.now()
-          )
-        )
-      )
-    )
-
-  def mockMultipleAccountingPeriods(): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] = {
-    val period1 = AccountingPeriod(
-      startDate = LocalDate.of(2023, 1, 1),
-      endDate = LocalDate.of(2023, 12, 31)
-    )
-
-    val period2 = AccountingPeriod(
-      startDate = LocalDate.of(2024, 1, 1),
-      endDate = LocalDate.of(2024, 12, 31)
-    )
-
-    when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(
-      Future.successful(
-        Seq(
-          ObligationsAndSubmissionsMongoSubmission(
-            _id = new ObjectId,
-            submissionId = new ObjectId,
-            pillar2Id = validPlrId,
-            accountingPeriod = period1,
-            submissionType = UKTR_CREATE,
-            submittedAt = Instant.now()
-          ),
-          ObligationsAndSubmissionsMongoSubmission(
-            _id = new ObjectId,
-            submissionId = new ObjectId,
-            pillar2Id = validPlrId,
-            accountingPeriod = period2,
-            submissionType = BTN,
-            submittedAt = Instant.now()
-          ),
-          ObligationsAndSubmissionsMongoSubmission(
-            _id = new ObjectId,
-            submissionId = new ObjectId,
-            pillar2Id = validPlrId,
-            accountingPeriod = period1, // Another submission for period1
-            submissionType = ORN_CREATE,
-            submittedAt = Instant.now()
-          )
-        )
-      )
-    )
+  def mockBySubmissionType(subType: SubmissionType): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] = {
+    val fixture = subType match {
+      case UKTR_CREATE => uktrObligationsAndSubmissionsMongoSubmission
+      case UKTR_AMEND  => uktrAmendObligationsAndSubmissionsMongoSubmission
+      case ORN_CREATE  => ornObligationsAndSubmissionsMongoSubmission
+      case ORN_AMEND   => ornAmendObligationsAndSubmissionsMongoSubmission
+      case BTN         => olderBtnObligationsAndSubmissionsMongoSubmission
+      case _           => olderBtnObligationsAndSubmissionsMongoSubmission
+    }
+    when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
+      .thenReturn(Future.successful(Seq(fixture)))
   }
+
+  def mockMultipleAccountingPeriods(): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] =
+    when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(
+      Future.successful(
+        Seq(
+          uktrObligationsAndSubmissionsMongoSubmission,
+          ornObligationsAndSubmissionsMongoSubmission,
+          differentPeriodBtnObligationsAndSubmissionsMongoSubmission
+        )
+      )
+    )
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -176,7 +142,7 @@ class ObligationsAndSubmissionsControllerSpec
 
         val jsonResponse = contentAsJson(result)
         val submissions  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "submissions").as[Seq[Submission]]
-        submissions.head.country.value mustBe "FR"
+        submissions.head.country.value mustBe "US"
       }
 
       "should conditionally show the GIR obligation" - {
@@ -300,7 +266,7 @@ class ObligationsAndSubmissionsControllerSpec
         accountingPeriodDetails.size mustBe 2
 
         // First accounting period (2023) should have 2 submissions (UKTR and ORN)
-        val period1 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2023-01-01").value
+        val period1 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2024-01-01").value
 
         val period1Obligations    = (period1 \ "obligations").as[Seq[JsValue]]
         val period1GIRSubmissions = (period1Obligations(1) \ "submissions").as[Seq[JsValue]]
@@ -308,7 +274,7 @@ class ObligationsAndSubmissionsControllerSpec
         (period1GIRSubmissions.head \ "submissionType").as[String] mustBe "ORN_CREATE"
 
         // Second accounting period (2024) should have 1 submission (BTN)
-        val period2 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2024-01-01").value
+        val period2 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2025-01-01").value
 
         val period2Obligations   = (period2 \ "obligations").as[Seq[JsValue]]
         val period2P2Submissions = (period2Obligations.head \ "submissions").as[Seq[JsValue]]
@@ -327,14 +293,14 @@ class ObligationsAndSubmissionsControllerSpec
         val accountingPeriodDetails = (jsonResponse \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
 
         // First period should have Fulfilled status for Pillar2TaxReturn due to UKTR submission
-        val period1 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2023-01-01").value
+        val period1 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2024-01-01").value
 
         val period1Obligations = (period1 \ "obligations").as[Seq[JsValue]]
         (period1Obligations.head \ "status").as[String] mustBe "Fulfilled"
         (period1Obligations.head \ "obligationType").as[String] mustBe "UKTR"
 
         // Second period should have Fulfilled status for Pillar2TaxReturn due to BTN submission
-        val period2 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2024-01-01").value
+        val period2 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2025-01-01").value
 
         val period2Obligations = (period2 \ "obligations").as[Seq[JsValue]]
         (period2Obligations.head \ "status").as[String] mustBe "Fulfilled"
@@ -372,6 +338,7 @@ class ObligationsAndSubmissionsControllerSpec
             pillar2Id = validPlrId,
             accountingPeriod = accountingPeriod,
             submissionType = if (i % 2 == 0) UKTR_CREATE else ORN_CREATE,
+            ornCountryGir = if (i % 2 == 0) None else Some("US"),
             submittedAt = Instant.parse(f"2024-01-$i%02dT10:00:00Z")
           )
         }

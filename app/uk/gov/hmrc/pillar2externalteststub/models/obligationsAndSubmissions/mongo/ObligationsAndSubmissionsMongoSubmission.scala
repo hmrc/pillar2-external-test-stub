@@ -34,6 +34,7 @@ case class ObligationsAndSubmissionsMongoSubmission(
   pillar2Id:        String,
   accountingPeriod: AccountingPeriod,
   submissionType:   SubmissionType,
+  ornCountryGir:    Option[String],
   submittedAt:      Instant
 )
 
@@ -58,12 +59,18 @@ object ObligationsAndSubmissionsMongoSubmission {
       case _ => throw new IllegalArgumentException("Unsupported submission type")
     }
 
+    val ornCountryGir = submission match {
+      case request: ORNRequest => Option(request.countryGIR)
+      case _ => None
+    }
+
     ObligationsAndSubmissionsMongoSubmission(
       _id = new ObjectId(),
       submissionId = id,
       pillar2Id = pillar2Id,
       accountingPeriod = AccountingPeriod(submission.accountingPeriodFrom, submission.accountingPeriodTo),
       submissionType = submissionType,
+      ornCountryGir = ornCountryGir,
       submittedAt = Instant.now()
     )
   }

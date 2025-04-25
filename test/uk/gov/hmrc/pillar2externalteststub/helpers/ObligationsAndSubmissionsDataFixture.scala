@@ -15,8 +15,7 @@
  */
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
-
-import org.bson.types.ObjectId
+import org.mongodb.scala.bson.ObjectId
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 
@@ -24,21 +23,13 @@ import java.time.Instant
 
 trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
 
-  val btnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
-    _id = new ObjectId(),
-    submissionId = new ObjectId(),
-    pillar2Id = validPlrId,
-    accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
-    submissionType = BTN,
-    submittedAt = Instant.now()
-  )
-
   val uktrObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
     _id = new ObjectId(),
     submissionId = new ObjectId(),
     pillar2Id = validPlrId,
     accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
     submissionType = UKTR_CREATE,
+    ornCountryGir = None,
     submittedAt = Instant.now()
   )
 
@@ -48,6 +39,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     pillar2Id = validPlrId,
     accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
     submissionType = ORN_CREATE,
+    ornCountryGir = Some("US"),
     submittedAt = Instant.now()
   )
 
@@ -57,7 +49,8 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     pillar2Id = validPlrId,
     accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
     submissionType = BTN,
-    submittedAt = Instant.now().minusSeconds(3600) // 1 hour older
+    ornCountryGir = None,
+    submittedAt = Instant.now().minusSeconds(3600)
   )
 
   val differentPeriodBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
@@ -69,6 +62,27 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
       accountingPeriod.endDate.plusYears(1)
     ),
     submissionType = BTN,
+    ornCountryGir = None,
+    submittedAt = Instant.now()
+  )
+
+  val uktrAmendObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
+    _id = new ObjectId(),
+    submissionId = new ObjectId(),
+    pillar2Id = validPlrId,
+    accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
+    submissionType = UKTR_AMEND,
+    ornCountryGir = None,
+    submittedAt = Instant.now()
+  )
+
+  val ornAmendObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
+    _id = new ObjectId(),
+    submissionId = new ObjectId(),
+    pillar2Id = validPlrId,
+    accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
+    submissionType = ORN_AMEND,
+    ornCountryGir = Some("US"),
     submittedAt = Instant.now()
   )
 }

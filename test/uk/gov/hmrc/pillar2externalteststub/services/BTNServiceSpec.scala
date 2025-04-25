@@ -60,7 +60,7 @@ class BTNServiceSpec
     "submitBTN" should {
       "fail with TaxObligationAlreadyFulfilled when a BTN submission is the most recent submission for the period" in {
         when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
-          .thenReturn(Future.successful(Seq(btnObligationsAndSubmissionsMongoSubmission)))
+          .thenReturn(Future.successful(Seq(olderBtnObligationsAndSubmissionsMongoSubmission)))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
 
