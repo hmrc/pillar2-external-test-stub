@@ -151,7 +151,7 @@ class UKTRServiceSpec
         }
       }
 
-      "should fail with NoDataFound when no existing submission is found" in {
+      "should fail with RequestCouldNotBeProcessed when no existing submission is found" in {
         when(mockOrgService.getOrganisation(eqTo(validPlrId)))
           .thenReturn(Future.successful(domesticOrganisation))
 
@@ -159,7 +159,7 @@ class UKTRServiceSpec
           .thenReturn(Future.successful(None))
 
         val result = service.amendUKTR(validPlrId, liabilitySubmission)
-        result shouldFailWith NoDataFound
+        result shouldFailWith RequestCouldNotBeProcessed
       }
     }
 
