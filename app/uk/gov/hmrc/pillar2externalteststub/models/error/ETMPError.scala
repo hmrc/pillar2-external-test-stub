@@ -29,9 +29,9 @@ object ETMPError {
     override val message: String = "Request could not be processed"
   }
 
-  case object DuplicateSubmission extends ETMPError {
-    override val code:    String = "004"
-    override val message: String = "Duplicate submission"
+  case object NoFormBundleFound extends ETMPError {
+    override val code:    String = "005"
+    override val message: String = "No Form Bundle found"
   }
 
   case object NoActiveSubscription extends ETMPError {

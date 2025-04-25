@@ -137,7 +137,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         (json \ "success" \ "countryGIR").as[String]                  shouldBe "US"
       }
 
-      "should return RequestCouldNotBeProcessed when no submission is found" in {
+      "should return NoFormBundleFound when no submission is found" in {
         val fromDate = "2024-01-01"
         val toDate   = "2024-12-31"
 
@@ -146,7 +146,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
           .thenReturn(Future.successful(None))
 
         val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
-        result shouldFailWith RequestCouldNotBeProcessed
+        result shouldFailWith NoFormBundleFound
       }
 
       "should return ETMPBadRequest when date format is invalid" in {

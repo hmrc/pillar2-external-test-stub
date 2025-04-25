@@ -77,7 +77,7 @@ class ORNController @Inject() (
             .getORN(pillar2Id, fromDate, toDate)
             .flatMap {
               case Some(submission) => Future.successful(Ok(Json.toJson(ORNGetResponse.fromSubmission(submission))))
-              case None             => Future.failed(RequestCouldNotBeProcessed)
+              case None             => Future.failed(NoFormBundleFound)
             }
         } catch {
           case e: DateTimeParseException =>
