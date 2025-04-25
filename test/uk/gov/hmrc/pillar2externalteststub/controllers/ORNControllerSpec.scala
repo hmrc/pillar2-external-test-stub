@@ -149,6 +149,30 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         result shouldFailWith NoFormBundleFound
       }
 
+      "should return RequestCouldNotBeProcessed when the date range is invalid" in {
+        val fromDate = "2024-01-01"
+        val toDate   = "2023-12-31"
+
+        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+        when(mockORNService.getORN(eqTo(validPlrId), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(None))
+
+        val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
+        result shouldFailWith RequestCouldNotBeProcessed
+      }
+
+      "should return RequestCouldNotBeProcessed if the test organisation is domestic-only" in {
+        val fromDate = "2024-01-01"
+        val toDate   = "2024-12-31"
+
+        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(domesticOrganisation))
+        when(mockORNService.getORN(eqTo(validPlrId), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(None))
+
+        val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
+        result shouldFailWith RequestCouldNotBeProcessed
+      }
+
       "should return ETMPBadRequest when date format is invalid" in {
         val fromDate = "invalid-date"
         val toDate   = "2024-12-31"

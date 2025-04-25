@@ -21,6 +21,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNSuccessResponse.{ORN_SUCCESS_200, ORN_SUCCESS_201}
 import uk.gov.hmrc.pillar2externalteststub.models.orn._
 import uk.gov.hmrc.pillar2externalteststub.services.{ORNService, OrganisationService}
@@ -31,6 +32,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class ORNController @Inject() (
@@ -66,26 +68,40 @@ class ORNController @Inject() (
       }
   }
 
-  def getORN(accountingPeriodFrom: String, accountingPeriodTo: String): Action[AnyContent] = (Action andThen authFilter).async { implicit request =>
-    validatePillar2Id(request.headers.get("X-Pillar2-Id"))
-      .flatMap { pillar2Id =>
-        try {
-          val fromDate = LocalDate.parse(accountingPeriodFrom)
-          val toDate   = LocalDate.parse(accountingPeriodTo)
+  def getORN(accountingPeriodFrom: String, accountingPeriodTo: String): Action[AnyContent] =
+    (Action andThen authFilter).async { implicit request =>
+      def parseDates(from: String, to: String): Future[(LocalDate, LocalDate)] =
+        for {
+          fromDate <- Future.fromTry(Try(LocalDate.parse(from)))
+          toDate   <- Future.fromTry(Try(LocalDate.parse(to)))
+          _ = if (fromDate.isAfter(toDate)) throw RequestCouldNotBeProcessed
+        } yield (fromDate, toDate)
 
-          ornService
-            .getORN(pillar2Id, fromDate, toDate)
-            .flatMap {
-              case Some(submission) => Future.successful(Ok(Json.toJson(ORNGetResponse.fromSubmission(submission))))
-              case None             => Future.failed(NoFormBundleFound)
+      def processORNRequest(pillar2Id: String, from: LocalDate, to: LocalDate): Future[Result] =
+        for {
+          org <- organisationService.getOrganisation(pillar2Id)
+          _ = if (org.organisation.orgDetails.domesticOnly) throw RequestCouldNotBeProcessed
+          submission <- ornService.getORN(pillar2Id, from, to)
+          response <- submission match {
+                        case Some(sub) => Future.successful(Ok(Json.toJson(ORNGetResponse.fromSubmission(sub))))
+                        case None      => Future.failed(NoFormBundleFound)
+                      }
+        } yield response
+
+      validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+        .flatMap { pillar2Id =>
+          parseDates(accountingPeriodFrom, accountingPeriodTo)
+            .flatMap { case (from, to) => processORNRequest(pillar2Id, from, to) }
+            .recoverWith {
+              case _: OrganisationNotFound =>
+                logger.warn(s"Organisation not found pillar2Id: $pillar2Id")
+                Future.failed(NoActiveSubscription)
+              case e: DateTimeParseException =>
+                logger.error(s"Invalid date format: ${e.getMessage}")
+                Future.failed(ETMPBadRequest)
             }
-        } catch {
-          case e: DateTimeParseException =>
-            logger.error(s"Invalid date format: ${e.getMessage}")
-            Future.failed(ETMPBadRequest)
         }
-      }
-  }
+    }
 
   private def validateORN(pillar2Id: String, request: ORNRequest, isAmendment: Boolean): Future[Result] = {
     logger.info(s"Validating ORN submission for pillar2Id: $pillar2Id")
