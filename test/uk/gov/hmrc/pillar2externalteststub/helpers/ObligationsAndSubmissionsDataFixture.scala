@@ -23,7 +23,7 @@ import java.time.Instant
 
 trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
 
-  val uktrObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
+  def uktrObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
     _id = new ObjectId(),
     submissionId = new ObjectId(),
     pillar2Id = validPlrId,
@@ -33,7 +33,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     submittedAt = Instant.now()
   )
 
-  val ornObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
+  def ornObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
     _id = new ObjectId(),
     submissionId = new ObjectId(),
     pillar2Id = validPlrId,
@@ -43,7 +43,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     submittedAt = Instant.now()
   )
 
-  val olderBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
+  def olderBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
     _id = new ObjectId(),
     submissionId = new ObjectId(),
     pillar2Id = validPlrId,
@@ -53,7 +53,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     submittedAt = Instant.now().minusSeconds(3600)
   )
 
-  val differentPeriodBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
+  def differentPeriodBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
     _id = new ObjectId(),
     submissionId = new ObjectId(),
     pillar2Id = validPlrId,
@@ -66,7 +66,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     submittedAt = Instant.now()
   )
 
-  val uktrAmendObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
+  def uktrAmendObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
     _id = new ObjectId(),
     submissionId = new ObjectId(),
     pillar2Id = validPlrId,
@@ -76,7 +76,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
     submittedAt = Instant.now()
   )
 
-  val ornAmendObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
+  def ornAmendObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = ObligationsAndSubmissionsMongoSubmission(
     _id = new ObjectId(),
     submissionId = new ObjectId(),
     pillar2Id = validPlrId,
