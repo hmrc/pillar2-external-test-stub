@@ -101,12 +101,12 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
     }
 
-    "handle DuplicateSubmissionError error" in {
-      val result = errorHandler.onServerError(dummyRequest, DuplicateSubmission)
+    "handle NoFormBundleFound error" in {
+      val result = errorHandler.onServerError(dummyRequest, NoFormBundleFound)
       status(result) shouldBe UNPROCESSABLE_ENTITY
       val json = contentAsJson(result)
-      (json \ "errors" \ "code").as[String] shouldBe "004"
-      (json \ "errors" \ "text").as[String] shouldBe "Duplicate submission"
+      (json \ "errors" \ "code").as[String] shouldBe "005"
+      (json \ "errors" \ "text").as[String] shouldBe "No Form Bundle found"
     }
 
     "handle NoActiveSubscription error" in {

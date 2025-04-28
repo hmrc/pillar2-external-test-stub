@@ -137,11 +137,35 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         (json \ "success" \ "countryGIR").as[String]                  shouldBe "US"
       }
 
-      "should return RequestCouldNotBeProcessed when no submission is found" in {
+      "should return NoFormBundleFound when no submission is found" in {
         val fromDate = "2024-01-01"
         val toDate   = "2024-12-31"
 
         when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+        when(mockORNService.getORN(eqTo(validPlrId), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(None))
+
+        val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
+        result shouldFailWith NoFormBundleFound
+      }
+
+      "should return RequestCouldNotBeProcessed when the date range is invalid" in {
+        val fromDate = "2024-01-01"
+        val toDate   = "2023-12-31"
+
+        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+        when(mockORNService.getORN(eqTo(validPlrId), any[LocalDate], any[LocalDate]))
+          .thenReturn(Future.successful(None))
+
+        val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
+        result shouldFailWith RequestCouldNotBeProcessed
+      }
+
+      "should return RequestCouldNotBeProcessed if the test organisation is domestic-only" in {
+        val fromDate = "2024-01-01"
+        val toDate   = "2024-12-31"
+
+        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(domesticOrganisation))
         when(mockORNService.getORN(eqTo(validPlrId), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(None))
 

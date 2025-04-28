@@ -334,8 +334,8 @@ class ORNISpec
       val getResponse = getORN(validPlrId, "2025-01-01", "2025-12-31")
       getResponse.status shouldBe 422
       val json = Json.parse(getResponse.body)
-      (json \ "errors" \ "code").as[String] shouldBe "003"
-      (json \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
+      (json \ "errors" \ "code").as[String] shouldBe "005"
+      (json \ "errors" \ "text").as[String] shouldBe "No Form Bundle found"
     }
 
     "return 400 when dates are invalid" in {
@@ -372,7 +372,7 @@ class ORNISpec
       val getResponse = getORN(validPlrId, "2024-01-01", "2024-12-31")
       getResponse.status shouldBe 422
       val json = Json.parse(getResponse.body)
-      (json \ "errors" \ "code").as[String] shouldBe "003"
+      (json \ "errors" \ "code").as[String] shouldBe "063"
     }
 
     "return 500 for server error PLR ID" in {
