@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers.actions
 
-import play.api.mvc.Results.Forbidden
+import play.api.mvc.Results.Unauthorized
 import play.api.mvc.{ActionFilter, Request, Result}
 import uk.gov.hmrc.http.HeaderNames
 
@@ -28,7 +28,7 @@ class AuthActionFilter @Inject() ()(implicit ec: ExecutionContext) extends Actio
   override protected def filter[A](request: Request[A]): Future[Option[Result]] =
     request.headers.get(HeaderNames.authorisation) match {
       case Some(_) => Future.successful(None)
-      case _       => Future.successful(Some(Forbidden))
+      case _       => Future.successful(Some(Unauthorized))
     }
 
   override protected def executionContext: ExecutionContext = ec
