@@ -43,13 +43,13 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
         when(mockOrnRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(None))
         when(mockOrnRepository.insert(anyString(), any[ORNRequest]())).thenReturn(Future.successful(ObjectId.get()))
-        when(mockOasRepository.insert(any[ORNRequest](), anyString(), any[ObjectId]())).thenReturn(Future.successful(true))
+        when(mockOasRepository.insert(any[ORNRequest](), anyString(), any[ObjectId](), eqTo(false))).thenReturn(Future.successful(true))
 
         val result = service.submitORN(validPlrId, validORNRequest)
 
         result.futureValue mustBe true
         verify(mockOrnRepository).insert(validPlrId, validORNRequest)
-        verify(mockOasRepository).insert(eqTo(validORNRequest), eqTo(validPlrId), any[ObjectId]())
+        verify(mockOasRepository).insert(eqTo(validORNRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
       }
 
       "fail with TaxObligationAlreadyFulfilled when a submission exists for the same accounting period" in {
@@ -71,13 +71,13 @@ class ORNServiceSpec extends AnyWordSpec with Matchers with MockitoSugar with Sc
         when(mockOrnRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate], any[LocalDate]))
           .thenReturn(Future.successful(Some(ornMongoSubmission)))
         when(mockOrnRepository.insert(eqTo(validPlrId), eqTo(amendedRequest))).thenReturn(Future.successful(ObjectId.get()))
-        when(mockOasRepository.insert(any[ORNRequest](), anyString(), any[ObjectId]())).thenReturn(Future.successful(true))
+        when(mockOasRepository.insert(any[ORNRequest](), anyString(), any[ObjectId](), eqTo(true))).thenReturn(Future.successful(true))
 
         val result = service.amendORN(validPlrId, amendedRequest)
 
         result.futureValue mustBe true
         verify(mockOrnRepository, times(1)).insert(validPlrId, amendedRequest)
-        verify(mockOasRepository).insert(eqTo(amendedRequest), eqTo(validPlrId), any[ObjectId]())
+        verify(mockOasRepository).insert(eqTo(amendedRequest), eqTo(validPlrId), any[ObjectId](), eqTo(true))
       }
 
       "fail with RequestCouldNotBeProcessed when no existing submission exists" in {

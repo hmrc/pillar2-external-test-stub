@@ -26,25 +26,49 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
 
   def generateObligationsAndSubmissionsMongoSubmission(subtype: SubmissionType): ObligationsAndSubmissionsMongoSubmission =
     ObligationsAndSubmissionsMongoSubmission(
-      _id = new ObjectId,
-      submissionId = new ObjectId,
+      _id = new ObjectId(),
+      submissionId = new ObjectId(),
       pillar2Id = validPlrId,
       accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
       submissionType = subtype,
-      ornCountryGir = if (subtype == ORN) Some("US") else None,
+      ornCountryGir = if (subtype == ORN_CREATE || subtype == ORN_AMEND) Some("US") else None,
       submittedAt = Instant.now()
     )
 
-  val btnObligationsAndSubmissionsMongoSubmission:  ObligationsAndSubmissionsMongoSubmission = generateObligationsAndSubmissionsMongoSubmission(BTN)
-  val uktrObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission = generateObligationsAndSubmissionsMongoSubmission(UKTR)
-  val ornObligationsAndSubmissionsMongoSubmission:  ObligationsAndSubmissionsMongoSubmission = generateObligationsAndSubmissionsMongoSubmission(ORN)
-  val olderBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
-    btnObligationsAndSubmissionsMongoSubmission.copy(submittedAt = Instant.now().minusSeconds(3600))
-  val differentPeriodBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
-    btnObligationsAndSubmissionsMongoSubmission.copy(accountingPeriod =
-      AccountingPeriod(
+  def uktrObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    generateObligationsAndSubmissionsMongoSubmission(UKTR_CREATE)
+
+  def ornObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    generateObligationsAndSubmissionsMongoSubmission(ORN_CREATE)
+
+  def olderBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    ObligationsAndSubmissionsMongoSubmission(
+      _id = new ObjectId(),
+      submissionId = new ObjectId(),
+      pillar2Id = validPlrId,
+      accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
+      submissionType = BTN,
+      ornCountryGir = None,
+      submittedAt = Instant.now().minusSeconds(3600)
+    )
+
+  def differentPeriodBtnObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    ObligationsAndSubmissionsMongoSubmission(
+      _id = new ObjectId(),
+      submissionId = new ObjectId(),
+      pillar2Id = validPlrId,
+      accountingPeriod = AccountingPeriod(
         accountingPeriod.startDate.plusYears(1),
         accountingPeriod.endDate.plusYears(1)
-      )
+      ),
+      submissionType = BTN,
+      ornCountryGir = None,
+      submittedAt = Instant.now()
     )
+
+  def uktrAmendObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    generateObligationsAndSubmissionsMongoSubmission(UKTR_AMEND)
+
+  def ornAmendObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    generateObligationsAndSubmissionsMongoSubmission(ORN_AMEND)
 }

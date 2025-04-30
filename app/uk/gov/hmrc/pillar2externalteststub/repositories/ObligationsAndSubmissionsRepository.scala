@@ -66,9 +66,9 @@ class ObligationsAndSubmissionsRepository @Inject() (
     )
     with Logging {
 
-  def insert(submission: BaseSubmission, pillar2Id: String, id: ObjectId): Future[Boolean] =
+  def insert(submission: BaseSubmission, pillar2Id: String, id: ObjectId, isAmendment: Boolean = false): Future[Boolean] =
     collection
-      .insertOne(ObligationsAndSubmissionsMongoSubmission.fromRequest(pillar2Id, submission, id))
+      .insertOne(ObligationsAndSubmissionsMongoSubmission.fromRequest(pillar2Id, submission, id, isAmendment))
       .toFuture()
       .map { _ =>
         logger.info("Successfully saved entry to oas collection.")

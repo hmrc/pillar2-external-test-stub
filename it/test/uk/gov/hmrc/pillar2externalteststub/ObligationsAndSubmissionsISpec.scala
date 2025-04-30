@@ -97,7 +97,7 @@ class ObligationsAndSubmissionsISpec
       pillar2Id = pillar2Id,
       accountingPeriod = accountingPeriod,
       submissionType = submissionType,
-      ornCountryGir = if (submissionType == ORN) Some("US") else None,
+      ornCountryGir = if (submissionType == ORN_CREATE || submissionType == ORN_AMEND) Some("US") else None,
       submittedAt = Instant.now()
     )
     repository.collection.insertOne(submission).toFuture().futureValue
@@ -116,7 +116,7 @@ class ObligationsAndSubmissionsISpec
 
   override protected def prepareDatabase(): Unit = {
     repository.collection.drop().toFuture().futureValue
-    repository.collection.createIndexes(repository.indexes).toFuture()
+    repository.ensureIndexes().futureValue
     ()
   }
 
@@ -125,7 +125,7 @@ class ObligationsAndSubmissionsISpec
       // Insert a submission for the domestic organisation
       insertSubmission(
         domesticOrganisation.pillar2Id,
-        UKTR,
+        UKTR_CREATE,
         AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate)
       )
 
@@ -141,22 +141,22 @@ class ObligationsAndSubmissionsISpec
       obligations.size shouldBe 2
 
       // Verify obligations for domestic organisation
-      (obligations.head \ "obligationType").as[String] shouldBe "Pillar2TaxReturn"
-      (obligations(1)   \ "obligationType").as[String] shouldBe "GlobeInformationReturn"
+      (obligations.head \ "obligationType").as[String] shouldBe "UKTR"
+      (obligations(1)   \ "obligationType").as[String] shouldBe "GIR"
       (obligations.head \ "status").as[String] shouldBe "Fulfilled"
       (obligations(1)   \ "status").as[String] shouldBe "Open"
 
       // Verify submissions
       val submissions = (obligations.head \ "submissions").as[Seq[JsValue]]
       submissions.size shouldBe 1
-      (submissions.head \ "submissionType").as[String] shouldBe "UKTR"
+      (submissions.head \ "submissionType").as[String] shouldBe "UKTR_CREATE"
     }
 
     "return correct response for non-domestic organisation with submissions" in {
       // Insert submissions for the non-domestic organisation
       insertSubmission(
         nonDomesticOrganisation.pillar2Id,
-        ORN,
+        ORN_CREATE,
         AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate)
       )
 
@@ -172,17 +172,17 @@ class ObligationsAndSubmissionsISpec
       obligations.size shouldBe 2
       
       // Verify first obligation is Pillar2TaxReturn with Open status
-      (obligations.head \ "obligationType").as[String] shouldBe "Pillar2TaxReturn"
+      (obligations.head \ "obligationType").as[String] shouldBe "UKTR"
       (obligations.head \ "status").as[String] shouldBe "Open"
       
       // Verify second obligation is GlobeInformationReturn with Fulfilled status
-      (obligations(1) \ "obligationType").as[String] shouldBe "GlobeInformationReturn"
+      (obligations(1) \ "obligationType").as[String] shouldBe "GIR"
       (obligations(1) \ "status").as[String] shouldBe "Fulfilled"
       
       // Verify submissions in GIR obligation
       val submissions = (obligations(1) \ "submissions").as[Seq[JsValue]]
       submissions.size shouldBe 1
-      (submissions.head \ "submissionType").as[String] shouldBe "ORN"
+      (submissions.head \ "submissionType").as[String] shouldBe "ORN_CREATE"
       (submissions.head \ "country").as[String] shouldBe "US"
     }
 
@@ -199,8 +199,8 @@ class ObligationsAndSubmissionsISpec
       )
       
       // Insert submissions for different accounting periods
-      insertSubmission(nonDomesticOrganisation.pillar2Id, UKTR, period1)
-      insertSubmission(nonDomesticOrganisation.pillar2Id, ORN, period1)
+      insertSubmission(nonDomesticOrganisation.pillar2Id, UKTR_CREATE, period1)
+      insertSubmission(nonDomesticOrganisation.pillar2Id, ORN_CREATE, period1)
       insertSubmission(nonDomesticOrganisation.pillar2Id, BTN, period2)
       
       val response = getObligationsAndSubmissions(
@@ -317,7 +317,7 @@ class ObligationsAndSubmissionsISpec
       
       insertSubmission(
         domesticOrganisation.pillar2Id,
-        UKTR,
+        UKTR_CREATE,
         pastAccountingPeriod
       )
       

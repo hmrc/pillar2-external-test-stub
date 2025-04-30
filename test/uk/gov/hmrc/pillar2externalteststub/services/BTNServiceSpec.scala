@@ -60,7 +60,7 @@ class BTNServiceSpec
     "submitBTN" should {
       "fail with TaxObligationAlreadyFulfilled when a BTN submission is the most recent submission for the period" in {
         when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
-          .thenReturn(Future.successful(Seq(btnObligationsAndSubmissionsMongoSubmission)))
+          .thenReturn(Future.successful(Seq(olderBtnObligationsAndSubmissionsMongoSubmission)))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
 
@@ -89,7 +89,7 @@ class BTNServiceSpec
           .thenReturn(Future.successful(Seq.empty))
         when(mockBtnRepository.insert(anyString(), any[BTNRequest]()))
           .thenReturn(Future.successful(new ObjectId()))
-        when(mockOasRepository.insert(any[BTNRequest](), anyString(), any[ObjectId]()))
+        when(mockOasRepository.insert(any[BTNRequest](), anyString(), any[ObjectId](), eqTo(false)))
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
@@ -98,7 +98,7 @@ class BTNServiceSpec
 
         result.futureValue mustBe true
         verify(mockBtnRepository).insert(validPlrId, validBTNRequest)
-        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId]())
+        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
       }
 
       "successfully submit a BTN when there is a UKTR submission for the period but no BTN" in {
@@ -106,7 +106,7 @@ class BTNServiceSpec
           .thenReturn(Future.successful(Seq(uktrObligationsAndSubmissionsMongoSubmission)))
         when(mockBtnRepository.insert(anyString(), any[BTNRequest]()))
           .thenReturn(Future.successful(new ObjectId()))
-        when(mockOasRepository.insert(any[BTNRequest](), anyString(), any[ObjectId]()))
+        when(mockOasRepository.insert(any[BTNRequest](), anyString(), any[ObjectId](), eqTo(false)))
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
@@ -115,7 +115,7 @@ class BTNServiceSpec
 
         result.futureValue mustBe true
         verify(mockBtnRepository).insert(validPlrId, validBTNRequest)
-        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId]())
+        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
       }
 
       "successfully submit a BTN when there is an older BTN submission for the period that is not the most recent submission" in {
@@ -123,7 +123,7 @@ class BTNServiceSpec
           .thenReturn(Future.successful(Seq(uktrObligationsAndSubmissionsMongoSubmission, olderBtnObligationsAndSubmissionsMongoSubmission)))
         when(mockBtnRepository.insert(anyString(), any[BTNRequest]()))
           .thenReturn(Future.successful(new ObjectId()))
-        when(mockOasRepository.insert(any[BTNRequest](), anyString(), any[ObjectId]()))
+        when(mockOasRepository.insert(any[BTNRequest](), anyString(), any[ObjectId](), eqTo(false)))
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
@@ -132,7 +132,7 @@ class BTNServiceSpec
 
         result.futureValue mustBe true
         verify(mockBtnRepository).insert(validPlrId, validBTNRequest)
-        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId]())
+        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
       }
 
       "successfully submit a BTN when there is a BTN submission for a different period" in {
@@ -140,7 +140,7 @@ class BTNServiceSpec
           .thenReturn(Future.successful(Seq(differentPeriodBtnObligationsAndSubmissionsMongoSubmission)))
         when(mockBtnRepository.insert(anyString(), any[BTNRequest]()))
           .thenReturn(Future.successful(new ObjectId()))
-        when(mockOasRepository.insert(any[BTNRequest](), anyString(), any[ObjectId]()))
+        when(mockOasRepository.insert(any[BTNRequest](), anyString(), any[ObjectId](), eqTo(false)))
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
@@ -149,7 +149,7 @@ class BTNServiceSpec
 
         result.futureValue mustBe true
         verify(mockBtnRepository).insert(validPlrId, validBTNRequest)
-        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId]())
+        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
       }
     }
   }

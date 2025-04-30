@@ -35,7 +35,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDat
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GlobeInformationReturn, Pillar2TaxReturn}
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GIR, UKTR}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
@@ -57,9 +57,18 @@ class ObligationsAndSubmissionsControllerSpec
 
   private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
 
-  def mockBySubmissionType(subType: SubmissionType): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] =
+  def mockBySubmissionType(subType: SubmissionType): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] = {
+    val fixture = subType match {
+      case UKTR_CREATE => uktrObligationsAndSubmissionsMongoSubmission
+      case UKTR_AMEND  => uktrAmendObligationsAndSubmissionsMongoSubmission
+      case ORN_CREATE  => ornObligationsAndSubmissionsMongoSubmission
+      case ORN_AMEND   => ornAmendObligationsAndSubmissionsMongoSubmission
+      case BTN         => olderBtnObligationsAndSubmissionsMongoSubmission
+      case _           => olderBtnObligationsAndSubmissionsMongoSubmission
+    }
     when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
-      .thenReturn(Future.successful(Seq(generateObligationsAndSubmissionsMongoSubmission(subType))))
+      .thenReturn(Future.successful(Seq(fixture)))
+  }
 
   def mockMultipleAccountingPeriods(): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] =
     when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(
@@ -92,7 +101,7 @@ class ObligationsAndSubmissionsControllerSpec
     "when requesting Obligations and Submissions" - {
       "should return OK with successful response for domestic-only organisation" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
-        mockBySubmissionType(UKTR)
+        mockBySubmissionType(UKTR_CREATE)
 
         val result = route(app, createRequest()).value
         status(result) mustBe OK
@@ -103,13 +112,13 @@ class ObligationsAndSubmissionsControllerSpec
         val secondObligationType = obligations(1).obligationType
 
         obligations.size mustBe 2
-        firstOligationType mustBe Pillar2TaxReturn
-        secondObligationType mustBe GlobeInformationReturn
+        firstOligationType mustBe UKTR
+        secondObligationType mustBe GIR
       }
 
       "should return OK with successful response for non-domestic organisation" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-        mockBySubmissionType(ORN)
+        mockBySubmissionType(ORN_CREATE)
 
         val result = route(app, createRequest()).value
         status(result) mustBe OK
@@ -120,13 +129,13 @@ class ObligationsAndSubmissionsControllerSpec
         val secondObligationType = obligations(1).obligationType
 
         obligations.size mustBe 2
-        firstOligationType mustBe Pillar2TaxReturn
-        secondObligationType mustBe GlobeInformationReturn
+        firstOligationType mustBe UKTR
+        secondObligationType mustBe GIR
       }
 
       "should handle submissions with country code for ORN submission type" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-        mockBySubmissionType(ORN)
+        mockBySubmissionType(ORN_CREATE)
 
         val result = route(app, createRequest()).value
         status(result) mustBe OK
@@ -139,7 +148,7 @@ class ObligationsAndSubmissionsControllerSpec
       "should conditionally show the GIR obligation" - {
         "not show if the last submission is a BTN" in {
           when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
-          mockBySubmissionType(UKTR)
+          mockBySubmissionType(UKTR_CREATE)
           mockBySubmissionType(BTN)
 
           val result = route(app, createRequest()).value
@@ -153,7 +162,7 @@ class ObligationsAndSubmissionsControllerSpec
         "show if the last submission is not a BTN" in {
           when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
           mockBySubmissionType(BTN)
-          mockBySubmissionType(UKTR)
+          mockBySubmissionType(UKTR_CREATE)
 
           val result = route(app, createRequest()).value
           status(result) mustBe OK
@@ -208,7 +217,7 @@ class ObligationsAndSubmissionsControllerSpec
 
       "should return ObligationStatus Fulfilled when there are no submissions" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-        mockBySubmissionType(UKTR)
+        mockBySubmissionType(UKTR_CREATE)
 
         val result = route(app, createRequest()).value
 
@@ -262,7 +271,7 @@ class ObligationsAndSubmissionsControllerSpec
         val period1Obligations    = (period1 \ "obligations").as[Seq[JsValue]]
         val period1GIRSubmissions = (period1Obligations(1) \ "submissions").as[Seq[JsValue]]
         period1GIRSubmissions.size mustBe 1
-        (period1GIRSubmissions.head \ "submissionType").as[String] mustBe "ORN"
+        (period1GIRSubmissions.head \ "submissionType").as[String] mustBe "ORN_CREATE"
 
         // Second accounting period (2024) should have 1 submission (BTN)
         val period2 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2025-01-01").value
@@ -288,14 +297,14 @@ class ObligationsAndSubmissionsControllerSpec
 
         val period1Obligations = (period1 \ "obligations").as[Seq[JsValue]]
         (period1Obligations.head \ "status").as[String] mustBe "Fulfilled"
-        (period1Obligations.head \ "obligationType").as[String] mustBe "Pillar2TaxReturn"
+        (period1Obligations.head \ "obligationType").as[String] mustBe "UKTR"
 
         // Second period should have Fulfilled status for Pillar2TaxReturn due to BTN submission
         val period2 = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2025-01-01").value
 
         val period2Obligations = (period2 \ "obligations").as[Seq[JsValue]]
         (period2Obligations.head \ "status").as[String] mustBe "Fulfilled"
-        (period2Obligations.head \ "obligationType").as[String] mustBe "Pillar2TaxReturn"
+        (period2Obligations.head \ "obligationType").as[String] mustBe "UKTR"
       }
 
       "should use organisation's default accounting period when no submissions exist" in {
@@ -328,7 +337,7 @@ class ObligationsAndSubmissionsControllerSpec
             submissionId = new ObjectId,
             pillar2Id = validPlrId,
             accountingPeriod = accountingPeriod,
-            submissionType = if (i % 2 == 0) UKTR else ORN,
+            submissionType = if (i % 2 == 0) UKTR_CREATE else ORN_CREATE,
             ornCountryGir = if (i % 2 == 0) None else Some("US"),
             submittedAt = Instant.parse(f"2024-01-$i%02dT10:00:00Z")
           )

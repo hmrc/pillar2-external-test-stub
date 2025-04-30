@@ -24,7 +24,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTim
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GlobeInformationReturn, Pillar2TaxReturn}
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GIR, UKTR}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.ObligationsAndSubmissionsMongoSubmission
@@ -122,20 +122,28 @@ class ObligationsAndSubmissionsController @Inject() (
     val canAmend = !LocalDate.now().isAfter(dueDate)
 
     val p2TaxReturnSubmissions = submissions
-      .filter(s => s.submissionType == UKTR || s.submissionType == BTN)
+      .filter(s =>
+        s.submissionType == UKTR_CREATE ||
+          s.submissionType == UKTR_AMEND ||
+          s.submissionType == BTN
+      )
       .sortBy(_.receivedDate)
       .reverse
       .take(10)
 
     val girSubmissions = submissions
-      .filter(s => s.submissionType == GIR || s.submissionType == ORN)
+      .filter(s =>
+        s.submissionType == GIR ||
+          s.submissionType == ORN_CREATE ||
+          s.submissionType == ORN_AMEND
+      )
       .sortBy(_.receivedDate)
       .reverse
       .take(10)
 
     val domesticObligation = Seq(
       Obligation(
-        obligationType = Pillar2TaxReturn,
+        obligationType = UKTR,
         status = if (p2TaxReturnSubmissions.isEmpty) Open else Fulfilled,
         canAmend = canAmend,
         submissions = p2TaxReturnSubmissions
@@ -144,7 +152,7 @@ class ObligationsAndSubmissionsController @Inject() (
 
     val obligations = if (!p2TaxReturnSubmissions.sortBy(_.receivedDate).reverse.headOption.exists(_.submissionType == BTN)) {
       domesticObligation :+ Obligation(
-        obligationType = GlobeInformationReturn,
+        obligationType = GIR,
         status = if (girSubmissions.isEmpty) Open else Fulfilled,
         canAmend = canAmend,
         submissions = girSubmissions

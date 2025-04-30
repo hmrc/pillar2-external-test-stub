@@ -49,7 +49,7 @@ class ORNService @Inject() (
     ornRepository.findByPillar2IdAndAccountingPeriod(pillar2Id, request.accountingPeriodFrom, request.accountingPeriodTo).flatMap {
       case Some(_) =>
         ornRepository.insert(pillar2Id, request).flatMap { submissionId =>
-          oasRepository.insert(request, pillar2Id, submissionId)
+          oasRepository.insert(request, pillar2Id, submissionId, isAmendment = true)
         }
       case None =>
         Future.failed(RequestCouldNotBeProcessed)
