@@ -21,23 +21,27 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{ValidationError, ValidationRule}
+
+import java.time.LocalDate
 case class ORNValidationError(error: ETMPError) extends ValidationError {
   override def errorCode:    String = error.code
   override def errorMessage: String = error.message
-  override def field:        String = "ORNRequest"
 }
 
 object ORNValidationRules {
 
-  // Validation rule to check if the group is domestic only
   def domesticOnlyRule(testOrg: TestOrganisationWithId): ValidationRule[ORNRequest] = {
     val isDomesticOnly = testOrg.organisation.orgDetails.domesticOnly
     ValidationRule[ORNRequest] { request =>
-      if (isDomesticOnly) {
-        invalid(ORNValidationError(RequestCouldNotBeProcessed))
-      } else {
-        valid(request)
-      }
+      if (isDomesticOnly) invalid(ORNValidationError(RequestCouldNotBeProcessed))
+      else valid(request)
     }
   }
+
+  def filedDateGIRRule: ValidationRule[ORNRequest] =
+    ValidationRule[ORNRequest] { request =>
+      val filedGirDateFutureDate = request.filedDateGIR.isAfter(LocalDate.now)
+      if (filedGirDateFutureDate) invalid(ORNValidationError(RequestCouldNotBeProcessed))
+      else valid(request)
+    }
 }

@@ -41,10 +41,12 @@ object ORNValidator {
         val accountingPeriodRule = BaseSubmissionValidationRules.accountingPeriodSanityCheckRule[ORNRequest](
           ORNValidationError(RequestCouldNotBeProcessed)
         )
+        val filedDateGIRRule = ORNValidationRules.filedDateGIRRule
 
         ValidationRule.compose(
           domesticRule,
-          accountingPeriodRule
+          accountingPeriodRule,
+          filedDateGIRRule
         )(FailFast)
       }
       .recover { case _: OrganisationNotFound =>
