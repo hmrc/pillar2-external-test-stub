@@ -56,7 +56,8 @@ class ORNValidationRulesSpec extends AnyWordSpec with Matchers with MockitoSugar
       "reject a future filedDateGIR date" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
-        val result = ORNValidationRules.domesticOnlyRule(domesticOrganisation).validate(validORNRequest.copy(filedDateGIR = LocalDate.of(2026, 1, 1)))
+        val result =
+          ORNValidationRules.domesticOnlyRule(domesticOrganisation).validate(validORNRequest.copy(filedDateGIR = LocalDate.now.plusYears(1)))
 
         result.isInvalid mustBe true
         result.toEither.left.map { errors =>
