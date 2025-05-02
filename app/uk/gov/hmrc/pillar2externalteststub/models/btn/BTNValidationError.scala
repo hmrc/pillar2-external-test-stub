@@ -22,5 +22,4 @@ import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 case class BTNValidationError(error: ETMPError) extends ValidationError {
   override def errorCode:    String = error.code
   override def errorMessage: String = error.message
-  override def field:        String = "BTNRequest"
 }

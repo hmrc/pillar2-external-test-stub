@@ -18,5 +18,4 @@ package uk.gov.hmrc.pillar2externalteststub.validation
 trait ValidationError {
   def errorCode:    String
   def errorMessage: String
-  def field:        String
 }

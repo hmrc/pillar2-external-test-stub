@@ -52,5 +52,4 @@ object UKTRSubmission {
 case class UKTRSubmissionError(error: ETMPError) extends ValidationError {
   override def errorCode:    String = error.code
   override def errorMessage: String = error.message
-  override def field:        String = "UKTRSubmission"
 }

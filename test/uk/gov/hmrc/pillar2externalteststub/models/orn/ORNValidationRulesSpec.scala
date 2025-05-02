@@ -26,6 +26,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.ORNDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
 
+import java.time.LocalDate
 import scala.concurrent.Future
 
 class ORNValidationRulesSpec extends AnyWordSpec with Matchers with MockitoSugar with ScalaFutures with ORNDataFixture with TestOrgDataFixture {
@@ -44,6 +45,27 @@ class ORNValidationRulesSpec extends AnyWordSpec with Matchers with MockitoSugar
       }
 
       "allow non-domestic organisations" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val result = ORNValidationRules.domesticOnlyRule(nonDomesticOrganisation).validate(validORNRequest)
+
+        result.isValid mustBe true
+      }
+    }
+    "filedDateGIRRule" should {
+      "reject a future filedDateGIR date" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
+        val result =
+          ORNValidationRules.domesticOnlyRule(domesticOrganisation).validate(validORNRequest.copy(filedDateGIR = LocalDate.now.plusYears(1)))
+
+        result.isInvalid mustBe true
+        result.toEither.left.map { errors =>
+          errors.head.asInstanceOf[ORNValidationError].error mustBe RequestCouldNotBeProcessed
+        }
+      }
+
+      "accept a past filedDateGIR date" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val result = ORNValidationRules.domesticOnlyRule(nonDomesticOrganisation).validate(validORNRequest)
