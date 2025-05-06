@@ -66,7 +66,7 @@ class UKTRService @Inject() (
         UKTRLiabilityReturn.uktrSubmissionValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
       case _: UKTRNilReturn =>
         UKTRNilReturn.uktrNilReturnValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
-      case _ => Future.failed(ETMPBadRequest)
+      case _ => Future.failed(ETMPBadRequest())
     }
 
   private def validateRequest(validator: ValidationRule[UKTRSubmission], request: UKTRSubmission): Future[Unit] =
@@ -114,12 +114,12 @@ class UKTRService @Inject() (
             oasRepository.insert(liability, pillar2Id, sub).map(_ => ())
           }
         }
-      case _ => Future.failed(ETMPBadRequest)
+      case _ => Future.failed(ETMPBadRequest())
     }
 
   private def createResponse(request: UKTRSubmission, existingChargeRef: Option[String] = None): UKTRResponse = request match {
     case _: UKTRLiabilityReturn => successfulUKTRResponse(existingChargeRef)
     case _: UKTRNilReturn       => successfulNilReturnResponse
-    case _ => throw ETMPBadRequest
+    case _ => throw ETMPBadRequest()
   }
 }

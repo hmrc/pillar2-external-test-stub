@@ -45,7 +45,7 @@ class BTNController @Inject() (
         request.body
           .validate[BTNRequest]
           .fold(
-            _ => Future.failed(ETMPBadRequest),
+            _ => Future.failed(ETMPBadRequest()),
             btnRequest => handleSubmission(pillar2Id, btnRequest)
           )
       }

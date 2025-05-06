@@ -44,7 +44,7 @@ class UKTRController @Inject() (
         request.body
           .validate[UKTRSubmission]
           .fold(
-            _ => Future.failed(ETMPBadRequest),
+            _ => Future.failed(ETMPBadRequest()),
             uktrRequest => uktrService.submitUKTR(pillar2Id, uktrRequest).map(response => Created(Json.toJson(response)(writes)))
           )
       }
@@ -56,7 +56,7 @@ class UKTRController @Inject() (
         request.body
           .validate[UKTRSubmission]
           .fold(
-            _ => Future.failed(ETMPBadRequest),
+            _ => Future.failed(ETMPBadRequest()),
             uktrRequest => uktrService.amendUKTR(pillar2Id, uktrRequest).map(response => Ok(Json.toJson(response)(writes)))
           )
       }

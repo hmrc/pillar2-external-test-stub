@@ -52,7 +52,7 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
               TaxObligationAlreadyFulfilled | InvalidReturn | InvalidDTTElection | InvalidUTPRElection | InvalidTotalLiability |
               InvalidTotalLiabilityIIR | InvalidTotalLiabilityDTT | InvalidTotalLiabilityUTPR =>
             Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
-          case ETMPBadRequest          => Results.BadRequest(Json.toJson(ETMPErrorResponse(ETMPSimpleError(e))))
+          case ETMPBadRequest(_)       => Results.BadRequest(Json.toJson(ETMPErrorResponse(ETMPSimpleError(e))))
           case ETMPInternalServerError => Results.InternalServerError(Json.toJson(ETMPErrorResponse(ETMPSimpleError(e))))
         }
         logger.warn(s"Caught ETMPError. Returning ${ret.header.status} statuscode", exception)
