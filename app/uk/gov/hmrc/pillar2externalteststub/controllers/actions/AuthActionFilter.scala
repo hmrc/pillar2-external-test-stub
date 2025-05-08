@@ -29,22 +29,23 @@ import scala.concurrent.{ExecutionContext, Future}
 class AuthActionFilter @Inject() ()(implicit ec: ExecutionContext) extends ActionFilter[Request] {
 
   override def filter[A](request: Request[A]): Future[Option[Result]] = {
-    def validateHeader(header: String, validationFn: String => Boolean): Future[Option[Nothing]] =
-      if (request.headers.get(header).exists(validationFn)) Future.successful(None)
+    def validateHeader(header: String, validationFn: String => Boolean): Future[Unit] =
+      if (request.headers.get(header).exists(validationFn)) Future.successful(())
       else {
         logger.error(s"Header is missing or invalid: $header")
-        throw ETMPBadRequest(s"Header is missing or invalid: $header")
+        Future.failed(ETMPBadRequest(s"Header is missing or invalid: $header"))
       }
 
-    validateHeader(correlationidHeader, _.matches(correlationidHeaderRegex))
-    validateHeader(xReceiptDateHeader, _.matches(xReceiptDateHeaderRegex))
-    validateHeader(xOriginatingSystemHeader, _.equals("MDTP"))
-    validateHeader(xTransmittingSystemHeader, _.equals("HIP"))
-
-    request.headers.get(HeaderNames.authorisation) match {
-      case Some(_) => Future.successful(None)
-      case _       => Future.successful(Some(Unauthorized))
-    }
+    for {
+      _ <- validateHeader(correlationidHeader, _.matches(correlationidHeaderRegex))
+      _ <- validateHeader(xReceiptDateHeader, _.matches(xReceiptDateHeaderRegex))
+      _ <- validateHeader(xOriginatingSystemHeader, _.equals("MDTP"))
+      _ <- validateHeader(xTransmittingSystemHeader, _.equals("HIP"))
+      authResult <- {
+        if (request.headers.get(HeaderNames.authorisation).isDefined) Future.successful(None)
+        else Future.successful(Some(Unauthorized))
+      }
+    } yield authResult
   }
 
   override def executionContext: ExecutionContext = ec

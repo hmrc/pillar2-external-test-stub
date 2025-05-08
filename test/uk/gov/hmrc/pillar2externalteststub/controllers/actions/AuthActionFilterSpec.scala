@@ -49,8 +49,7 @@ class AuthActionFilterSpec extends AnyWordSpec with Matchers with ScalaFutures w
           val filteredHeaders = hipHeaders.filterNot(_._1 == header)
           if (invalidValue.isEmpty) filteredHeaders else filteredHeaders :+ (header -> invalidValue)
         }
-        val exception = intercept[ETMPBadRequest](authActionFilter.filter(FakeRequest().withHeaders(headers: _*)).futureValue)
-        exception.message shouldEqual s"Header is missing or invalid: $header"
+        authActionFilter.filter(FakeRequest().withHeaders(headers: _*)) shouldFailWith ETMPBadRequest(s"Header is missing or invalid: $header")
       }
 
       "correlationid is missing" in {
