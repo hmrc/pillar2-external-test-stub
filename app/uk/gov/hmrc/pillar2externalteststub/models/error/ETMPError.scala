@@ -89,9 +89,9 @@ object ETMPError {
     override val message: String = "Invalid Total Liability UTPR"
   }
 
-  case object ETMPBadRequest extends ETMPError {
+  case class ETMPBadRequest(errorMessage: String = "Bad request") extends ETMPError {
     override val code:    String         = "400"
-    override val message: String         = "Bad request"
+    override val message: String         = errorMessage
     override val logID:   Option[String] = Some("C0000000000000000000000000000400")
   }
 

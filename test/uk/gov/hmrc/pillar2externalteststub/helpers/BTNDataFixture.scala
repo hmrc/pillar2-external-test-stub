@@ -17,7 +17,6 @@
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
 import org.bson.types.ObjectId
-import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.POST
@@ -45,7 +44,7 @@ trait BTNDataFixture extends Pillar2DataFixture {
 
   def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/RESTAdapter/plr/below-threshold-notification")
-      .withHeaders(HeaderNames.CONTENT_TYPE -> "application/json", authHeader, "X-Pillar2-Id" -> plrId)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
       .withBody(body)
 
   def createRequestWithBody(plrId: String, request: BTNRequest): FakeRequest[JsValue] =

@@ -16,20 +16,37 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers.actions
 
+import play.api.i18n.Lang.logger
 import play.api.mvc.Results.Unauthorized
 import play.api.mvc.{ActionFilter, Request, Result}
 import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.ETMPBadRequest
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class AuthActionFilter @Inject() ()(implicit ec: ExecutionContext) extends ActionFilter[Request] {
 
-  override protected def filter[A](request: Request[A]): Future[Option[Result]] =
-    request.headers.get(HeaderNames.authorisation) match {
-      case Some(_) => Future.successful(None)
-      case _       => Future.successful(Some(Unauthorized))
-    }
+  override def filter[A](request: Request[A]): Future[Option[Result]] = {
+    def validateHeader(header: String, validationFn: String => Boolean): Future[Unit] =
+      if (request.headers.get(header).exists(validationFn)) Future.successful(())
+      else {
+        logger.error(s"Header is missing or invalid: $header")
+        Future.failed(ETMPBadRequest(s"Header is missing or invalid: $header"))
+      }
 
-  override protected def executionContext: ExecutionContext = ec
+    for {
+      _ <- validateHeader(correlationidHeader, _.matches(correlationidHeaderRegex))
+      _ <- validateHeader(xReceiptDateHeader, _.matches(xReceiptDateHeaderRegex))
+      _ <- validateHeader(xOriginatingSystemHeader, _.equals("MDTP"))
+      _ <- validateHeader(xTransmittingSystemHeader, _.equals("HIP"))
+      authResult <- {
+        if (request.headers.get(HeaderNames.authorisation).isDefined) Future.successful(None)
+        else Future.successful(Some(Unauthorized))
+      }
+    } yield authResult
+  }
+
+  override def executionContext: ExecutionContext = ec
 }

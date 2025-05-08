@@ -19,9 +19,11 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers._
 import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.AccountingPeriod
 
 import java.time.LocalDate
+import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -36,6 +38,13 @@ trait Pillar2DataFixture {
   }
 
   val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
+  val hipHeaders: Seq[(String, String)] = Seq(
+    authHeader,
+    correlationidHeader       -> UUID.randomUUID().toString,
+    xReceiptDateHeader        -> nowZonedDateTime,
+    xTransmittingSystemHeader -> "HIP",
+    xOriginatingSystemHeader  -> "MDTP"
+  )
 
   val validPlrId       = "XMPLR0000000000"
   val chargeReference  = "XM000000000000"

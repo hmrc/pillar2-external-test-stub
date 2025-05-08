@@ -24,19 +24,20 @@ import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.HeaderNames
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2DataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 
 import scala.concurrent.Future
 
-class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues {
+class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with Pillar2DataFixture {
 
   private def authorizedRequest(plrReference: String) =
     FakeRequest(GET, routes.SubscriptionController.retrieveSubscription(plrReference).url)
-      .withHeaders(HeaderNames.authorisation -> "Bearer valid_token")
+      .withHeaders(hipHeaders: _*)
 
   private def unauthorizedRequest(plrReference: String) =
     FakeRequest(GET, routes.SubscriptionController.retrieveSubscription(plrReference).url)
+      .withHeaders(hipHeaders.tail: _*)
 
   "SubscriptionController" - {
 

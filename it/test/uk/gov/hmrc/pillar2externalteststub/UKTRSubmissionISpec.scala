@@ -108,7 +108,7 @@ class UKTRSubmissionISpec
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
-      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .execute[HttpResponse]
       .futureValue
   }
@@ -118,7 +118,7 @@ class UKTRSubmissionISpec
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
-      .setHeader("X-Pillar2-Id" -> pillar2Id)
+      .setHeader(hipHeaders.tail :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .execute[HttpResponse]
       .futureValue
   }
@@ -127,7 +127,7 @@ class UKTRSubmissionISpec
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(payload)
-      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .execute[HttpResponse]
       .futureValue
 
@@ -136,7 +136,7 @@ class UKTRSubmissionISpec
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
-      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .execute[HttpResponse]
       .futureValue
   }
@@ -146,7 +146,7 @@ class UKTRSubmissionISpec
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
-      .setHeader("X-Pillar2-Id" -> pillar2Id)
+      .setHeader(hipHeaders.tail :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .execute[HttpResponse]
       .futureValue
   }
@@ -155,7 +155,7 @@ class UKTRSubmissionISpec
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(correctNilReturnJson)
-      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .execute[HttpResponse]
       .futureValue
 
@@ -163,7 +163,7 @@ class UKTRSubmissionISpec
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(correctNilReturnJson)
-      .setHeader("Authorization" -> authToken, "X-Pillar2-Id" -> pillar2Id)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .execute[HttpResponse]
       .futureValue
 
@@ -293,6 +293,7 @@ class UKTRSubmissionISpec
         val response = httpClient
           .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
           .withBody(Json.toJson(liabilitySubmission))
+          .setHeader(hipHeaders.tail: _*)
           .setHeader("Authorization" -> authToken)
           .execute[HttpResponse]
           .futureValue

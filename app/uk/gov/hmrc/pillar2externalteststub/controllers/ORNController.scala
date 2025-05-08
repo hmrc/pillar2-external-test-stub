@@ -50,7 +50,7 @@ class ORNController @Inject() (
         request.body
           .validate[ORNRequest]
           .fold(
-            _ => Future.failed(ETMPBadRequest),
+            _ => Future.failed(ETMPBadRequest()),
             ornRequest => validateORN(pillar2Id, ornRequest)
           )
       }
@@ -62,7 +62,7 @@ class ORNController @Inject() (
         request.body
           .validate[ORNRequest]
           .fold(
-            _ => Future.failed(ETMPBadRequest),
+            _ => Future.failed(ETMPBadRequest()),
             ornRequest => validateORN(pillar2Id, ornRequest, isAmendment = true)
           )
       }
@@ -98,7 +98,7 @@ class ORNController @Inject() (
                 Future.failed(NoActiveSubscription)
               case e: DateTimeParseException =>
                 logger.error(s"Invalid date format: ${e.getMessage}")
-                Future.failed(ETMPBadRequest)
+                Future.failed(ETMPBadRequest())
             }
         }
     }

@@ -95,7 +95,7 @@ class ObligationsAndSubmissionsControllerSpec
     toDate:   String = accountingPeriod.endDate.toString
   ) =
     FakeRequest(GET, routes.ObligationsAndSubmissionsController.getObligationsAndSubmissions(fromDate, toDate).url)
-      .withHeaders(authHeader, "X-Pillar2-Id" -> plrId)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
 
   "Obligations and Submissions" - {
     "when requesting Obligations and Submissions" - {

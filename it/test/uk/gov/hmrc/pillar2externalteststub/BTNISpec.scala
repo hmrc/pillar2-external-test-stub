@@ -59,8 +59,8 @@ class BTNISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: BTNSubmissionRepository             = app.injector.instanceOf[BTNSubmissionRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
-  implicit val hc: HeaderCarrier    = HeaderCarrier()
+  implicit val ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  implicit val hc:                   HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -72,20 +72,13 @@ class BTNISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitBTN(pillar2Id: String, request: BTNRequest): HttpResponse = {
-    val headers = Seq(
-      "Content-Type"  -> "application/json",
-      "Authorization" -> "Bearer token",
-      "X-Pillar2-Id"  -> pillar2Id
-    )
-
+  private def submitBTN(pillar2Id: String, request: BTNRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
-      .transform(_.withHttpHeaders(headers: _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
-  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -150,14 +143,9 @@ class BTNISpec
     }
 
     "handle invalid requests appropriately" in {
-      val headers = Seq(
-        "Content-Type"  -> "application/json",
-        "Authorization" -> "Bearer token"
-      )
-
       val responseWithoutId = httpClient
         .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
-        .transform(_.withHttpHeaders(headers: _*))
+        .transform(_.withHttpHeaders(hipHeaders: _*))
         .withBody(Json.toJson(validBTNRequest))
         .execute[HttpResponse]
         .futureValue

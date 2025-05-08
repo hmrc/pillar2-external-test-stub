@@ -31,12 +31,13 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ORNDataFixture, TestOrgDataFixture}
+import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ORNSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class ORNISpec
@@ -54,10 +55,10 @@ class ORNISpec
 
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
-  private val ornRepository: ORNSubmissionRepository = app.injector.instanceOf[ORNSubmissionRepository]
+  private val ornRepository: ORNSubmissionRepository             = app.injector.instanceOf[ORNSubmissionRepository]
   private val oasRepository: ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  implicit val ec:                   ExecutionContext        = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier           = HeaderCarrier()
+  implicit val ec:           ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  implicit val hc:           HeaderCarrier                       = HeaderCarrier()
   override protected val repository = ornRepository
 
   override def fakeApplication(): Application =
@@ -70,49 +71,30 @@ class ORNISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitORN(pillar2Id: String, request: ORNRequest): HttpResponse = {
-    val headers = Seq(
-      "Content-Type"  -> "application/json",
-      "Authorization" -> "Bearer token",
-      "X-Pillar2-Id"  -> pillar2Id
-    )
-
+  private def submitORN(pillar2Id: String, request: ORNRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
-      .transform(_.withHttpHeaders(headers: _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
-  }
 
-  private def amendORN(pillar2Id: String, request: ORNRequest): HttpResponse = {
-    val headers = Seq(
-      "Content-Type"  -> "application/json",
-      "Authorization" -> "Bearer token",
-      "X-Pillar2-Id"  -> pillar2Id
-    )
-
+  private def amendORN(pillar2Id: String, request: ORNRequest): HttpResponse =
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
-      .transform(_.withHttpHeaders(headers: _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
-  }
 
-  private def getORN(pillar2Id: String, accountingPeriodFrom: String, accountingPeriodTo: String): HttpResponse = {
-    val headers = Seq(
-      "Content-Type"  -> "application/json",
-      "Authorization" -> "Bearer token",
-      "X-Pillar2-Id"  -> pillar2Id
-    )
-
+  private def getORN(pillar2Id: String, accountingPeriodFrom: String, accountingPeriodTo: String): HttpResponse =
     httpClient
-      .get(url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=$accountingPeriodFrom&accountingPeriodTo=$accountingPeriodTo")
-      .transform(_.withHttpHeaders(headers: _*))
+      .get(
+        url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=$accountingPeriodFrom&accountingPeriodTo=$accountingPeriodTo"
+      )
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .execute[HttpResponse]
       .futureValue
-  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -137,9 +119,9 @@ class ORNISpec
       val submissions = ornRepository.findByPillar2Id(validPlrId).futureValue
       submissions.size shouldBe 1
       val submission = submissions.head
-      submission.pillar2Id shouldBe validPlrId
+      submission.pillar2Id            shouldBe validPlrId
       submission.accountingPeriodFrom shouldBe validORNRequest.accountingPeriodFrom
-      submission.accountingPeriodTo shouldBe validORNRequest.accountingPeriodTo
+      submission.accountingPeriodTo   shouldBe validORNRequest.accountingPeriodTo
     }
 
     "save ORN submissions to both ORN and ObligationsAndSubmissions repositories" in {
@@ -151,20 +133,22 @@ class ORNISpec
       // Verify in ORN repository
       val ornSubmissions = ornRepository.findByPillar2Id(validPlrId).futureValue
       ornSubmissions.size shouldBe 1
-      
+
       // Verify in OAS repository
-      val oasSubmissions = oasRepository.findByPillar2Id(
-        validPlrId, 
-        validORNRequest.accountingPeriodFrom,
-        validORNRequest.accountingPeriodTo
-      ).futureValue
-      
+      val oasSubmissions = oasRepository
+        .findByPillar2Id(
+          validPlrId,
+          validORNRequest.accountingPeriodFrom,
+          validORNRequest.accountingPeriodTo
+        )
+        .futureValue
+
       oasSubmissions.size shouldBe 1
       val oasSubmission = oasSubmissions.head
-      oasSubmission.pillar2Id shouldBe validPlrId
+      oasSubmission.pillar2Id                  shouldBe validPlrId
       oasSubmission.accountingPeriod.startDate shouldBe validORNRequest.accountingPeriodFrom
-      oasSubmission.accountingPeriod.endDate shouldBe validORNRequest.accountingPeriodTo
-      oasSubmission.submissionType shouldBe SubmissionType.ORN_CREATE
+      oasSubmission.accountingPeriod.endDate   shouldBe validORNRequest.accountingPeriodTo
+      oasSubmission.submissionType             shouldBe SubmissionType.ORN_CREATE
     }
 
     "return 422 with tax obligation already fulfilled when submitting duplicate ORN" in {
@@ -214,10 +198,10 @@ class ORNISpec
       amendResponse.status shouldBe 200
 
       val submissions = ornRepository.findByPillar2Id(validPlrId).futureValue
-      submissions.size shouldBe 2
+      submissions.size                     shouldBe 2
       submissions.last.reportingEntityName shouldBe "Updated Newco PLC"
     }
-    
+
     "save amended ORN submissions to both ORN and ObligationsAndSubmissions repositories" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
 
@@ -235,23 +219,25 @@ class ORNISpec
       // Verify in ORN repository - should have both original and amended submissions
       val ornSubmissions = ornRepository.findByPillar2Id(validPlrId).futureValue
       ornSubmissions.size shouldBe 2
-      
+
       // Verify in OAS repository - should have both original and amended submissions
-      val oasSubmissions = oasRepository.findByPillar2Id(
-        validPlrId, 
-        validORNRequest.accountingPeriodFrom,
-        validORNRequest.accountingPeriodTo
-      ).futureValue
-      
+      val oasSubmissions = oasRepository
+        .findByPillar2Id(
+          validPlrId,
+          validORNRequest.accountingPeriodFrom,
+          validORNRequest.accountingPeriodTo
+        )
+        .futureValue
+
       oasSubmissions.size shouldBe 2
       oasSubmissions.foreach { submission =>
-        submission.pillar2Id shouldBe validPlrId
+        submission.pillar2Id                  shouldBe validPlrId
         submission.accountingPeriod.startDate shouldBe validORNRequest.accountingPeriodFrom
-        submission.accountingPeriod.endDate shouldBe validORNRequest.accountingPeriodTo
+        submission.accountingPeriod.endDate   shouldBe validORNRequest.accountingPeriodTo
         submission.submissionType match {
-          case SubmissionType.ORN_CREATE => true shouldBe true  // First submission
-          case SubmissionType.ORN_AMEND => true shouldBe true   // Amended submission
-          case _ => fail(s"Unexpected submission type: ${submission.submissionType}")
+          case SubmissionType.ORN_CREATE => true shouldBe true // First submission
+          case SubmissionType.ORN_AMEND  => true shouldBe true // Amended submission
+          case _                         => fail(s"Unexpected submission type: ${submission.submissionType}")
         }
       }
     }
@@ -270,14 +256,9 @@ class ORNISpec
     }
 
     "handle invalid requests appropriately" in {
-      val headers = Seq(
-        "Content-Type"  -> "application/json",
-        "Authorization" -> "Bearer token"
-      )
-
       val responseWithoutId = httpClient
         .post(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
-        .transform(_.withHttpHeaders(headers: _*))
+        .transform(_.withHttpHeaders(hipHeaders: _*))
         .withBody(Json.toJson(validORNRequest))
         .execute[HttpResponse]
         .futureValue
@@ -320,16 +301,16 @@ class ORNISpec
       // Then retrieve it
       val getResponse = getORN(validPlrId, validORNRequest.accountingPeriodFrom.toString, validORNRequest.accountingPeriodTo.toString)
       getResponse.status shouldBe 200
-      
+
       val submission = Json.parse(getResponse.body)
       (submission \ "success" \ "accountingPeriodFrom").as[String] shouldBe validORNRequest.accountingPeriodFrom.toString
-      (submission \ "success" \ "accountingPeriodTo").as[String] shouldBe validORNRequest.accountingPeriodTo.toString
-      (submission \ "success" \ "filedDateGIR").as[String] shouldBe validORNRequest.filedDateGIR.toString
-      (submission \ "success" \ "countryGIR").as[String] shouldBe validORNRequest.countryGIR
-      (submission \ "success" \ "reportingEntityName").as[String] shouldBe validORNRequest.reportingEntityName
-      (submission \ "success" \ "TIN").as[String] shouldBe validORNRequest.TIN
-      (submission \ "success" \ "issuingCountryTIN").as[String] shouldBe validORNRequest.issuingCountryTIN
-      (submission \ "success" \ "processingDate").as[String] should not be empty
+      (submission \ "success" \ "accountingPeriodTo").as[String]   shouldBe validORNRequest.accountingPeriodTo.toString
+      (submission \ "success" \ "filedDateGIR").as[String]         shouldBe validORNRequest.filedDateGIR.toString
+      (submission \ "success" \ "countryGIR").as[String]           shouldBe validORNRequest.countryGIR
+      (submission \ "success" \ "reportingEntityName").as[String]  shouldBe validORNRequest.reportingEntityName
+      (submission \ "success" \ "TIN").as[String]                  shouldBe validORNRequest.TIN
+      (submission \ "success" \ "issuingCountryTIN").as[String]    shouldBe validORNRequest.issuingCountryTIN
+      (submission \ "success" \ "processingDate").as[String]         should not be empty
     }
 
     "return 422 when no submission exists for the given period" in {
@@ -348,20 +329,15 @@ class ORNISpec
       val getResponse = getORN(validPlrId, "invalid-date", "2025-12-31")
       getResponse.status shouldBe 400
       val json = Json.parse(getResponse.body)
-      (json \ "error" \ "code").as[String] shouldBe "400"
+      (json \ "error" \ "code").as[String]    shouldBe "400"
       (json \ "error" \ "message").as[String] shouldBe "Bad request"
-      (json \ "error" \ "logID").as[String] shouldBe "C0000000000000000000000000000400"
+      (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000400"
     }
 
     "return 422 when ID number is missing" in {
-      val headers = Seq(
-        "Content-Type"  -> "application/json",
-        "Authorization" -> "Bearer token"
-      )
-
       val getResponse = httpClient
         .get(url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=2024-01-01&accountingPeriodTo=2024-12-31")
-        .transform(_.withHttpHeaders(headers: _*))
+        .transform(_.withHttpHeaders(hipHeaders: _*))
         .execute[HttpResponse]
         .futureValue
 
@@ -383,10 +359,9 @@ class ORNISpec
       val getResponse = getORN(serverErrorPlrId, "2024-01-01", "2024-12-31")
       getResponse.status shouldBe 500
       val json = Json.parse(getResponse.body)
-      (json \ "error" \ "code").as[String] shouldBe "500"
+      (json \ "error" \ "code").as[String]    shouldBe "500"
       (json \ "error" \ "message").as[String] shouldBe "Internal server error"
-      (json \ "error" \ "logID").as[String] shouldBe "C0000000000000000000000000000500"
+      (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000500"
     }
   }
 }
-
