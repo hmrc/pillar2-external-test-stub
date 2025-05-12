@@ -87,9 +87,15 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
       }
 
       "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {
-        val serverErrorPlrId = "XEPLR5000000000"
-        val result           = route(app, createRequestWithBody(serverErrorPlrId, validORNRequest)).get
+        val result = route(app, createRequestWithBody(serverErrorPlrId, validORNRequest)).get
         result shouldFailWith ETMPInternalServerError
+      }
+
+      "should return InvalidReturn when the submission's accounting period does not match that of the testOrg" in {
+        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+        val result = route(app, createRequestWithBody(validPlrId, differentAccountingPeriodORNRequest)).get
+        result shouldFailWith InvalidReturn
       }
     }
 
@@ -116,6 +122,13 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
       "should return ETMPBadRequest when amendment request body is invalid JSON" in {
         val result = route(app, createAmendRequest(validPlrId, Json.obj("invalid" -> "request"))).get
         result shouldFailWith ETMPBadRequest
+      }
+
+      "should return InvalidReturn when the amendments's accounting period does not match that of the testOrg" in {
+        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+        val result = route(app, createRequestWithBody(validPlrId, differentAccountingPeriodORNRequest, isAmend = true)).get
+        result shouldFailWith InvalidReturn
       }
     }
 
