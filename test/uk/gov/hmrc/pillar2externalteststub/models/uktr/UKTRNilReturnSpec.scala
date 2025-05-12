@@ -69,5 +69,12 @@ class UKTRNilReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFixture w
       val result = Await.result(UKTRNilReturn.uktrNilReturnValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
       result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
     }
+
+    "should fail validation when accounting period accountingPeriodTo is after the accountingPeriodFrom" in {
+      val invalidReturn = validNilReturn.copy(accountingPeriodTo = validNilReturn.accountingPeriodFrom.minusYears(1))
+
+      val result = Await.result(UKTRNilReturn.uktrNilReturnValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+      result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
+    }
   }
 }
