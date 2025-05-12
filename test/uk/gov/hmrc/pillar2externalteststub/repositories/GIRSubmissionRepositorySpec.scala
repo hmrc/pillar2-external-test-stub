@@ -136,7 +136,7 @@ class GIRSubmissionRepositorySpec
       submissions.map(_.accountingPeriodFrom) should contain theSameElementsAs requests.map(_.accountingPeriodFrom)
     }
   }
-  
+
   "findByPillar2IdAndAccountingPeriod" should {
     "return None when no matching submission exists" in {
       repository
@@ -169,7 +169,9 @@ class GIRSubmissionRepositorySpec
   "deleteByPillar2Id" should {
     "successfully delete all submissions for a given pillar2Id" in {
       repository.insert(testPillar2Id, testRequest).futureValue
-      repository.insert(testPillar2Id, testRequest.copy(accountingPeriodFrom = LocalDate.of(2025,1,1))).futureValue // Insert another to ensure deleteMany works
+      repository
+        .insert(testPillar2Id, testRequest.copy(accountingPeriodFrom = LocalDate.of(2025, 1, 1)))
+        .futureValue // Insert another to ensure deleteMany works
 
       repository.findByPillar2Id(testPillar2Id).futureValue.size shouldBe 2
 
@@ -183,4 +185,3 @@ class GIRSubmissionRepositorySpec
     }
   }
 }
-
