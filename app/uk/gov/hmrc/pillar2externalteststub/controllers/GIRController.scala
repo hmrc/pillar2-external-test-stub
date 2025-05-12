@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.controllers
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents, Result}
+import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
@@ -44,17 +44,11 @@ class GIRController @Inject() (
           .validate[GIRRequest]
           .fold(
             _ => Future.failed(ETMPBadRequest),
-            girRequest => handleSubmission(pillar2Id, girRequest)
+            girRequest =>
+              girService
+                .submitGIR(pillar2Id, girRequest)
+                .map(_ => Created(Json.toJson(GIRSuccessResponse.GIR_SUCCESS_201)))
           )
       }
   }
-
-  private def handleSubmission(pillar2Id: String, request: GIRRequest): Future[Result] =
-    pillar2Id match {
-      case id if id == "XEPLR5000000000" => Future.failed(ETMPInternalServerError)
-      case _ =>
-        girService
-          .submitGIR(pillar2Id, request)
-          .map(_ => Created(Json.toJson(GIRSuccessResponse.GIR_SUCCESS_201)))
-    }
 }
