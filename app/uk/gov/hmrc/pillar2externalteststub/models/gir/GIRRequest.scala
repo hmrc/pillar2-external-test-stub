@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 
 import java.time.LocalDate
 
-case class GIRRequest(accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate) extends BaseSubmission {
-  def accountingPeriodValid: Boolean =
-    accountingPeriodFrom.isBefore(accountingPeriodTo)
-}
+case class GIRRequest(accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate) extends BaseSubmission
 
 object GIRRequest {
   implicit val format: OFormat[GIRRequest] = Json.format[GIRRequest]

@@ -57,7 +57,7 @@ object ObligationsAndSubmissionsMongoSubmission {
       case _: UKTRNilReturn | _: UKTRLiabilityReturn => if (isAmendment) SubmissionType.UKTR_AMEND else SubmissionType.UKTR_CREATE
       case _: BTNRequest => SubmissionType.BTN
       case _: ORNRequest => if (isAmendment) SubmissionType.ORN_AMEND else SubmissionType.ORN_CREATE
-      case _: GIRRequest => SubmissionType.GIR_CREATE
+      case _: GIRRequest => SubmissionType.GIR
       case _ => throw new IllegalArgumentException("Unsupported submission type")
     }
 

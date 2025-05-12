@@ -59,13 +59,13 @@ class ObligationsAndSubmissionsControllerSpec
 
   def mockBySubmissionType(subType: SubmissionType): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] = {
     val fixture = subType match {
-      case UKTR_CREATE => uktrObligationsAndSubmissionsMongoSubmission
-      case UKTR_AMEND  => uktrAmendObligationsAndSubmissionsMongoSubmission
-      case ORN_CREATE  => ornObligationsAndSubmissionsMongoSubmission
-      case ORN_AMEND   => ornAmendObligationsAndSubmissionsMongoSubmission
-      case GIR_CREATE  => girCreateObligationsAndSubmissionsMongoSubmission
-      case BTN         => olderBtnObligationsAndSubmissionsMongoSubmission
-      case _           => olderBtnObligationsAndSubmissionsMongoSubmission
+      case UKTR_CREATE        => uktrObligationsAndSubmissionsMongoSubmission
+      case UKTR_AMEND         => uktrAmendObligationsAndSubmissionsMongoSubmission
+      case ORN_CREATE         => ornObligationsAndSubmissionsMongoSubmission
+      case ORN_AMEND          => ornAmendObligationsAndSubmissionsMongoSubmission
+      case SubmissionType.GIR => girCreateObligationsAndSubmissionsMongoSubmission
+      case BTN                => olderBtnObligationsAndSubmissionsMongoSubmission
+      case _                  => olderBtnObligationsAndSubmissionsMongoSubmission
     }
     when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
       .thenReturn(Future.successful(Seq(fixture)))
