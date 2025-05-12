@@ -26,8 +26,9 @@ import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class GIRValidationError(error: uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError) extends uk.gov.hmrc.pillar2externalteststub.validation.ValidationError {
-  override def errorCode: String = error.code
+case class GIRValidationError(error: uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError)
+    extends uk.gov.hmrc.pillar2externalteststub.validation.ValidationError {
+  override def errorCode:    String = error.code
   override def errorMessage: String = error.message
 }
 
@@ -36,7 +37,7 @@ object GIRValidator {
     pillar2Id: String
   )(implicit
     organisationService: OrganisationService,
-    ec: ExecutionContext
+    ec:                  ExecutionContext
   ): Future[ValidationRule[GIRRequest]] =
     organisationService
       .getOrganisation(pillar2Id)
@@ -48,4 +49,4 @@ object GIRValidator {
       .recover { case _: OrganisationNotFound =>
         ValidationRule[GIRRequest](_ => invalid(GIRValidationError(NoActiveSubscription)))
       }
-} 
+}

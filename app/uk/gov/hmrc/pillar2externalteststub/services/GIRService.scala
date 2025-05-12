@@ -55,11 +55,11 @@ class GIRService @Inject() (
       case Invalid(errors) =>
         errors.head match {
           case GIRValidationError(error) => Future.failed(error)
-          case _                        => Future.failed(ETMPInternalServerError)
+          case _                         => Future.failed(ETMPInternalServerError)
         }
     }
 
-    private def validateNoExistingSubmissionForPeriod(pillar2Id: String, request: GIRRequest): Future[Unit] =
+  private def validateNoExistingSubmissionForPeriod(pillar2Id: String, request: GIRRequest): Future[Unit] =
     girRepository.findByPillar2Id(pillar2Id).flatMap { submissions =>
       submissions.find(submission =>
         submission.accountingPeriodFrom == request.accountingPeriodFrom &&

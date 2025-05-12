@@ -81,4 +81,3 @@ class GIRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
     }
   }
 }
-

@@ -44,4 +44,4 @@ case class GIRSuccess(processingDate: ZonedDateTime)
 
 object GIRSuccess {
   implicit val format: OFormat[GIRSuccess] = Json.format[GIRSuccess]
-} 
+}

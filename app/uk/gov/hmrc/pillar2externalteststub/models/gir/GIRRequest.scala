@@ -28,4 +28,4 @@ case class GIRRequest(accountingPeriodFrom: LocalDate, accountingPeriodTo: Local
 
 object GIRRequest {
   implicit val format: OFormat[GIRRequest] = Json.format[GIRRequest]
-} 
+}

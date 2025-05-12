@@ -26,11 +26,11 @@ import java.time.Instant
 import java.time.LocalDate
 
 case class GIRSubmission(
-  _id: ObjectId,
-  pillar2Id: String,
+  _id:                  ObjectId,
+  pillar2Id:            String,
   accountingPeriodFrom: LocalDate,
-  accountingPeriodTo: LocalDate,
-  submittedAt: Instant
+  accountingPeriodTo:   LocalDate,
+  submittedAt:          Instant
 )
 
 object GIRSubmission {
@@ -79,4 +79,4 @@ object GIRSubmission {
     )(unlift(GIRSubmission.unapply))
 
   val mongoFormat: OFormat[GIRSubmission] = OFormat(mongoReads, mongoWrites)
-} 
+}

@@ -63,6 +63,7 @@ class ObligationsAndSubmissionsControllerSpec
       case UKTR_AMEND  => uktrAmendObligationsAndSubmissionsMongoSubmission
       case ORN_CREATE  => ornObligationsAndSubmissionsMongoSubmission
       case ORN_AMEND   => ornAmendObligationsAndSubmissionsMongoSubmission
+      case GIR_CREATE  => girCreateObligationsAndSubmissionsMongoSubmission
       case BTN         => olderBtnObligationsAndSubmissionsMongoSubmission
       case _           => olderBtnObligationsAndSubmissionsMongoSubmission
     }

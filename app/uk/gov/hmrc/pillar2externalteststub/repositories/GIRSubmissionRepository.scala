@@ -82,8 +82,8 @@ class GIRSubmissionRepository @Inject() (
       .find(
         Filters.and(
           Filters.equal("pillar2Id", pillar2Id),
-          Filters.equal("accountingPeriodFrom", from),
-          Filters.equal("accountingPeriodTo", to)
+          Filters.equal("accountingPeriodFrom", from.toString),
+          Filters.equal("accountingPeriodTo", to.toString)
         )
       )
       .sort(Sorts.descending("submittedAt"))
@@ -99,4 +99,3 @@ class GIRSubmissionRepository @Inject() (
       .map(_ => true)
       .recoverWith { case e: Exception => Future.failed(DatabaseError(s"Failed to delete GIR submission: ${e.getMessage}")) }
 }
-
