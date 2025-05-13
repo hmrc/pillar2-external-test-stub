@@ -175,6 +175,20 @@ class ObligationsAndSubmissionsControllerSpec
         }
       }
 
+      "should show GIR submission" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+        mockBySubmissionType(SubmissionType.GIR)
+
+        val result = route(app, createRequest()).value
+        status(result) mustBe OK
+
+        val jsonResponse = contentAsJson(result)
+        val submissions  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "submissions").as[Seq[Submission]]
+
+        submissions.size mustBe 1
+        submissions.head.submissionType mustBe SubmissionType.GIR
+      }
+
       "should set canAmend to false when current date is after due date" in {
         val pastDueOrg = domesticOrganisation.copy(
           organisation = domesticOrganisation.organisation.copy(
