@@ -80,6 +80,7 @@ class ObligationsAndSubmissionsController @Inject() (
         createAccountingPeriodDetails(
           testOrg.organisation.accountingPeriod.startDate,
           testOrg.organisation.accountingPeriod.endDate,
+          testOrg.organisation.orgDetails.registrationDate,
           Seq.empty
         )
       )
@@ -89,6 +90,7 @@ class ObligationsAndSubmissionsController @Inject() (
         createAccountingPeriodDetails(
           accountingPeriod.startDate,
           accountingPeriod.endDate,
+          testOrg.organisation.orgDetails.registrationDate,
           submissions.map(toSubmission)
         )
       }.toSeq
@@ -116,10 +118,11 @@ class ObligationsAndSubmissionsController @Inject() (
   private def createAccountingPeriodDetails(
     startDate:   LocalDate,
     endDate:     LocalDate,
+    regDate:     LocalDate,
     submissions: Seq[Submission]
   ): AccountingPeriodDetails = {
-    val dueDate  = endDate.plusMonths(15)
-    val canAmend = !LocalDate.now().isAfter(dueDate)
+    val dueDate  = regDate.plusMonths(18)
+    val canAmend = !LocalDate.now().isAfter(dueDate.plusYears(1))
 
     val p2TaxReturnSubmissions = submissions
       .filter(s =>
