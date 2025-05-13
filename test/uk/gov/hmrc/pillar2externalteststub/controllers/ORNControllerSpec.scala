@@ -97,6 +97,22 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         val result = route(app, createRequestWithBody(validPlrId, differentAccountingPeriodORNRequest)).get
         result shouldFailWith InvalidReturn
       }
+
+      "should return RequestCouldNotBeProcessed" - {
+        "when countryGIR is not a valid ISO country code" in {
+          when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+          val result = route(app, createRequestWithBody(validPlrId, validORNRequest.copy(countryGIR = "ZZ"))).get
+          result shouldFailWith RequestCouldNotBeProcessed
+        }
+
+        "when issuingCountryTIN is not a valid ISO country code" in {
+          when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+          val result = route(app, createRequestWithBody(validPlrId, validORNRequest.copy(issuingCountryTIN = "ZZ"))).get
+          result shouldFailWith RequestCouldNotBeProcessed
+        }
+      }
     }
 
     "when amending an ORN" - {
@@ -129,6 +145,22 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
         val result = route(app, createRequestWithBody(validPlrId, differentAccountingPeriodORNRequest, isAmend = true)).get
         result shouldFailWith InvalidReturn
+      }
+
+      "should return RequestCouldNotBeProcessed" - {
+        "when countryGIR is not a valid ISO country code" in {
+          when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+          val result = route(app, createRequestWithBody(validPlrId, validORNRequest.copy(countryGIR = "ZZ"), isAmend = true)).get
+          result shouldFailWith RequestCouldNotBeProcessed
+        }
+
+        "when issuingCountryTIN is not a valid ISO country code" in {
+          when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+
+          val result = route(app, createRequestWithBody(validPlrId, validORNRequest.copy(issuingCountryTIN = "ZZ"), isAmend = true)).get
+          result shouldFailWith RequestCouldNotBeProcessed
+        }
       }
     }
 
