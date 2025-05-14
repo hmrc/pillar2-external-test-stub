@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.nowZonedDateTime
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
@@ -121,8 +121,8 @@ class ObligationsAndSubmissionsController @Inject() (
     regDate:     LocalDate,
     submissions: Seq[Submission]
   ): AccountingPeriodDetails = {
-    val dueDate  = regDate.plusMonths(18)
-    val canAmend = LocalDate.now().isBefore(dueDate.plusYears(1))
+    val dueDate  = regDate.plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
+    val canAmend = LocalDate.now().isBefore(dueDate.plusMonths(AMENDMENT_WINDOW_MONTHS))
 
     val p2TaxReturnSubmissions = submissions
       .filter(s =>
@@ -132,7 +132,7 @@ class ObligationsAndSubmissionsController @Inject() (
       )
       .sortBy(_.receivedDate)
       .reverse
-      .take(10)
+      .take(MAX_NO_SUBMISSIONS)
 
     val girSubmissions = submissions
       .filter(s =>
@@ -142,7 +142,7 @@ class ObligationsAndSubmissionsController @Inject() (
       )
       .sortBy(_.receivedDate)
       .reverse
-      .take(10)
+      .take(MAX_NO_SUBMISSIONS)
 
     val domesticObligation = Seq(
       Obligation(
