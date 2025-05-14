@@ -136,7 +136,7 @@ class ObligationsAndSubmissionsController @Inject() (
 
     val girSubmissions = submissions
       .filter(s =>
-        s.submissionType == GIR ||
+        s.submissionType == SubmissionType.GIR ||
           s.submissionType == ORN_CREATE ||
           s.submissionType == ORN_AMEND
       )

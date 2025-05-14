@@ -22,6 +22,7 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoFormats.Implicits._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.Implicits._
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn}
@@ -56,6 +57,7 @@ object ObligationsAndSubmissionsMongoSubmission {
       case _: UKTRNilReturn | _: UKTRLiabilityReturn => if (isAmendment) SubmissionType.UKTR_AMEND else SubmissionType.UKTR_CREATE
       case _: BTNRequest => SubmissionType.BTN
       case _: ORNRequest => if (isAmendment) SubmissionType.ORN_AMEND else SubmissionType.ORN_CREATE
+      case _: GIRRequest => SubmissionType.GIR
       case _ => throw new IllegalArgumentException("Unsupported submission type")
     }
 
