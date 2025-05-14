@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
+import monocle.macros.GenLens
 import org.bson.types.ObjectId
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito.when
@@ -39,6 +40,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.Obli
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{OrgDetails, TestOrganisation, TestOrganisationWithId}
 import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
@@ -140,10 +142,9 @@ class ObligationsAndSubmissionsControllerSpec
         val result = route(app, createRequest()).value
         status(result) mustBe OK
 
-        val jsonResponse = contentAsJson(result)
-        val dueDate      = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "dueDate").as[String]
+        val dueDate = (contentAsJson(result) \\ "dueDate").head.as[LocalDate]
 
-        LocalDate.parse(dueDate) mustEqual nonDomesticOrganisation.organisation.orgDetails.registrationDate.plusMonths(18)
+        dueDate mustEqual nonDomesticOrganisation.organisation.orgDetails.registrationDate.plusMonths(18)
       }
 
       "should handle submissions with country code for ORN submission type" in {
@@ -188,14 +189,12 @@ class ObligationsAndSubmissionsControllerSpec
       }
 
       "set canAmend flag correctly based on due date" - {
+        val registrationDatePath = GenLens[TestOrganisationWithId](_.organisation)
+          .andThen(GenLens[TestOrganisation](_.orgDetails))
+          .andThen(GenLens[OrgDetails](_.registrationDate))
+
         def canAmendCheck(registrationDate: LocalDate, expectedStatus: Boolean): Assertion = {
-          val testOrg = domesticOrganisation.copy(
-            organisation = domesticOrganisation.organisation.copy(
-              orgDetails = domesticOrganisation.organisation.orgDetails.copy(
-                registrationDate = registrationDate
-              )
-            )
-          )
+          val testOrg = registrationDatePath.replace(registrationDate)(domesticOrganisation)
 
           when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrg))
           when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
@@ -204,9 +203,7 @@ class ObligationsAndSubmissionsControllerSpec
           val result = route(app, createRequest()).value
           status(result) mustBe OK
 
-          val jsonResponse = contentAsJson(result)
-          (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 0 \ "canAmend")
-            .as[Boolean] mustBe expectedStatus
+          (contentAsJson(result) \\ "canAmend").head.as[Boolean] mustBe expectedStatus
         }
 
         "false when current date is over 12 months after the dueDate" in {
