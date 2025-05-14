@@ -202,7 +202,7 @@ class ObligationsAndSubmissionsControllerSpec
         submissions.size mustBe 1
         submissions.head.submissionType mustBe SubmissionType.GIR
       }
-      
+
       "set canAmend flag correctly based on due date" - {
         val registrationDatePath = GenLens[TestOrganisationWithId](_.organisation)
           .andThen(GenLens[TestOrganisation](_.orgDetails))
