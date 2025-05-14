@@ -71,4 +71,18 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
 
   def ornAmendObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
     generateObligationsAndSubmissionsMongoSubmission(ORN_AMEND)
+
+  val girCreateObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    generateObligationsAndSubmissionsMongoSubmission(GIR)
+
+  val differentPeriodGirObligationsAndSubmissionsMongoSubmission: ObligationsAndSubmissionsMongoSubmission =
+    ObligationsAndSubmissionsMongoSubmission(
+      _id = new ObjectId(),
+      submissionId = new ObjectId(),
+      pillar2Id = validPlrId,
+      accountingPeriod = AccountingPeriod(accountingPeriod.startDate.plusYears(1), accountingPeriod.endDate.plusYears(1)),
+      submissionType = GIR,
+      ornCountryGir = None,
+      submittedAt = Instant.now()
+    )
 }

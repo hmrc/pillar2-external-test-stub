@@ -36,7 +36,8 @@ class OrganisationRepository @Inject() (
   btnRepository:  BTNSubmissionRepository,
   uktrRepository: UKTRSubmissionRepository,
   oasRepository:  ObligationsAndSubmissionsRepository,
-  ornRepository:  ORNSubmissionRepository
+  ornRepository:  ORNSubmissionRepository,
+  girRepository:  GIRSubmissionRepository
 )(implicit ec:    ExecutionContext)
     extends PlayMongoRepository[TestOrganisationWithId](
       collectionName = "organisation",
@@ -103,6 +104,7 @@ class OrganisationRepository @Inject() (
       _         <- uktrRepository.deleteByPillar2Id(pillar2Id)
       _         <- btnRepository.deleteByPillar2Id(pillar2Id)
       _         <- ornRepository.deleteByPillar2Id(pillar2Id)
+      _         <- girRepository.deleteByPillar2Id(pillar2Id)
       _         <- oasRepository.deleteByPillar2Id(pillar2Id)
       deleteOrg <- collection.deleteOne(byPillar2Id(pillar2Id)).toFuture()
     } yield deleteOrg.wasAcknowledged()
