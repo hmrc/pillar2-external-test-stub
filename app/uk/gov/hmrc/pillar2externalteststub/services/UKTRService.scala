@@ -17,18 +17,16 @@
 package uk.gov.hmrc.pillar2externalteststub.services
 
 import play.api.Logging
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.generateChargeReference
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WINDOW_MONTHS, FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS, generateChargeReference}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRLiabilityReturn
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRNilReturn
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmissionError
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
 
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -54,6 +52,7 @@ class UKTRService @Inject() (
     logger.info(s"Amending UKTR for pillar2Id: $pillar2Id")
     for {
       existingSubmission <- getExistingSubmission(pillar2Id)
+      _                  <- amendmentWindowCheck(pillar2Id)
       validator          <- getValidator(pillar2Id, request)
       _                  <- validateRequest(validator, request)
       _                  <- processSubmission(pillar2Id, request, isAmendment = true)
@@ -77,6 +76,16 @@ class UKTRService @Inject() (
           case UKTRSubmissionError(error) => Future.failed(error)
           case _                          => Future.failed(ETMPInternalServerError)
         }
+    }
+
+  private def amendmentWindowCheck(pillar2Id: String): Future[Unit] =
+    organisationService.getOrganisation(pillar2Id).flatMap { org =>
+      val amendmentsAllowed = LocalDate.now.isBefore(
+        org.organisation.orgDetails.registrationDate
+          .plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
+          .plusMonths(AMENDMENT_WINDOW_MONTHS)
+      )
+      if (amendmentsAllowed) Future.successful(()) else Future.failed(RequestCouldNotBeProcessed)
     }
 
   private def validateNoExistingSubmission(pillar2Id: String): Future[Unit] =
