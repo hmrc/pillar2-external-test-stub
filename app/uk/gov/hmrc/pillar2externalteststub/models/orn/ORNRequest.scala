@@ -29,10 +29,7 @@ case class ORNRequest(
   reportingEntityName:  String,
   TIN:                  String,
   issuingCountryTIN:    String
-) extends BaseSubmission {
-  def accountingPeriodValid: Boolean =
-    accountingPeriodFrom.isBefore(accountingPeriodTo)
-}
+) extends BaseSubmission
 
 object ORNRequest {
   implicit val format: OFormat[ORNRequest] = Json.format[ORNRequest]
