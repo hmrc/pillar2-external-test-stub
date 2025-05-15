@@ -54,10 +54,10 @@ class ObligationsAndSubmissionsISpec
 
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
-  override protected val repository: ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  private val organisationRepository: OrganisationRepository             = app.injector.instanceOf[OrganisationRepository]
-  implicit val ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier                       = HeaderCarrier()
+  override protected val repository:  ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
+  private val organisationRepository: OrganisationRepository              = app.injector.instanceOf[OrganisationRepository]
+  implicit val ec:                    ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  implicit val hc:                    HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -70,25 +70,18 @@ class ObligationsAndSubmissionsISpec
 
   private def getObligationsAndSubmissions(
     pillar2Id: String,
-    fromDate: String = accountingPeriod.startDate.toString,
-    toDate:   String = accountingPeriod.endDate.toString
-  ): HttpResponse = {
-    val headers = Seq(
-      "Content-Type"  -> "application/json",
-      authHeader,
-      "X-Pillar2-Id"  -> pillar2Id
-    )
-
+    fromDate:  String = accountingPeriod.startDate.toString,
+    toDate:    String = accountingPeriod.endDate.toString
+  ): HttpResponse =
     httpClient
       .get(url"$baseUrl/RESTAdapter/plr/obligations-and-submissions?fromDate=$fromDate&toDate=$toDate")
-      .transform(_.withHttpHeaders(headers: _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .execute[HttpResponse]
       .futureValue
-  }
 
   private def insertSubmission(
-    pillar2Id: String,
-    submissionType: SubmissionType,
+    pillar2Id:        String,
+    submissionType:   SubmissionType,
     accountingPeriod: AccountingPeriod
   ): ObligationsAndSubmissionsMongoSubmission = {
     val submission = ObligationsAndSubmissionsMongoSubmission(
@@ -132,23 +125,23 @@ class ObligationsAndSubmissionsISpec
       val response = getObligationsAndSubmissions(domesticOrganisation.pillar2Id)
       response.status shouldBe 200
 
-      val json = Json.parse(response.body)
+      val json                    = Json.parse(response.body)
       val accountingPeriodDetails = (json \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
-      
+
       accountingPeriodDetails.size shouldBe 1
-      
+
       val obligations = (accountingPeriodDetails.head \ "obligations").as[Seq[JsValue]]
       obligations.size shouldBe 2
 
       // Verify obligations for domestic organisation
       (obligations.head \ "obligationType").as[String] shouldBe "UKTR"
-      (obligations(1)   \ "obligationType").as[String] shouldBe "GIR"
-      (obligations.head \ "status").as[String] shouldBe "Fulfilled"
-      (obligations(1)   \ "status").as[String] shouldBe "Open"
+      (obligations(1) \ "obligationType").as[String]   shouldBe "GIR"
+      (obligations.head \ "status").as[String]         shouldBe "Fulfilled"
+      (obligations(1) \ "status").as[String]           shouldBe "Open"
 
       // Verify submissions
       val submissions = (obligations.head \ "submissions").as[Seq[JsValue]]
-      submissions.size shouldBe 1
+      submissions.size                                 shouldBe 1
       (submissions.head \ "submissionType").as[String] shouldBe "UKTR_CREATE"
     }
 
@@ -163,27 +156,27 @@ class ObligationsAndSubmissionsISpec
       val response = getObligationsAndSubmissions(nonDomesticOrganisation.pillar2Id)
       response.status shouldBe 200
 
-      val json = Json.parse(response.body)
+      val json                    = Json.parse(response.body)
       val accountingPeriodDetails = (json \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
-      
+
       accountingPeriodDetails.size shouldBe 1
-      
+
       val obligations = (accountingPeriodDetails.head \ "obligations").as[Seq[JsValue]]
       obligations.size shouldBe 2
-      
+
       // Verify first obligation is Pillar2TaxReturn with Open status
       (obligations.head \ "obligationType").as[String] shouldBe "UKTR"
-      (obligations.head \ "status").as[String] shouldBe "Open"
-      
+      (obligations.head \ "status").as[String]         shouldBe "Open"
+
       // Verify second obligation is GlobeInformationReturn with Fulfilled status
       (obligations(1) \ "obligationType").as[String] shouldBe "GIR"
-      (obligations(1) \ "status").as[String] shouldBe "Fulfilled"
-      
+      (obligations(1) \ "status").as[String]         shouldBe "Fulfilled"
+
       // Verify submissions in GIR obligation
       val submissions = (obligations(1) \ "submissions").as[Seq[JsValue]]
-      submissions.size shouldBe 1
+      submissions.size                                 shouldBe 1
       (submissions.head \ "submissionType").as[String] shouldBe "ORN_CREATE"
-      (submissions.head \ "country").as[String] shouldBe "US"
+      (submissions.head \ "country").as[String]        shouldBe "US"
     }
 
     "group submissions by accounting period" in {
@@ -192,70 +185,66 @@ class ObligationsAndSubmissionsISpec
         startDate = LocalDate.of(2023, 1, 1),
         endDate = LocalDate.of(2023, 12, 31)
       )
-      
+
       val period2 = AccountingPeriod(
         startDate = LocalDate.of(2024, 1, 1),
         endDate = LocalDate.of(2024, 12, 31)
       )
-      
+
       // Insert submissions for different accounting periods
       insertSubmission(nonDomesticOrganisation.pillar2Id, UKTR_CREATE, period1)
       insertSubmission(nonDomesticOrganisation.pillar2Id, ORN_CREATE, period1)
       insertSubmission(nonDomesticOrganisation.pillar2Id, BTN, period2)
-      
+
       val response = getObligationsAndSubmissions(
         nonDomesticOrganisation.pillar2Id,
-        fromDate = "2023-01-01", 
+        fromDate = "2023-01-01",
         toDate = "2024-12-31"
       )
-      
+
       response.status shouldBe 200
-      
-      val json = Json.parse(response.body)
+
+      val json                    = Json.parse(response.body)
       val accountingPeriodDetails = (json \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
-      
+
       // Should have two accounting periods
       accountingPeriodDetails.size shouldBe 2
-      
+
       // Find period1 details
-      val period1Details = accountingPeriodDetails.find(period => 
-        (period \ "startDate").as[String] == "2023-01-01"
-      ).get
-      
+      val period1Details = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2023-01-01").get
+
       // Find period2 details
-      val period2Details = accountingPeriodDetails.find(period => 
-        (period \ "startDate").as[String] == "2024-01-01"
-      ).get
-      
+      val period2Details = accountingPeriodDetails.find(period => (period \ "startDate").as[String] == "2024-01-01").get
+
       // Verify period1 has UKTR and ORN submissions
       val period1Obligations = (period1Details \ "obligations").as[Seq[JsValue]]
-      val period1P2Status = (period1Obligations.head \ "status").as[String]
-      val period1GIRStatus = (period1Obligations(1) \ "status").as[String]
-      
-      period1P2Status shouldBe "Fulfilled"
+      val period1P2Status    = (period1Obligations.head \ "status").as[String]
+      val period1GIRStatus   = (period1Obligations(1) \ "status").as[String]
+
+      period1P2Status  shouldBe "Fulfilled"
       period1GIRStatus shouldBe "Fulfilled"
-      
+
       // Verify period2 has BTN submission
       val period2Obligations = (period2Details \ "obligations").as[Seq[JsValue]]
-      val period2P2Status = (period2Obligations.head \ "status").as[String]
-      
+      val period2P2Status    = (period2Obligations.head \ "status").as[String]
+
       period2P2Status shouldBe "Fulfilled"
     }
 
     "use organisation's default accounting period when no submissions exist" in {
       val response = getObligationsAndSubmissions(domesticOrganisation.pillar2Id)
       response.status shouldBe 200
-      
-      val json = Json.parse(response.body)
+
+      val json                    = Json.parse(response.body)
       val accountingPeriodDetails = (json \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
-      
+
       // Should have only one accounting period
       accountingPeriodDetails.size shouldBe 1
-      
+
       // Period should match org's default period
       (accountingPeriodDetails.head \ "startDate").as[String] shouldBe domesticOrganisation.organisation.accountingPeriod.startDate.toString
-      (accountingPeriodDetails.head \ "endDate").as[String] shouldBe domesticOrganisation.organisation.accountingPeriod.endDate.toString
-      
+      (accountingPeriodDetails.head \ "endDate").as[String]   shouldBe domesticOrganisation.organisation.accountingPeriod.endDate.toString
+
       // Obligation should be Open
       val obligations = (accountingPeriodDetails.head \ "obligations").as[Seq[JsValue]]
       (obligations.head \ "status").as[String] shouldBe "Open"
@@ -268,7 +257,7 @@ class ObligationsAndSubmissionsISpec
         BTN,
         AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate)
       )
-      
+
       val response = getObligationsAndSubmissions(nonDomesticOrganisation.pillar2Id)
       response.status shouldBe 200
 
@@ -285,10 +274,10 @@ class ObligationsAndSubmissionsISpec
     "handle error cases correctly" in {
       // Test organisation not found
       val nonExistentPlrIdResponse = getObligationsAndSubmissions("NONEXISTENT")
-      val nonExistentPlrIdJson = Json.parse(nonExistentPlrIdResponse.body)
+      val nonExistentPlrIdJson     = Json.parse(nonExistentPlrIdResponse.body)
       (nonExistentPlrIdJson \ "errors" \ "text").as[String] shouldBe "No data found"
-      nonExistentPlrIdResponse.status shouldBe 422
-      
+      nonExistentPlrIdResponse.status                       shouldBe 422
+
       // Test invalid date format
       val invalidDateResponse = getObligationsAndSubmissions(
         domesticOrganisation.pillar2Id,
@@ -296,7 +285,7 @@ class ObligationsAndSubmissionsISpec
       )
       val invalidDateJson = Json.parse(invalidDateResponse.body)
       (invalidDateJson \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
-      invalidDateResponse.status shouldBe 422
+      invalidDateResponse.status                       shouldBe 422
       // Test fromDate after toDate
       val invalidDateRangeResponse = getObligationsAndSubmissions(
         domesticOrganisation.pillar2Id,
@@ -308,5 +297,4 @@ class ObligationsAndSubmissionsISpec
       (invalidDateRangeJson \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
     }
   }
-} 
-
+}

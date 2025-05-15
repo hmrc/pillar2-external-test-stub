@@ -17,7 +17,6 @@
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
 import org.bson.types.ObjectId
-import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.POST
@@ -53,9 +52,9 @@ trait GIRDataFixture extends Pillar2DataFixture {
 
   def createGIRRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/pillar2/test/globe-information-return")
-      .withHeaders(HeaderNames.CONTENT_TYPE -> "application/json", authHeader, "X-Pillar2-Id" -> plrId)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
       .withBody(body)
 
   def createGIRRequestWithBody(plrId: String, request: GIRRequest): FakeRequest[JsValue] =
-    createGIRRequest(plrId, Json.toJson(request))
+    createGIRRequest(plrId, Json.toJson(request)).withHeaders(hipHeaders: _*)
 }

@@ -22,7 +22,14 @@ import scala.util.matching.Regex
 
 object Pillar2Helper {
   val pillar2Regex: Regex = "^[A-Z0-9]{1,15}$".r
-  val ServerErrorPlrId = "XEPLR5000000000"
+  
+  val ServerErrorPlrId          = "XEPLR5000000000"
+  val correlationidHeader       = "correlationid"
+  val correlationidHeaderRegex  = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+  val xReceiptDateHeaderRegex   = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z"
+  val xReceiptDateHeader        = "X-Receipt-Date"
+  val xOriginatingSystemHeader  = "X-Originating-System"
+  val xTransmittingSystemHeader = "X-Transmitting-System"
   val MAX_NO_SUBMISSIONS:                         Int  = 10
   val AMENDMENT_WINDOW_MONTHS:                    Long = 12
   val FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS: Long = 18

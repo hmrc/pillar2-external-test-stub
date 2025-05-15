@@ -197,13 +197,24 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       (json \ "errors" \ "text").as[String] shouldBe "Invalid Total Liability UTPR"
     }
 
-    "handle ETMPBadRequest error" in {
-      val result = errorHandler.onServerError(dummyRequest, ETMPBadRequest)
-      status(result) shouldBe BAD_REQUEST
-      val json = contentAsJson(result)
-      (json \ "error" \ "code").as[String]    shouldBe "400"
-      (json \ "error" \ "message").as[String] shouldBe "Bad request"
-      (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000400"
+    "handle ETMPBadRequest error" should {
+      "static message" in {
+        val result = errorHandler.onServerError(dummyRequest, ETMPBadRequest())
+        status(result) shouldBe BAD_REQUEST
+        val json = contentAsJson(result)
+        (json \ "error" \ "code").as[String]    shouldBe "400"
+        (json \ "error" \ "message").as[String] shouldBe "Bad request"
+        (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000400"
+      }
+
+      "dynamic message" in {
+        val result = errorHandler.onServerError(dummyRequest, ETMPBadRequest("Missing Header"))
+        status(result) shouldBe BAD_REQUEST
+        val json = contentAsJson(result)
+        (json \ "error" \ "code").as[String]    shouldBe "400"
+        (json \ "error" \ "message").as[String] shouldBe "Missing Header"
+        (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000400"
+      }
     }
 
     "handle ETMPInternalServerError error" in {

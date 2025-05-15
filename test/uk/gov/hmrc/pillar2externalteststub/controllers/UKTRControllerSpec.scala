@@ -72,7 +72,7 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
 
       "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/RESTAdapter/plr/uk-tax-return")
-          .withHeaders("Content-Type" -> "application/json", authHeader)
+          .withHeaders(hipHeaders: _*)
           .withBody(validRequestBody)
 
         val result = route(app, request).get
@@ -87,7 +87,7 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
 
       "should return ETMPBadRequest when request body is invalid JSON" in {
         val result = route(app, createRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest
+        result shouldFailWith ETMPBadRequest()
       }
 
       "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {
@@ -122,7 +122,7 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
 
       "should return ETMPBadRequest when amendment request body is invalid JSON" in {
         val result = route(app, createAmendRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest
+        result shouldFailWith ETMPBadRequest()
       }
     }
   }
@@ -131,17 +131,17 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
     val method = if (isAmend) PUT else POST
     val url    = if (isAmend) "/RESTAdapter/plr/uk-tax-return" else "/RESTAdapter/plr/uk-tax-return"
     FakeRequest(method, url)
-      .withHeaders("Content-Type" -> "application/json", "X-Pillar2-Id" -> pillar2Id, authHeader)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .withBody(Json.toJson(body))
   }
 
   private def createRequest(pillar2Id: String, body: JsValue) =
     FakeRequest(POST, "/RESTAdapter/plr/uk-tax-return")
-      .withHeaders("Content-Type" -> "application/json", "X-Pillar2-Id" -> pillar2Id, authHeader)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .withBody(body)
 
   private def createAmendRequest(pillar2Id: String, body: JsValue) =
     FakeRequest(PUT, "/RESTAdapter/plr/uk-tax-return")
-      .withHeaders("Content-Type" -> "application/json", "X-Pillar2-Id" -> pillar2Id, authHeader)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .withBody(body)
 }
