@@ -60,7 +60,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/RESTAdapter/plr/overseas-return-notification")
-          .withHeaders("Content-Type" -> "application/json", authHeader)
+          .withHeaders(hipHeaders: _*)
           .withBody(validRequestBody)
 
         val result = route(app, request).get
@@ -83,7 +83,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return ETMPBadRequest when request body is invalid JSON" in {
         val result = route(app, createSubmitRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest
+        result shouldFailWith ETMPBadRequest()
       }
 
       "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {
@@ -115,7 +115,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return ETMPBadRequest when amendment request body is invalid JSON" in {
         val result = route(app, createAmendRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest
+        result shouldFailWith ETMPBadRequest()
       }
     }
 
@@ -178,7 +178,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         val toDate   = "2024-12-31"
 
         val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
-        result shouldFailWith ETMPBadRequest
+        result shouldFailWith ETMPBadRequest()
       }
     }
   }
