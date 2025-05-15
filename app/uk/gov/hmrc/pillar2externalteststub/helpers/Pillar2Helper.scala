@@ -22,7 +22,6 @@ import scala.util.matching.Regex
 
 object Pillar2Helper {
   val pillar2Regex: Regex = "^[A-Z0-9]{1,15}$".r
-  
   val ServerErrorPlrId          = "XEPLR5000000000"
   val correlationidHeader       = "correlationid"
   val correlationidHeaderRegex  = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
