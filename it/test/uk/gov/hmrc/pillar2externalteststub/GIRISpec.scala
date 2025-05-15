@@ -56,8 +56,8 @@ class GIRISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: GIRSubmissionRepository             = app.injector.instanceOf[GIRSubmissionRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  implicit val ec:                   ExecutionContext                  = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier                     = HeaderCarrier()
+  implicit val ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  implicit val hc:                   HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -69,20 +69,13 @@ class GIRISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitGIR(pillar2Id: String, request: GIRRequest): HttpResponse = {
-    val headers = Seq(
-      "Content-Type"  -> "application/json",
-      "Authorization" -> "Bearer token",
-      "X-Pillar2-Id"  -> pillar2Id
-    )
-
+  private def submitGIR(pillar2Id: String, request: GIRRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/pillar2/test/globe-information-return")
-      .transform(_.withHttpHeaders(headers: _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
-  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -134,14 +127,9 @@ class GIRISpec
     }
 
     "handle invalid requests appropriately (missing Pillar2 ID)" in {
-      val headers = Seq(
-        "Content-Type"  -> "application/json",
-        "Authorization" -> "Bearer token"
-      )
-
       val responseWithoutId = httpClient
         .post(url"$baseUrl/pillar2/test/globe-information-return")
-        .transform(_.withHttpHeaders(headers: _*))
+        .transform(_.withHttpHeaders(hipHeaders: _*))
         .withBody(Json.toJson(validGIRRequest))
         .execute[HttpResponse]
         .futureValue
@@ -164,4 +152,3 @@ class GIRISpec
     }
   }
 }
-

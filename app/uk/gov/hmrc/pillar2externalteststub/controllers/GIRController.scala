@@ -43,7 +43,7 @@ class GIRController @Inject() (
         request.body
           .validate[GIRRequest]
           .fold(
-            _ => Future.failed(ETMPBadRequest),
+            _ => Future.failed(ETMPBadRequest()),
             girRequest =>
               girService
                 .submitGIR(pillar2Id, girRequest)
