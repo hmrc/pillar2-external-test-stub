@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,34 +30,31 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, ObligationsAndSubmissionsDataFixture, TestOrgDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
-import uk.gov.hmrc.pillar2externalteststub.models.btn.mongo.BTNSubmission
-import uk.gov.hmrc.pillar2externalteststub.repositories.BTNSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.helpers.{GIRDataFixture, ObligationsAndSubmissionsDataFixture, TestOrgDataFixture}
+import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
+import uk.gov.hmrc.pillar2externalteststub.models.gir.mongo.GIRSubmission
+import uk.gov.hmrc.pillar2externalteststub.repositories.{GIRSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
-import java.time.LocalDate
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
+import scala.concurrent.{ExecutionContext, Future}
 
-class BTNISpec
+class GIRISpec
     extends AnyWordSpec
     with Matchers
     with ScalaFutures
     with IntegrationPatience
     with GuiceOneServerPerSuite
-    with DefaultPlayMongoRepositorySupport[BTNSubmission]
+    with DefaultPlayMongoRepositorySupport[GIRSubmission]
     with BeforeAndAfterEach
-    with BTNDataFixture
+    with GIRDataFixture
     with TestOrgDataFixture
     with ObligationsAndSubmissionsDataFixture {
 
-  override protected val databaseName: String = "test-btn-integration"
+  override protected val databaseName: String = "test-gir-integration"
 
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
-  override protected val repository: BTNSubmissionRepository             = app.injector.instanceOf[BTNSubmissionRepository]
+  override protected val repository: GIRSubmissionRepository             = app.injector.instanceOf[GIRSubmissionRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
   implicit val ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
   implicit val hc:                   HeaderCarrier                       = HeaderCarrier()
@@ -72,9 +69,9 @@ class BTNISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitBTN(pillar2Id: String, request: BTNRequest): HttpResponse =
+  private def submitGIR(pillar2Id: String, request: GIRRequest): HttpResponse =
     httpClient
-      .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
+      .post(url"$baseUrl/pillar2/test/globe-information-return")
       .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
@@ -93,31 +90,31 @@ class BTNISpec
     ()
   }
 
-  "BTN submission endpoint" should {
-    "successfully save and retrieve BTN submissions" in {
+  "GIR submission endpoint" should {
+    "successfully save and retrieve GIR submissions" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
 
-      val response = submitBTN(validPlrId, validBTNRequest)
+      val response = submitGIR(validPlrId, validGIRRequest)
       response.status shouldBe 201
 
       val submissions = repository.findByPillar2Id(validPlrId).futureValue
       submissions.size shouldBe 1
       val submission = submissions.head
       submission.pillar2Id            shouldBe validPlrId
-      submission.accountingPeriodFrom shouldBe validBTNRequest.accountingPeriodFrom
-      submission.accountingPeriodTo   shouldBe validBTNRequest.accountingPeriodTo
+      submission.accountingPeriodFrom shouldBe validGIRRequest.accountingPeriodFrom
+      submission.accountingPeriodTo   shouldBe validGIRRequest.accountingPeriodTo
     }
 
     "fail with TaxObligationAlreadyFulfilled when submitting twice in a row" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
 
       // First submission should succeed
-      val firstResponse = submitBTN(validPlrId, validBTNRequest)
+      val firstResponse = submitGIR(validPlrId, validGIRRequest)
       firstResponse.status shouldBe 201
 
       // Second submission should fail with TaxObligationAlreadyFulfilled
-      val secondResponse = submitBTN(validPlrId, validBTNRequest)
-      secondResponse.status shouldBe 422
+      val secondResponse = submitGIR(validPlrId, validGIRRequest)
+      secondResponse.status shouldBe 422 //This should be TaxObligationAlreadyFulfilled - 044
 
       // Verify the error code
       val json = Json.parse(secondResponse.body)
@@ -129,28 +126,15 @@ class BTNISpec
       submissions.size shouldBe 1
     }
 
-    "support only one accountingPeriod per Pillar2 ID" in {
-      submitBTN(validPlrId, validBTNRequest).status shouldBe 201
-
-      val secondRequest = validBTNRequest.copy(
-        accountingPeriodFrom = LocalDate.of(2025, 1, 1),
-        accountingPeriodTo = LocalDate.of(2025, 12, 31)
-      )
-      submitBTN(validPlrId, secondRequest).status shouldBe 422
-
-      val submissions = repository.findByPillar2Id(validPlrId).futureValue
-      submissions.size shouldBe 1
-    }
-
-    "handle invalid requests appropriately" in {
+    "handle invalid requests appropriately (missing Pillar2 ID)" in {
       val responseWithoutId = httpClient
-        .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
+        .post(url"$baseUrl/pillar2/test/globe-information-return")
         .transform(_.withHttpHeaders(hipHeaders: _*))
-        .withBody(Json.toJson(validBTNRequest))
+        .withBody(Json.toJson(validGIRRequest))
         .execute[HttpResponse]
         .futureValue
 
-      responseWithoutId.status shouldBe 422
+      responseWithoutId.status shouldBe 422 // This should be IdMissingOrInvalid - 089
       val json = Json.parse(responseWithoutId.body)
       (json \ "errors" \ "code").as[String] shouldBe "089"
 
@@ -158,7 +142,7 @@ class BTNISpec
     }
 
     "handle server error cases correctly" in {
-      val response = submitBTN(serverErrorPlrId, validBTNRequest)
+      val response = submitGIR(serverErrorPlrId, validGIRRequest)
 
       response.status shouldBe 500
       val json = Json.parse(response.body)

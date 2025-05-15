@@ -22,7 +22,13 @@ import scala.util.matching.Regex
 
 object Pillar2Helper {
   val pillar2Regex: Regex = "^[A-Z0-9]{1,15}$".r
-  val ServerErrorPlrId = "XEPLR5000000000"
+  val ServerErrorPlrId          = "XEPLR5000000000"
+  val correlationidHeader       = "correlationid"
+  val correlationidHeaderRegex  = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+  val xReceiptDateHeaderRegex   = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z"
+  val xReceiptDateHeader        = "X-Receipt-Date"
+  val xOriginatingSystemHeader  = "X-Originating-System"
+  val xTransmittingSystemHeader = "X-Transmitting-System"
 
   def nowZonedDateTime:           String = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString
   def generateFormBundleNumber(): String = f"${Random.nextLong(1000000000000L) % 1000000000000L}%012d"

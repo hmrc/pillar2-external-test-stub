@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,48 +15,40 @@
  */
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
-
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents, Result}
+import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
-import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNSuccessResponse.BTN_SUCCESS_201
-import uk.gov.hmrc.pillar2externalteststub.models.btn._
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.services.BTNService
+import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
+import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRSuccessResponse
+import uk.gov.hmrc.pillar2externalteststub.services.GIRService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BTNController @Inject() (
+class GIRController @Inject() (
   cc:          ControllerComponents,
   authFilter:  AuthActionFilter,
-  btnService:  BTNService
+  girService:  GIRService
 )(implicit ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def submitBTN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
+  def submitGIR: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { pillar2Id =>
         request.body
-          .validate[BTNRequest]
+          .validate[GIRRequest]
           .fold(
             _ => Future.failed(ETMPBadRequest()),
-            btnRequest => handleSubmission(pillar2Id, btnRequest)
+            girRequest =>
+              girService
+                .submitGIR(pillar2Id, girRequest)
+                .map(_ => Created(Json.toJson(GIRSuccessResponse.GIR_SUCCESS_201)))
           )
       }
   }
-
-  private def handleSubmission(pillar2Id: String, request: BTNRequest): Future[Result] =
-    pillar2Id match {
-      case ServerErrorPlrId => Future.failed(ETMPInternalServerError)
-      case _ =>
-        btnService
-          .submitBTN(pillar2Id, request)
-          .map(_ => Created(Json.toJson(BTN_SUCCESS_201)))
-    }
 }

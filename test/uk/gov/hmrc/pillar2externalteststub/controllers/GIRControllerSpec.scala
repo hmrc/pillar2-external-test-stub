@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,37 +27,37 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, TestOrgDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
+import uk.gov.hmrc.pillar2externalteststub.helpers.{GIRDataFixture, TestOrgDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.services.BTNService
+import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
+import uk.gov.hmrc.pillar2externalteststub.services.GIRService
 
 import scala.concurrent.Future
 
-class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with BTNDataFixture with TestOrgDataFixture {
+class GIRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with GIRDataFixture with TestOrgDataFixture {
 
-  private val mockBTNService = mock[BTNService]
+  private val mockGIRService = mock[GIRService]
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
-      .overrides(inject.bind[BTNService].toInstance(mockBTNService))
+      .overrides(inject.bind[GIRService].toInstance(mockGIRService))
       .build()
 
-  "Below Threshold Notification" - {
-    "when submitting a notification" - {
+  "GIR Controller" - {
+    "when submitting a GIR" - {
       "should return CREATED with success response for a valid submission" in {
-        when(mockBTNService.submitBTN(eqTo(validPlrId), any[BTNRequest])).thenReturn(Future.successful(true))
+        when(mockGIRService.submitGIR(eqTo(validPlrId), any[GIRRequest])).thenReturn(Future.successful(true))
 
-        val result = route(app, createRequestWithBody(validPlrId, validBTNRequest)).get
+        val result = route(app, createGIRRequestWithBody(validPlrId, validGIRRequest)).get
         status(result) shouldBe CREATED
         val json = contentAsJson(result)
         (json \ "success" \ "processingDate").asOpt[String].isDefined shouldBe true
       }
 
       "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
-        val request = FakeRequest(POST, "/RESTAdapter/plr/below-threshold-notification")
+        val request = FakeRequest(POST, "/pillar2/test/globe-information-return")
           .withHeaders(hipHeaders: _*)
-          .withBody(validBTNRequestBody)
+          .withBody(validGIRRequestBody)
 
         val result = route(app, request).get
         result shouldFailWith IdMissingOrInvalid
@@ -65,17 +65,17 @@ class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return IdMissingOrInvalid when Pillar2 ID format is invalid" in {
         val invalidPlrId = "invalid@id"
-        val result       = route(app, createRequestWithBody(invalidPlrId, validBTNRequest)).get
+        val result       = route(app, createGIRRequestWithBody(invalidPlrId, validGIRRequest)).get
         result shouldFailWith IdMissingOrInvalid
       }
 
       "should return ETMPBadRequest when request body is invalid JSON" in {
-        val result = route(app, createRequest(validPlrId, Json.obj("invalid" -> "request"))).get
+        val result = route(app, createGIRRequest(validPlrId, Json.obj("invalid" -> "request"))).get
         result shouldFailWith ETMPBadRequest()
       }
 
       "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {
-        val result = route(app, createRequestWithBody(serverErrorPlrId, validBTNRequest)).get
+        val result = route(app, createGIRRequestWithBody(serverErrorPlrId, validGIRRequest)).get
         result shouldFailWith ETMPInternalServerError
       }
     }

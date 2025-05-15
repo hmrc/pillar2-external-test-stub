@@ -59,12 +59,13 @@ class ObligationsAndSubmissionsControllerSpec
 
   def mockBySubmissionType(subType: SubmissionType): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] = {
     val fixture = subType match {
-      case UKTR_CREATE => uktrObligationsAndSubmissionsMongoSubmission
-      case UKTR_AMEND  => uktrAmendObligationsAndSubmissionsMongoSubmission
-      case ORN_CREATE  => ornObligationsAndSubmissionsMongoSubmission
-      case ORN_AMEND   => ornAmendObligationsAndSubmissionsMongoSubmission
-      case BTN         => olderBtnObligationsAndSubmissionsMongoSubmission
-      case _           => olderBtnObligationsAndSubmissionsMongoSubmission
+      case UKTR_CREATE        => uktrObligationsAndSubmissionsMongoSubmission
+      case UKTR_AMEND         => uktrAmendObligationsAndSubmissionsMongoSubmission
+      case ORN_CREATE         => ornObligationsAndSubmissionsMongoSubmission
+      case ORN_AMEND          => ornAmendObligationsAndSubmissionsMongoSubmission
+      case SubmissionType.GIR => girCreateObligationsAndSubmissionsMongoSubmission
+      case BTN                => olderBtnObligationsAndSubmissionsMongoSubmission
+      case _                  => olderBtnObligationsAndSubmissionsMongoSubmission
     }
     when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
       .thenReturn(Future.successful(Seq(fixture)))
@@ -95,7 +96,7 @@ class ObligationsAndSubmissionsControllerSpec
     toDate:   String = accountingPeriod.endDate.toString
   ) =
     FakeRequest(GET, routes.ObligationsAndSubmissionsController.getObligationsAndSubmissions(fromDate, toDate).url)
-      .withHeaders(authHeader, "X-Pillar2-Id" -> plrId)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
 
   "Obligations and Submissions" - {
     "when requesting Obligations and Submissions" - {
@@ -172,6 +173,20 @@ class ObligationsAndSubmissionsControllerSpec
 
           obligations.size mustBe 2
         }
+      }
+
+      "should show GIR submission" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+        mockBySubmissionType(SubmissionType.GIR)
+
+        val result = route(app, createRequest()).value
+        status(result) mustBe OK
+
+        val jsonResponse = contentAsJson(result)
+        val submissions  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "submissions").as[Seq[Submission]]
+
+        submissions.size mustBe 1
+        submissions.head.submissionType mustBe SubmissionType.GIR
       }
 
       "should set canAmend to false when current date is after due date" in {

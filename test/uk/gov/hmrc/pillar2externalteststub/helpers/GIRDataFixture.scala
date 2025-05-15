@@ -20,21 +20,21 @@ import org.bson.types.ObjectId
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.POST
-import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
-import uk.gov.hmrc.pillar2externalteststub.models.btn.mongo.BTNSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
+import uk.gov.hmrc.pillar2externalteststub.models.gir.mongo.GIRSubmission
 
 import java.time.Instant
 
-trait BTNDataFixture extends Pillar2DataFixture {
+trait GIRDataFixture extends Pillar2DataFixture {
 
-  val validBTNRequest: BTNRequest = BTNRequest(
+  val validGIRRequest: GIRRequest = GIRRequest(
     accountingPeriodFrom = accountingPeriod.startDate,
     accountingPeriodTo = accountingPeriod.endDate
   )
 
-  val validBTNRequestBody: JsValue = Json.toJson(validBTNRequest)
+  val validGIRRequestBody: JsValue = Json.toJson(validGIRRequest)
 
-  val btnMongoSubmission: BTNSubmission = BTNSubmission(
+  val girMongoSubmission: GIRSubmission = GIRSubmission(
     _id = new ObjectId(),
     pillar2Id = validPlrId,
     accountingPeriodFrom = accountingPeriod.startDate,
@@ -42,11 +42,19 @@ trait BTNDataFixture extends Pillar2DataFixture {
     submittedAt = Instant.now()
   )
 
-  def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
-    FakeRequest(POST, "/RESTAdapter/plr/below-threshold-notification")
+  val differentPeriodGirMongoSubmission: GIRSubmission = GIRSubmission(
+    _id = new ObjectId(),
+    pillar2Id = validPlrId,
+    accountingPeriodFrom = accountingPeriod.startDate.plusYears(1),
+    accountingPeriodTo = accountingPeriod.endDate.plusYears(1),
+    submittedAt = Instant.now()
+  )
+
+  def createGIRRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
+    FakeRequest(POST, "/pillar2/test/globe-information-return")
       .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
       .withBody(body)
 
-  def createRequestWithBody(plrId: String, request: BTNRequest): FakeRequest[JsValue] =
-    createRequest(plrId, Json.toJson(request))
+  def createGIRRequestWithBody(plrId: String, request: GIRRequest): FakeRequest[JsValue] =
+    createGIRRequest(plrId, Json.toJson(request)).withHeaders(hipHeaders: _*)
 }

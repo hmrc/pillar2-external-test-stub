@@ -31,12 +31,13 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ORNDataFixture, TestOrgDataFixture}
+import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ORNSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class ORNISpec
@@ -70,51 +71,30 @@ class ORNISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitORN(pillar2Id: String, request: ORNRequest): HttpResponse = {
-    val headers = Seq(
-      "Content-Type"  -> "application/json",
-      "Authorization" -> "Bearer token",
-      "X-Pillar2-Id"  -> pillar2Id
-    )
-
+  private def submitORN(pillar2Id: String, request: ORNRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
-      .transform(_.withHttpHeaders(headers: _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
-  }
 
-  private def amendORN(pillar2Id: String, request: ORNRequest): HttpResponse = {
-    val headers = Seq(
-      "Content-Type"  -> "application/json",
-      "Authorization" -> "Bearer token",
-      "X-Pillar2-Id"  -> pillar2Id
-    )
-
+  private def amendORN(pillar2Id: String, request: ORNRequest): HttpResponse =
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
-      .transform(_.withHttpHeaders(headers: _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
-  }
 
-  private def getORN(pillar2Id: String, accountingPeriodFrom: String, accountingPeriodTo: String): HttpResponse = {
-    val headers = Seq(
-      "Content-Type"  -> "application/json",
-      "Authorization" -> "Bearer token",
-      "X-Pillar2-Id"  -> pillar2Id
-    )
-
+  private def getORN(pillar2Id: String, accountingPeriodFrom: String, accountingPeriodTo: String): HttpResponse =
     httpClient
       .get(
         url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=$accountingPeriodFrom&accountingPeriodTo=$accountingPeriodTo"
       )
-      .transform(_.withHttpHeaders(headers: _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
       .execute[HttpResponse]
       .futureValue
-  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -257,14 +237,9 @@ class ORNISpec
     }
 
     "handle invalid requests appropriately" in {
-      val headers = Seq(
-        "Content-Type"  -> "application/json",
-        "Authorization" -> "Bearer token"
-      )
-
       val responseWithoutId = httpClient
         .post(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
-        .transform(_.withHttpHeaders(headers: _*))
+        .transform(_.withHttpHeaders(hipHeaders: _*))
         .withBody(Json.toJson(validORNRequest))
         .execute[HttpResponse]
         .futureValue
@@ -341,14 +316,9 @@ class ORNISpec
     }
 
     "return 422 when ID number is missing" in {
-      val headers = Seq(
-        "Content-Type"  -> "application/json",
-        "Authorization" -> "Bearer token"
-      )
-
       val getResponse = httpClient
         .get(url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=2024-01-01&accountingPeriodTo=2024-12-31")
-        .transform(_.withHttpHeaders(headers: _*))
+        .transform(_.withHttpHeaders(hipHeaders: _*))
         .execute[HttpResponse]
         .futureValue
 
