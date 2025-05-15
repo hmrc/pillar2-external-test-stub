@@ -296,5 +296,34 @@ class ObligationsAndSubmissionsISpec
       val invalidDateRangeJson = Json.parse(invalidDateRangeResponse.body)
       (invalidDateRangeJson \ "errors" \ "text").as[String] shouldBe "Request could not be processed"
     }
+
+    "set canAmend flag correctly based on due date" in {
+      // Create accounting period with past due date
+      val pastAccountingPeriod = AccountingPeriod(
+        startDate = LocalDate.now().minusYears(3),
+        endDate = LocalDate.now().minusYears(2).minusDays(1)
+      )
+
+      insertSubmission(
+        domesticOrganisation.pillar2Id,
+        UKTR_CREATE,
+        pastAccountingPeriod
+      )
+
+      val response = getObligationsAndSubmissions(
+        domesticOrganisation.pillar2Id,
+        fromDate = pastAccountingPeriod.startDate.toString,
+        toDate = pastAccountingPeriod.endDate.toString
+      )
+
+      response.status shouldBe 200
+
+      val json                    = Json.parse(response.body)
+      val accountingPeriodDetails = (json \ "success" \ "accountingPeriodDetails").as[Seq[JsValue]]
+      val obligations             = (accountingPeriodDetails.head \ "obligations").as[Seq[JsValue]]
+
+      // canAmend should be false for past due date
+      (obligations.head \ "canAmend").as[Boolean] shouldBe false
+    }
   }
 }

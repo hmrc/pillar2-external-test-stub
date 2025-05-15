@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
-import monocle.PLens
-import monocle.macros.GenLens
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
-import java.time.{Instant, LocalDate}
+import java.time.Instant
+import java.time.LocalDate
 
 trait TestOrgDataFixture extends Pillar2DataFixture {
 
@@ -62,9 +61,4 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
     pillar2Id = validPlrId,
     organisation = organisationDetails
   )
-
-  val configurableRegistrationDate: PLens[TestOrganisationWithId, TestOrganisationWithId, LocalDate, LocalDate] =
-    GenLens[TestOrganisationWithId](_.organisation)
-      .andThen(GenLens[TestOrganisation](_.orgDetails))
-      .andThen(GenLens[OrgDetails](_.registrationDate))
 }
