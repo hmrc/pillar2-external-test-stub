@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules
+import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules.{accountingPeriodMatchesOrgRule, accountingPeriodSanityCheckRule}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -47,7 +47,8 @@ object UKTRNilReturn {
         ValidationRule.compose(
           UKTRValidationRules.obligationMTTRule[UKTRNilReturn](org),
           UKTRValidationRules.electionUKGAAPRule[UKTRNilReturn](org),
-          BaseSubmissionValidationRules.accountingPeriodMatchesOrgRule[UKTRNilReturn](org, UKTRSubmissionError(InvalidReturn))
+          accountingPeriodMatchesOrgRule[UKTRNilReturn](org, UKTRSubmissionError(InvalidReturn)),
+          accountingPeriodSanityCheckRule[UKTRNilReturn](UKTRSubmissionError(InvalidReturn))
         )(FailFast)
       }
       .recover { case _: OrganisationNotFound =>

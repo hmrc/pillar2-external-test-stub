@@ -178,6 +178,13 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
     }
 
+    "should fail validation when accounting period accountingPeriodTo is after the accountingPeriodFrom" in {
+      val invalidReturn = validLiabilityReturn.copy(accountingPeriodTo = validLiabilityReturn.accountingPeriodFrom.minusYears(1))
+
+      val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+      result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
+    }
+
     "should fail when a domestic-only organisation with obligationMTT = false has a positive total" - {
       "total IIR liability is not nil" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))

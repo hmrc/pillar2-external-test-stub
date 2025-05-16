@@ -16,12 +16,26 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.common
 
+import play.api.libs.json.{JsArray, Json}
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationError
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
+import uk.gov.hmrc.pillar2externalteststub.validation.{ValidationError, ValidationRule}
+
+import scala.io.Source
 
 object BaseSubmissionValidationRules {
+
+  lazy val countryList: Set[String] = {
+    val source = Source.fromFile("conf/ISO-country-code-list.json")
+    try {
+      val json = Json.parse(source.mkString)
+      json
+        .as[JsArray]
+        .value
+        .map(countryEntry => (countryEntry \ 1).as[String].replace("country:", ""))
+        .toSet
+    } finally source.close()
+  }
 
   def accountingPeriodMatchesOrgRule[T <: BaseSubmission](
     org:   TestOrganisationWithId,
