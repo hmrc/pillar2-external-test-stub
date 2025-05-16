@@ -30,7 +30,7 @@ import play.api.libs.json.JsValue
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrId
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WINDOW_MONTHS, FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS, ServerErrorPlrId}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
@@ -202,6 +202,8 @@ class ObligationsAndSubmissionsControllerSpec
       }
 
       "set canAmend flag correctly based on due date" - {
+        val boundaryDate = LocalDate.now.minusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS + AMENDMENT_WINDOW_MONTHS)
+
         def canAmendCheck(registrationDate: LocalDate, expectedStatus: Boolean): Assertion = {
           val testOrg = configurableRegistrationDate.replace(registrationDate)(domesticOrganisation)
 
@@ -216,11 +218,11 @@ class ObligationsAndSubmissionsControllerSpec
         }
 
         "false when current date is over 12 months after the dueDate" in {
-          canAmendCheck(LocalDate.now.minusYears(10), expectedStatus = false)
+          canAmendCheck(boundaryDate.minusDays(1), expectedStatus = false)
         }
 
         "true when current date is within 12 months from the dueDate" in {
-          canAmendCheck(LocalDate.now(), expectedStatus = true)
+          canAmendCheck(boundaryDate, expectedStatus = true)
         }
       }
 
