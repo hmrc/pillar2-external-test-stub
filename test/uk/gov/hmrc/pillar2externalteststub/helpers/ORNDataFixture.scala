@@ -38,6 +38,11 @@ trait ORNDataFixture extends Pillar2DataFixture {
     issuingCountryTIN = "US"
   )
 
+  val differentAccountingPeriodORNRequest: ORNRequest = validORNRequest.copy(
+    accountingPeriodFrom = validORNRequest.accountingPeriodFrom.plusYears(1),
+    accountingPeriodTo = validORNRequest.accountingPeriodTo.plusYears(1)
+  )
+
   val validRequestBody: JsValue = Json.toJson(validORNRequest)
 
   val ornMongoSubmission: ORNSubmission = ORNSubmission(

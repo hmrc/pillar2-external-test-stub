@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.orn
 
+import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules.countryList
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
@@ -43,5 +44,12 @@ object ORNValidationRules {
       val filedGirDateFutureDate = request.filedDateGIR.isAfter(LocalDate.now)
       if (filedGirDateFutureDate) invalid(ORNValidationError(RequestCouldNotBeProcessed))
       else valid(request)
+    }
+
+  def countryISOComplianceRule: ValidationRule[ORNRequest] =
+    ValidationRule[ORNRequest] { request =>
+      if (!countryList.contains(request.countryGIR) || !countryList.contains(request.issuingCountryTIN)) {
+        invalid(ORNValidationError(RequestCouldNotBeProcessed))
+      } else valid(request)
     }
 }

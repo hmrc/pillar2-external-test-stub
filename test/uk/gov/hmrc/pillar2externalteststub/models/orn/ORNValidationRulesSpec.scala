@@ -52,6 +52,21 @@ class ORNValidationRulesSpec extends AnyWordSpec with Matchers with MockitoSugar
         result.isValid mustBe true
       }
     }
+
+    "accountingPeriodSanityCheckRule" should {
+      "reject submissions where accountingPeriodTo is not after accountingPeriodFrom" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+        val invalidDateRange = validORNRequest.copy(accountingPeriodTo = validORNRequest.accountingPeriodFrom.minusYears(1))
+
+        val result = ORNValidationRules.domesticOnlyRule(domesticOrganisation).validate(invalidDateRange)
+
+        result.isInvalid mustBe true
+        result.toEither.left.map { errors =>
+          errors.head.asInstanceOf[ORNValidationError].error mustBe RequestCouldNotBeProcessed
+        }
+      }
+    }
+
     "filedDateGIRRule" should {
       "reject a future filedDateGIR date" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
