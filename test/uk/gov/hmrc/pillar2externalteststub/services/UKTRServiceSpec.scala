@@ -30,7 +30,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 
-import java.time.Instant
+import java.time.{Instant, LocalDate}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -164,7 +164,8 @@ class UKTRServiceSpec
 
       "should fail with RequestCouldNotBeProcessed when the amendment deadline has elapsed" in {
         val testOrg = configurableRegistrationDate.replace(
-          nonDomesticOrganisation.organisation.orgDetails.registrationDate
+          LocalDate
+            .now()
             .minusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
             .minusMonths(AMENDMENT_WINDOW_MONTHS)
             .minusDays(1)

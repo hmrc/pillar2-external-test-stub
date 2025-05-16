@@ -80,7 +80,7 @@ class UKTRService @Inject() (
 
   private def amendmentWindowCheck(pillar2Id: String): Future[Unit] =
     organisationService.getOrganisation(pillar2Id).flatMap { org =>
-      val amendmentsAllowed = LocalDate.now.isBefore(
+      val amendmentsAllowed = !LocalDate.now.isAfter(
         org.organisation.orgDetails.registrationDate
           .plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
           .plusMonths(AMENDMENT_WINDOW_MONTHS)
