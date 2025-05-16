@@ -122,7 +122,7 @@ class ObligationsAndSubmissionsController @Inject() (
     submissions: Seq[Submission]
   ): AccountingPeriodDetails = {
     val dueDate  = regDate.plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
-    val canAmend = LocalDate.now().isBefore(dueDate.plusMonths(AMENDMENT_WINDOW_MONTHS))
+    val canAmend = !LocalDate.now().isAfter(dueDate.plusMonths(AMENDMENT_WINDOW_MONTHS))
 
     val p2TaxReturnSubmissions = submissions
       .filter(s =>
