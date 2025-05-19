@@ -24,7 +24,7 @@ import play.api.mvc.Results
 import play.api.test.FakeRequest
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2DataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.ETMPBadRequest
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -49,7 +49,7 @@ class AuthActionFilterSpec extends AnyWordSpec with Matchers with ScalaFutures w
           val filteredHeaders = hipHeaders.filterNot(_._1 == header)
           if (invalidValue.isEmpty) filteredHeaders else filteredHeaders :+ (header -> invalidValue)
         }
-        authActionFilter.filter(FakeRequest().withHeaders(headers: _*)) shouldFailWith ETMPBadRequest(s"Header is missing or invalid: $header")
+        authActionFilter.filter(FakeRequest().withHeaders(headers: _*)) shouldFailWith HIPBadRequest(s"Header is missing or invalid: $header")
       }
 
       "correlationid is missing" in {

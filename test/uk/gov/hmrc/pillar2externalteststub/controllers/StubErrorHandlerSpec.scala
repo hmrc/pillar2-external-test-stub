@@ -38,6 +38,8 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error._
+import uk.gov.hmrc.pillar2externalteststub.models.response.HIPErrorResponse
+import uk.gov.hmrc.pillar2externalteststub.models.response.Origin.HIP
 
 class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
 
@@ -197,24 +199,13 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       (json \ "errors" \ "text").as[String] shouldBe "Invalid Total Liability UTPR"
     }
 
-    "handle ETMPBadRequest error" should {
-      "static message" in {
-        val result = errorHandler.onServerError(dummyRequest, ETMPBadRequest())
-        status(result) shouldBe BAD_REQUEST
-        val json = contentAsJson(result)
-        (json \ "error" \ "code").as[String]    shouldBe "400"
-        (json \ "error" \ "message").as[String] shouldBe "Bad request"
-        (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000400"
-      }
-
-      "dynamic message" in {
-        val result = errorHandler.onServerError(dummyRequest, ETMPBadRequest("Missing Header"))
-        status(result) shouldBe BAD_REQUEST
-        val json = contentAsJson(result)
-        (json \ "error" \ "code").as[String]    shouldBe "400"
-        (json \ "error" \ "message").as[String] shouldBe "Missing Header"
-        (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000400"
-      }
+    "handle HIPBadRequest error" in {
+      val result = errorHandler.onServerError(dummyRequest, HIPBadRequest("Missing Header"))
+      status(result) shouldBe BAD_REQUEST
+      val hipResponse = contentAsJson(result).as[HIPErrorResponse]
+      hipResponse.origin shouldEqual HIP
+      hipResponse.response.failures should have size 1
+      hipResponse.response.failures.head.reason shouldEqual "json error"
     }
 
     "handle ETMPInternalServerError error" in {
