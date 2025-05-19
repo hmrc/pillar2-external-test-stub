@@ -201,7 +201,7 @@ class ObligationsAndSubmissionsControllerSpec
         submissions.head.submissionType mustBe SubmissionType.GIR
       }
 
-      "set canAmend flag correctly based on due date" - {
+      "set canAmend flag correctly based on due date and oblgation type" - {
         val boundaryDate = LocalDate.now.minusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS + AMENDMENT_WINDOW_MONTHS)
 
         def canAmendCheck(registrationDate: LocalDate, expectedStatus: Boolean): Assertion = {
@@ -214,7 +214,12 @@ class ObligationsAndSubmissionsControllerSpec
           val result = route(app, createRequest()).value
           status(result) mustBe OK
 
-          (contentAsJson(result) \\ "canAmend").head.as[Boolean] mustBe expectedStatus
+          (contentAsJson(result) \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 0 \ "obligationType").as[String] mustBe "UKTR"
+          (contentAsJson(result) \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 0 \ "canAmend").as[Boolean] mustBe expectedStatus
+
+          //GIR is always true
+          (contentAsJson(result) \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "obligationType").as[String] mustBe "GIR"
+          (contentAsJson(result) \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "canAmend").as[Boolean] mustBe true
         }
 
         "false when current date is over 12 months after the dueDate" in {
