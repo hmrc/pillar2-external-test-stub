@@ -15,7 +15,6 @@
  */
 
 package uk.gov.hmrc.pillar2externalteststub.services
-
 import org.bson.types.ObjectId
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.when
@@ -23,6 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WINDOW_MONTHS, FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
@@ -30,7 +30,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 
-import java.time.Instant
+import java.time.{Instant, LocalDate}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -157,6 +157,22 @@ class UKTRServiceSpec
 
         when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
           .thenReturn(Future.successful(None))
+
+        val result = service.amendUKTR(validPlrId, liabilitySubmission)
+        result shouldFailWith RequestCouldNotBeProcessed
+      }
+
+      "should fail with RequestCouldNotBeProcessed when the amendment deadline has elapsed" in {
+        val testOrg = configurableRegistrationDate.replace(
+          LocalDate
+            .now()
+            .minusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
+            .minusMonths(AMENDMENT_WINDOW_MONTHS)
+            .minusDays(1)
+        )(nonDomesticOrganisation)
+
+        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(testOrg))
+        when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId))).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
         val result = service.amendUKTR(validPlrId, liabilitySubmission)
         result shouldFailWith RequestCouldNotBeProcessed

@@ -157,7 +157,7 @@ class ObligationsAndSubmissionsController @Inject() (
       domesticObligation :+ Obligation(
         obligationType = GIR,
         status = if (girSubmissions.isEmpty) Open else Fulfilled,
-        canAmend = canAmend,
+        canAmend = true,
         submissions = girSubmissions
       )
     } else domesticObligation
