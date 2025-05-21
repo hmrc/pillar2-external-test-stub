@@ -17,12 +17,23 @@
 package uk.gov.hmrc.pillar2externalteststub.config
 
 import play.api.Configuration
+import play.api.libs.json.{JsArray, Json}
 
 import javax.inject.{Inject, Singleton}
+import scala.io.Source
 
 @Singleton
 class AppConfig @Inject() (config: Configuration) {
 
   val appName:                 String = config.get[String]("appName")
   val defaultDataExpireInDays: Int    = config.get[Int]("defaultDataExpireInDays")
+  lazy val isoCountryCodeList: String = config.get[String]("location.iso-country-code-list.all")
+
+  lazy val countryList: Set[String] = {
+    val source = Source.fromFile(isoCountryCodeList)
+    try {
+      val json = Json.parse(source.mkString)
+      json.as[JsArray].value.map(countryEntry => (countryEntry \ 1).as[String].replace("country:", "")).toSet
+    } finally source.close()
+  }
 }

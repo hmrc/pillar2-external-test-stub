@@ -22,8 +22,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
+import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ORNDataFixture, TestOrgDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.repositories.ORNSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.validation.syntax._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -31,14 +31,13 @@ import scala.concurrent.Future
 
 class ORNValidatorSpec extends AnyWordSpec with Matchers with MockitoSugar with ScalaFutures with ORNDataFixture with TestOrgDataFixture {
 
-  private val mockRepository = mock[ORNSubmissionRepository]
-
   "ORNValidator" should {
     "validate successfully for valid data" in {
       when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-      when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Seq.empty))
+      val testAppConfig = mock[AppConfig]
+      when(testAppConfig.countryList).thenReturn(Set(validORNRequest.countryGIR, validORNRequest.issuingCountryTIN))
 
-      val result = ORNValidator.ornValidator(validPlrId)(mockOrgService, global).flatMap { validator =>
+      val result = ORNValidator.ornValidator(validPlrId)(mockOrgService, global, testAppConfig).flatMap { validator =>
         Future.successful(validORNRequest.validate(validator))
       }
 

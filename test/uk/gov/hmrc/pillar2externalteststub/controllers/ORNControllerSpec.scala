@@ -27,6 +27,7 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
+import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ORNDataFixture, TestOrgDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
@@ -38,11 +39,15 @@ import scala.concurrent.Future
 class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with ORNDataFixture with TestOrgDataFixture {
 
   private val mockORNService = mock[ORNService]
+  private val mockAppConfig  = mock[AppConfig]
+
+  when(mockAppConfig.countryList).thenReturn(Set(validORNRequest.countryGIR, validORNRequest.issuingCountryTIN))
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .overrides(inject.bind[ORNService].toInstance(mockORNService))
+      .overrides(inject.bind[AppConfig].toInstance(mockAppConfig))
       .build()
 
   "Overseas Return Notification" - {

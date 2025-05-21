@@ -19,6 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
+import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
@@ -39,7 +40,8 @@ class ORNController @Inject() (
   cc:                  ControllerComponents,
   authFilter:          AuthActionFilter,
   ornService:          ORNService,
-  organisationService: OrganisationService
+  organisationService: OrganisationService,
+  appConfig:           AppConfig
 )(implicit ec:         ExecutionContext)
     extends BackendController(cc)
     with Logging {
@@ -106,7 +108,7 @@ class ORNController @Inject() (
   private def validateORN(pillar2Id: String, request: ORNRequest, isAmendment: Boolean = false): Future[Result] = {
     logger.info(s"Validating ORN submission for pillar2Id: $pillar2Id")
 
-    ORNValidator.ornValidator(pillar2Id)(organisationService, ec).flatMap { validator =>
+    ORNValidator.ornValidator(pillar2Id)(organisationService, ec, appConfig).flatMap { validator =>
       val validationResult = request.validate(validator)
 
       validationResult.toEither match {

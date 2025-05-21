@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.orn
 
+import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules.{accountingPeriodMatchesOrgRule, accountingPeriodSanityCheckRule}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, NoActiveSubscription}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
@@ -32,14 +33,15 @@ object ORNValidator {
     pillar2Id: String
   )(implicit
     organisationService: OrganisationService,
-    ec:                  ExecutionContext
+    ec:                  ExecutionContext,
+    appConfig:           AppConfig
   ): Future[ValidationRule[ORNRequest]] =
     organisationService
       .getOrganisation(pillar2Id)
       .map { org =>
         ValidationRule.compose(
           domesticOnlyRule(org),
-          countryISOComplianceRule,
+          countryISOComplianceRule(appConfig.countryList),
           accountingPeriodMatchesOrgRule[ORNRequest](org, ORNValidationError(InvalidReturn)),
           accountingPeriodSanityCheckRule[ORNRequest](ORNValidationError(InvalidReturn)),
           filedDateGIRRule
