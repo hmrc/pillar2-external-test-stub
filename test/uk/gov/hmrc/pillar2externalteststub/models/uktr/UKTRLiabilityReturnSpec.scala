@@ -185,17 +185,51 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
     }
 
+    "should fail when a domestic-only organisation with obligationMTT = false has a positive total" - {
+      "total IIR liability is not nil" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(
+          obligationMTT = false,
+          liabilities = validLiabilityReturn.liabilities.copy(
+            totalLiability = BigDecimal(300),
+            totalLiabilityIIR = BigDecimal(100)
+          )
+        )
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityIIR))
+      }
+
+      "total UTPR liability is not nil" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+
+        val invalidReturn = validLiabilityReturn.copy(
+          obligationMTT = false,
+          liabilities = validLiabilityReturn.liabilities.copy(
+            totalLiability = BigDecimal(200),
+            totalLiabilityIIR = BigDecimal(0),
+            totalLiabilityUTPR = BigDecimal(100),
+            liableEntities = validLiabilityReturn.liabilities.liableEntities.map(entity => entity.copy(amountOwedIIR = BigDecimal(0)))
+          )
+        )
+        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityUTPR))
+      }
+    }
+
     "should fail validation when obligationMTT is false and IIR amount is greater than zero" in {
+      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
       val invalidReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
+          electionDTTSingleMember = false,
           electionUTPRSingleMember = false,
-          numberSubGroupUTPR = 0,
           totalLiability = BigDecimal(200),
           totalLiabilityIIR = BigDecimal(100),
           totalLiabilityUTPR = BigDecimal(0),
+          totalLiabilityDTT = BigDecimal(100),
           liableEntities = validLiabilityReturn.liabilities.liableEntities.map(entity =>
-            entity.copy(amountOwedIIR = BigDecimal(100), amountOwedUTPR = BigDecimal(0))
+            entity.copy(amountOwedIIR = BigDecimal(100), amountOwedUTPR = BigDecimal(0), amountOwedDTT = BigDecimal(100))
           )
         )
       )
@@ -205,13 +239,12 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     }
 
     "should fail validation when obligationMTT is false and individual entity IIR amount is greater than zero even if total is zero" in {
+      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
       val invalidReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
           electionDTTSingleMember = false,
-          numberSubGroupDTT = 0,
           electionUTPRSingleMember = false,
-          numberSubGroupUTPR = 0,
           totalLiability = BigDecimal(100),
           totalLiabilityDTT = BigDecimal(0),
           totalLiabilityIIR = BigDecimal(100),
@@ -227,6 +260,8 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     }
 
     "should fail validation when obligationMTT is false and UTPR amount is greater than zero" in {
+      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
       val invalidReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
@@ -246,6 +281,8 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     }
 
     "should fail validation when obligationMTT is false and individual entity UTPR amount is greater than zero even if total is zero" in {
+      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
       val invalidReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
@@ -268,6 +305,8 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     }
 
     "should pass validation when obligationMTT is false and both IIR and UTPR amounts are zero" in {
+      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
       val validReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
@@ -286,6 +325,8 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     }
 
     "should pass validation when obligationMTT is true regardless of IIR and UTPR amounts" in {
+      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
+
       val validReturn = validLiabilityReturn.copy(
         obligationMTT = true,
         liabilities = validLiabilityReturn.liabilities.copy(
