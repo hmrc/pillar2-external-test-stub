@@ -32,7 +32,6 @@ lazy val microservice = Project(appName, file("."))
     Test / unmanagedSourceDirectories := (Test / baseDirectory)(base => Seq(base / "test", base / "test-common")).value,
     tpolecatExcludeOptions ++= Set(ScalacOptions.warnNonUnitStatement)
   )
-  .settings(resolvers += Resolver.jcenterRepo)
 
 addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
 addCommandAlias("lint", ";scalafmtAll;scalafmtSbt;scalafixAll")
