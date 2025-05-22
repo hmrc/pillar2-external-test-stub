@@ -189,6 +189,8 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       val invalidReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
+          electionUTPRSingleMember = false,
+          numberSubGroupUTPR = 0,
           totalLiability = BigDecimal(200),
           totalLiabilityIIR = BigDecimal(100),
           totalLiabilityUTPR = BigDecimal(0),
@@ -197,6 +199,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
           )
         )
       )
+
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
       result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
     }
@@ -205,17 +208,20 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       val invalidReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
+          electionDTTSingleMember = false,
+          numberSubGroupDTT = 0,
+          electionUTPRSingleMember = false,
+          numberSubGroupUTPR = 0,
           totalLiability = BigDecimal(100),
-          totalLiabilityIIR = BigDecimal(0),
+          totalLiabilityDTT = BigDecimal(0),
+          totalLiabilityIIR = BigDecimal(100),
           totalLiabilityUTPR = BigDecimal(0),
-          liableEntities = Seq(
-            validLiabilityReturn.liabilities.liableEntities.head.copy(
-              amountOwedIIR = BigDecimal(100),
-              amountOwedUTPR = BigDecimal(0)
-            )
+          liableEntities = validLiabilityReturn.liabilities.liableEntities.map(entity =>
+            entity.copy(amountOwedDTT = BigDecimal(0), amountOwedIIR = BigDecimal(100), amountOwedUTPR = BigDecimal(0))
           )
         )
       )
+
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
       result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
     }
@@ -224,6 +230,8 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       val invalidReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
+          electionUTPRSingleMember = false,
+          numberSubGroupUTPR = 0,
           totalLiability = BigDecimal(200),
           totalLiabilityIIR = BigDecimal(0),
           totalLiabilityUTPR = BigDecimal(100),
@@ -232,6 +240,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
           )
         )
       )
+
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
       result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
     }
@@ -240,17 +249,20 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       val invalidReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
+          electionDTTSingleMember = false,
+          numberSubGroupDTT = 0,
+          electionUTPRSingleMember = false,
+          numberSubGroupUTPR = 0,
           totalLiability = BigDecimal(100),
+          totalLiabilityDTT = BigDecimal(0),
           totalLiabilityIIR = BigDecimal(0),
-          totalLiabilityUTPR = BigDecimal(0),
-          liableEntities = Seq(
-            validLiabilityReturn.liabilities.liableEntities.head.copy(
-              amountOwedIIR = BigDecimal(0),
-              amountOwedUTPR = BigDecimal(100)
-            )
+          totalLiabilityUTPR = BigDecimal(100),
+          liableEntities = validLiabilityReturn.liabilities.liableEntities.map(entity =>
+            entity.copy(amountOwedDTT = BigDecimal(0), amountOwedIIR = BigDecimal(0), amountOwedUTPR = BigDecimal(100))
           )
         )
       )
+
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
       result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
     }
@@ -259,6 +271,8 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       val validReturn = validLiabilityReturn.copy(
         obligationMTT = false,
         liabilities = validLiabilityReturn.liabilities.copy(
+          electionUTPRSingleMember = false,
+          numberSubGroupUTPR = 0,
           totalLiability = BigDecimal(100),
           totalLiabilityIIR = BigDecimal(0),
           totalLiabilityUTPR = BigDecimal(0),
@@ -266,6 +280,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
             validLiabilityReturn.liabilities.liableEntities.map(entity => entity.copy(amountOwedIIR = BigDecimal(0), amountOwedUTPR = BigDecimal(0)))
         )
       )
+
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(validReturn)), 5.seconds)
       result mustEqual valid(validReturn)
     }

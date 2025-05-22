@@ -183,12 +183,16 @@ class UKTRServiceSpec
       "for liability returns" - {
         "should fail when total liability does not match sum of components" in {
           when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(domesticOrganisation))
+            .thenReturn(Future.successful(nonDomesticOrganisation))
 
           val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
           val invalidSubmission = liabilityReturn.copy(
+            obligationMTT = true,
             liabilities = liabilityReturn.liabilities.copy(
-              totalLiability = BigDecimal(50000.00)
+              totalLiability = BigDecimal(50000.00),
+              totalLiabilityDTT = BigDecimal(100),
+              totalLiabilityIIR = BigDecimal(100),
+              totalLiabilityUTPR = BigDecimal(100)
             )
           )
 
@@ -204,6 +208,8 @@ class UKTRServiceSpec
           val invalidSubmission = liabilityReturn.copy(
             obligationMTT = false,
             liabilities = liabilityReturn.liabilities.copy(
+              electionUTPRSingleMember = false,
+              numberSubGroupUTPR = 0,
               totalLiability = BigDecimal(200),
               totalLiabilityIIR = BigDecimal(100),
               totalLiabilityUTPR = BigDecimal(0),
@@ -224,6 +230,8 @@ class UKTRServiceSpec
           val invalidSubmission = liabilityReturn.copy(
             obligationMTT = false,
             liabilities = liabilityReturn.liabilities.copy(
+              electionUTPRSingleMember = false,
+              numberSubGroupUTPR = 0,
               totalLiability = BigDecimal(200),
               totalLiabilityIIR = BigDecimal(0),
               totalLiabilityUTPR = BigDecimal(100),
@@ -246,6 +254,8 @@ class UKTRServiceSpec
           val invalidSubmission = liabilityReturn.copy(
             obligationMTT = false,
             liabilities = liabilityReturn.liabilities.copy(
+              electionUTPRSingleMember = false,
+              numberSubGroupUTPR = 0,
               totalLiability = BigDecimal(200),
               totalLiabilityIIR = BigDecimal(100),
               totalLiabilityUTPR = BigDecimal(0),
@@ -268,6 +278,8 @@ class UKTRServiceSpec
           val invalidSubmission = liabilityReturn.copy(
             obligationMTT = false,
             liabilities = liabilityReturn.liabilities.copy(
+              electionUTPRSingleMember = false,
+              numberSubGroupUTPR = 0,
               totalLiability = BigDecimal(200),
               totalLiabilityIIR = BigDecimal(0),
               totalLiabilityUTPR = BigDecimal(100),
@@ -294,6 +306,8 @@ class UKTRServiceSpec
           val validSubmission = liabilityReturn.copy(
             obligationMTT = false,
             liabilities = liabilityReturn.liabilities.copy(
+              electionUTPRSingleMember = false,
+              numberSubGroupUTPR = 0,
               totalLiability = BigDecimal(100),
               totalLiabilityIIR = BigDecimal(0),
               totalLiabilityUTPR = BigDecimal(0),
@@ -326,6 +340,8 @@ class UKTRServiceSpec
           val validSubmission = liabilityReturn.copy(
             obligationMTT = false,
             liabilities = liabilityReturn.liabilities.copy(
+              electionUTPRSingleMember = false,
+              numberSubGroupUTPR = 0,
               totalLiability = BigDecimal(100),
               totalLiabilityIIR = BigDecimal(0),
               totalLiabilityUTPR = BigDecimal(0),
