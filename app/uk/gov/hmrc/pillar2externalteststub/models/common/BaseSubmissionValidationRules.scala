@@ -26,7 +26,7 @@ import scala.io.Source
 object BaseSubmissionValidationRules {
 
   lazy val countryList: Set[String] = {
-    val source = Source.fromFile("conf/ISO-country-code-list.json")
+    val source = Source.fromFile("./conf/resources/ISO-country-code-list.json")
     try {
       val json = Json.parse(source.mkString)
       json
