@@ -42,7 +42,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
   val validRequestBody: JsObject = Json.obj(
     "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
-    "obligationMTT"        -> false,
+    "obligationMTT"        -> true,
     "electionUKGAAP"       -> false,
     "liabilities" -> Json.obj(
       "electionDTTSingleMember"  -> true,

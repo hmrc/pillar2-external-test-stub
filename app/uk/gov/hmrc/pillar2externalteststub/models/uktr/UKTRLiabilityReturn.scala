@@ -162,6 +162,22 @@ object UKTRLiabilityReturn {
       )
   }
 
+  private[uktr] val nonMTTAmountsRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+    if (
+      !data.obligationMTT && (
+        data.liabilities.totalLiabilityIIR > 0 ||
+          data.liabilities.totalLiabilityUTPR > 0 ||
+          data.liabilities.liableEntities.exists(entity => entity.amountOwedIIR > 0 || entity.amountOwedUTPR > 0)
+      )
+    ) {
+      invalid(
+        UKTRSubmissionError(
+          InvalidReturn
+        )
+      )
+    } else valid[UKTRLiabilityReturn](data)
+  }
+
   def uktrSubmissionValidator(
     plrReference:                 String
   )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
@@ -182,7 +198,8 @@ object UKTRLiabilityReturn {
           totalLiabilityUTPRRule(org),
           ukChargeableEntityNameRule,
           idTypeRule,
-          idValueRule
+          idValueRule,
+          nonMTTAmountsRule
         )(FailFast)
       }
       .recover { case _: OrganisationNotFound =>
