@@ -21,7 +21,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.error.{HIPBadRequest, OrganisationNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNSuccessResponse.{ORN_SUCCESS_200, ORN_SUCCESS_201}
 import uk.gov.hmrc.pillar2externalteststub.models.orn._
 import uk.gov.hmrc.pillar2externalteststub.services.{ORNService, OrganisationService}
@@ -50,7 +50,7 @@ class ORNController @Inject() (
         request.body
           .validate[ORNRequest]
           .fold(
-            _ => Future.failed(ETMPBadRequest()),
+            _ => Future.failed(HIPBadRequest()),
             ornRequest => validateORN(pillar2Id, ornRequest)
           )
       }
@@ -62,7 +62,7 @@ class ORNController @Inject() (
         request.body
           .validate[ORNRequest]
           .fold(
-            _ => Future.failed(ETMPBadRequest()),
+            _ => Future.failed(HIPBadRequest()),
             ornRequest => validateORN(pillar2Id, ornRequest, isAmendment = true)
           )
       }
@@ -98,7 +98,7 @@ class ORNController @Inject() (
                 Future.failed(NoActiveSubscription)
               case e: DateTimeParseException =>
                 logger.error(s"Invalid date format: ${e.getMessage}")
-                Future.failed(ETMPBadRequest())
+                Future.failed(HIPBadRequest())
             }
         }
     }

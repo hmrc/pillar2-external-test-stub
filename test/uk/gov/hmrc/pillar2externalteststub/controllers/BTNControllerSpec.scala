@@ -30,6 +30,7 @@ import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, TestOrgDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.services.BTNService
 
 import scala.concurrent.Future
@@ -71,7 +72,7 @@ class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return ETMPBadRequest when request body is invalid JSON" in {
         val result = route(app, createRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest()
+        result shouldFailWith HIPBadRequest()
       }
 
       "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {

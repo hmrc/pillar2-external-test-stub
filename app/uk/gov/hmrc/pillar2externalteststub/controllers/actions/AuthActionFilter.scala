@@ -21,7 +21,7 @@ import play.api.mvc.Results.Unauthorized
 import play.api.mvc.{ActionFilter, Request, Result}
 import uk.gov.hmrc.http.HeaderNames
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.ETMPBadRequest
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,7 +33,7 @@ class AuthActionFilter @Inject() ()(implicit ec: ExecutionContext) extends Actio
       if (request.headers.get(header).exists(validationFn)) Future.successful(())
       else {
         logger.error(s"Header is missing or invalid: $header")
-        Future.failed(ETMPBadRequest(s"Header is missing or invalid: $header"))
+        Future.failed(HIPBadRequest(s"Header is missing or invalid: $header"))
       }
 
     for {

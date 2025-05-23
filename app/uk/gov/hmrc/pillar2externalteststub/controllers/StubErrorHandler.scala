@@ -23,6 +23,7 @@ import play.api.mvc.Results.Status
 import play.api.mvc.{RequestHeader, Result, Results}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error._
+import uk.gov.hmrc.pillar2externalteststub.models.response.Origin.HIP
 import uk.gov.hmrc.pillar2externalteststub.models.response._
 
 import javax.inject.Singleton
@@ -52,11 +53,12 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
               TaxObligationAlreadyFulfilled | InvalidReturn | InvalidDTTElection | InvalidUTPRElection | InvalidTotalLiability |
               InvalidTotalLiabilityIIR | InvalidTotalLiabilityDTT | InvalidTotalLiabilityUTPR =>
             Results.UnprocessableEntity(Json.toJson(ETMPFailureResponse(ETMPDetailedError(e.code, e.message))))
-          case ETMPBadRequest(_)       => Results.BadRequest(Json.toJson(ETMPErrorResponse(ETMPSimpleError(e))))
           case ETMPInternalServerError => Results.InternalServerError(Json.toJson(ETMPErrorResponse(ETMPSimpleError(e))))
         }
         logger.warn(s"Caught ETMPError. Returning ${ret.header.status} statuscode", exception)
         Future.successful(ret)
+      case HIPBadRequest(_) =>
+        Future.successful(Results.BadRequest(Json.toJson(HIPErrorResponse(HIP, HIPFailure(List(HIPError("json error", "json error")))))))
       case _ =>
         logger.error("Unhandled exception. Returning 500 statuscode", exception)
         Future.successful(Results.InternalServerError(Json.toJson(ETMPErrorResponse(ETMPSimpleError(ETMPInternalServerError)))))

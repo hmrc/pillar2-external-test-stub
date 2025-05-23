@@ -29,6 +29,7 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
@@ -87,7 +88,7 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
 
       "should return ETMPBadRequest when request body is invalid JSON" in {
         val result = route(app, createRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest()
+        result shouldFailWith HIPBadRequest()
       }
 
       "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {
@@ -122,7 +123,7 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
 
       "should return ETMPBadRequest when amendment request body is invalid JSON" in {
         val result = route(app, createAmendRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest()
+        result shouldFailWith HIPBadRequest()
       }
     }
   }

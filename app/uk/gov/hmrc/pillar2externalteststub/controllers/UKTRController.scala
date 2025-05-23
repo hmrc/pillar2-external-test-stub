@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRResponse.writes
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.services.UKTRService
@@ -44,7 +44,7 @@ class UKTRController @Inject() (
         request.body
           .validate[UKTRSubmission]
           .fold(
-            _ => Future.failed(ETMPBadRequest()),
+            _ => Future.failed(HIPBadRequest()),
             uktrRequest => uktrService.submitUKTR(pillar2Id, uktrRequest).map(response => Created(Json.toJson(response)(writes)))
           )
       }
@@ -56,7 +56,7 @@ class UKTRController @Inject() (
         request.body
           .validate[UKTRSubmission]
           .fold(
-            _ => Future.failed(ETMPBadRequest()),
+            _ => Future.failed(HIPBadRequest()),
             uktrRequest => uktrService.amendUKTR(pillar2Id, uktrRequest).map(response => Ok(Json.toJson(response)(writes)))
           )
       }

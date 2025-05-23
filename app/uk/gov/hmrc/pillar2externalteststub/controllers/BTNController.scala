@@ -24,6 +24,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.ServerErrorPlrI
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNSuccessResponse.BTN_SUCCESS_201
 import uk.gov.hmrc.pillar2externalteststub.models.btn._
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.services.BTNService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -45,7 +46,7 @@ class BTNController @Inject() (
         request.body
           .validate[BTNRequest]
           .fold(
-            _ => Future.failed(ETMPBadRequest()),
+            _ => Future.failed(HIPBadRequest()),
             btnRequest => handleSubmission(pillar2Id, btnRequest)
           )
       }

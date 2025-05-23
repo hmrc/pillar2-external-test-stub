@@ -35,6 +35,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.orn.mongo.ORNSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.response.HIPErrorResponse
+import uk.gov.hmrc.pillar2externalteststub.models.response.Origin.HIP
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ORNSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
@@ -309,10 +311,10 @@ class ORNISpec
 
       val getResponse = getORN(validPlrId, "invalid-date", "2025-12-31")
       getResponse.status shouldBe 400
-      val json = Json.parse(getResponse.body)
-      (json \ "error" \ "code").as[String]    shouldBe "400"
-      (json \ "error" \ "message").as[String] shouldBe "Bad request"
-      (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000400"
+      val response = Json.parse(getResponse.body).as[HIPErrorResponse]
+      response.origin shouldEqual HIP
+      response.response.failures should have size 1
+      response.response.failures.head.reason shouldEqual "json error"
     }
 
     "return 422 when ID number is missing" in {

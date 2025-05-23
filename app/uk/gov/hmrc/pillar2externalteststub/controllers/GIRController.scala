@@ -19,9 +19,8 @@ import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
-import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRSuccessResponse
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
+import uk.gov.hmrc.pillar2externalteststub.models.gir.{GIRRequest, GIRSuccessResponse}
 import uk.gov.hmrc.pillar2externalteststub.services.GIRService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -43,7 +42,7 @@ class GIRController @Inject() (
         request.body
           .validate[GIRRequest]
           .fold(
-            _ => Future.failed(ETMPBadRequest()),
+            _ => Future.failed(HIPBadRequest()),
             girRequest =>
               girService
                 .submitGIR(pillar2Id, girRequest)
