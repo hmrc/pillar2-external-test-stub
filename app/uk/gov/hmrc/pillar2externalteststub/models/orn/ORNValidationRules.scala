@@ -20,10 +20,13 @@ import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidatio
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
+import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{ValidationError, ValidationRule}
 
 import java.time.LocalDate
+import scala.concurrent.{ExecutionContext, Future}
+
 case class ORNValidationError(error: ETMPError) extends ValidationError {
   override def errorCode:    String = error.code
   override def errorMessage: String = error.message
@@ -38,6 +41,19 @@ object ORNValidationRules {
       else valid(request)
     }
   }
+
+  /**
+   * BTN flag status validation rule
+   * Checks if the BTN flag is active (accountStatus.inactive = true)
+   * Returns error 003 (RequestCouldNotBeProcessed) if BTN flag is active
+   */
+  def btnStatusRule(pillar2Id: String)(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[ORNRequest]] =
+    organisationService.isBtnFlagActive(pillar2Id).map { isBtnActive =>
+      ValidationRule[ORNRequest] { request =>
+        if (isBtnActive) invalid(ORNValidationError(RequestCouldNotBeProcessed))
+        else valid(request)
+      }
+    }
 
   def filedDateGIRRule: ValidationRule[ORNRequest] =
     ValidationRule[ORNRequest] { request =>

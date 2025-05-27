@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 
+import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper
 import uk.gov.hmrc.pillar2externalteststub.models.error.{OrganisationAlreadyExists, OrganisationNotFound}
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.{TestOrganisation, TestOrganisationWithId}
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{AccountStatus, TestOrganisation, TestOrganisationWithId}
+import uk.gov.hmrc.pillar2externalteststub.models.subscription.{SubscriptionResponse, SubscriptionSuccessResponse}
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
 
 import javax.inject.{Inject, Singleton}
@@ -46,6 +48,33 @@ class OrganisationService @Inject() (
         case None      => Future.failed(OrganisationNotFound(pillar2Id))
       }
 
+  /**
+   * Get organisation with enriched subscription data including BTN flag status
+   * This method calls the subscription service (EPID 1457) to get the latest account status
+   */
+  def getOrganisationWithSubscription(pillar2Id: String): Future[TestOrganisationWithId] =
+    for {
+      org <- getOrganisation(pillar2Id)
+      subscriptionData <- getSubscriptionData(pillar2Id)
+      enrichedOrg = enrichOrganisationWithSubscription(org, subscriptionData)
+    } yield enrichedOrg
+
+  /**
+   * Get BTN flag status for a given pillar2Id
+   * Returns true if BTN flag is active (inactive = true), false otherwise
+   */
+  def getBtnFlagStatus(pillar2Id: String): Future[Boolean] =
+    getSubscriptionData(pillar2Id).map {
+      case success: SubscriptionSuccessResponse => success.accountStatus.inactive
+      case _ => false // Default to false if subscription data is not available
+    }
+
+  /**
+   * Check if BTN flag is active (inactive = true)
+   * This is the method that should be used in validation rules
+   */
+  def isBtnFlagActive(pillar2Id: String): Future[Boolean] = getBtnFlagStatus(pillar2Id)
+
   def updateOrganisation(pillar2Id: String, organisation: TestOrganisation): Future[TestOrganisationWithId] = {
     val organisationWithId = organisation.withPillar2Id(pillar2Id)
     repository.findByPillar2Id(pillar2Id).flatMap {
@@ -63,4 +92,33 @@ class OrganisationService @Inject() (
       case Some(_) =>
         repository.delete(pillar2Id).map(_ => ())
     }
+
+  // Private helper methods
+
+  /**
+   * Retrieve subscription data using the existing SubscriptionHelper (EPID 1457)
+   */
+  private def getSubscriptionData(pillar2Id: String): Future[SubscriptionResponse] =
+    Future.successful {
+      val (_, response) = SubscriptionHelper.retrieveSubscription(pillar2Id)
+      response
+    }
+
+  /**
+   * Enrich organisation data with subscription information
+   */
+  private def enrichOrganisationWithSubscription(
+    org: TestOrganisationWithId, 
+    subscriptionData: SubscriptionResponse
+  ): TestOrganisationWithId = {
+    subscriptionData match {
+      case success: SubscriptionSuccessResponse =>
+        val updatedAccountStatus = AccountStatus(inactive = success.accountStatus.inactive)
+        val updatedOrganisation = org.organisation.copy(accountStatus = updatedAccountStatus)
+        org.copy(organisation = updatedOrganisation)
+      case _ =>
+        // If subscription data is not available, keep the existing organisation data
+        org
+    }
+  }
 }

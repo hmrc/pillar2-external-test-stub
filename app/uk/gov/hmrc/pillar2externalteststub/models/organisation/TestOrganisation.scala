@@ -33,14 +33,20 @@ case class AccountingPeriod(
   endDate:   LocalDate
 )
 
+case class AccountStatus(
+  inactive: Boolean
+)
+
 case class TestOrganisationRequest(
   orgDetails:       OrgDetails,
-  accountingPeriod: AccountingPeriod
+  accountingPeriod: AccountingPeriod,
+  accountStatus:    Option[AccountStatus] = None
 )
 
 case class TestOrganisation(
   orgDetails:       OrgDetails,
   accountingPeriod: AccountingPeriod,
+  accountStatus:    AccountStatus = AccountStatus(inactive = false),
   lastUpdated:      Instant = Instant.now()
 ) {
   def withPillar2Id(pillar2Id: String): TestOrganisationWithId =
@@ -58,6 +64,10 @@ object OrgDetails {
 
 object AccountingPeriod {
   implicit val format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
+}
+
+object AccountStatus {
+  implicit val format: Format[AccountStatus] = Json.format[AccountStatus]
 }
 
 object TestOrganisationRequest {
@@ -94,13 +104,15 @@ object TestOrganisation {
   def fromRequest(request: TestOrganisationRequest): TestOrganisation =
     TestOrganisation(
       orgDetails = request.orgDetails,
-      accountingPeriod = request.accountingPeriod
+      accountingPeriod = request.accountingPeriod,
+      accountStatus = request.accountStatus.getOrElse(AccountStatus(inactive = false))
     )
 
   private val mongoReads: Reads[TestOrganisation] =
     (
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
+        (__ \ "accountStatus").readWithDefault[AccountStatus](AccountStatus(inactive = false)) and
         (__ \ "lastUpdated").read[Instant](mongoInstantFormat)
     )(TestOrganisation.apply _)
 
@@ -108,6 +120,7 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").write[OrgDetails] and
         (__ \ "accountingPeriod").write[AccountingPeriod] and
+        (__ \ "accountStatus").write[AccountStatus] and
         (__ \ "lastUpdated").write(mongoInstantFormat)
     )(unlift(TestOrganisation.unapply))
 
@@ -117,6 +130,7 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
+        (__ \ "accountStatus").readWithDefault[AccountStatus](AccountStatus(inactive = false)) and
         (__ \ "lastUpdated").read[Instant](apiInstantFormat)
     )(TestOrganisation.apply _)
 
@@ -124,6 +138,7 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").write[OrgDetails] and
         (__ \ "accountingPeriod").write[AccountingPeriod] and
+        (__ \ "accountStatus").write[AccountStatus] and
         (__ \ "lastUpdated").write(apiInstantFormat)
     )(unlift(TestOrganisation.unapply))
 
