@@ -37,14 +37,14 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
   val organisationDetails: TestOrganisation = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
-    accountStatus = AccountStatus(inactive = false), // Default to active
+    accountStatus = AccountStatus(inactive = false),
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
   )
 
   val testOrgDetails: TestOrganisation = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
-    accountStatus = AccountStatus(inactive = false), // Default to active
+    accountStatus = AccountStatus(inactive = false),
     lastUpdated = Instant.now()
   )
 
@@ -65,21 +65,16 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
     organisation = organisationDetails
   )
 
-  // BTN Status Test Organisations
-  
-  /** Organisation with BTN flag active (inactive = true) - should return error 003 */
   val organisationWithActiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
-    pillar2Id = "XEPLR0000000301", // Different PLR ID for BTN active scenario
+    pillar2Id = "XEPLR0000000301",
     organisation = testOrgDetails.copy(accountStatus = AccountStatus(inactive = true))
   )
 
-  /** Organisation with BTN flag inactive (inactive = false) - should allow ORN submissions */
   val organisationWithInactiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
-    pillar2Id = "XEPLR0000000302", // Different PLR ID for BTN inactive scenario
+    pillar2Id = "XEPLR0000000302",
     organisation = testOrgDetails.copy(accountStatus = AccountStatus(inactive = false))
   )
 
-  /** Non-domestic organisation with BTN flag active - for testing ORN scenarios */
   val nonDomesticOrganisationWithActiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = "XEPLR0000000303",
     organisation = testOrgDetails.copy(
@@ -88,7 +83,6 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
     )
   )
 
-  /** Non-domestic organisation with BTN flag inactive - for testing ORN scenarios */
   val nonDomesticOrganisationWithInactiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = "XEPLR0000000304",
     organisation = testOrgDetails.copy(

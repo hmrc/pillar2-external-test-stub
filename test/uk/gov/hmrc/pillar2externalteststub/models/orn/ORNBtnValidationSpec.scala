@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.orn
 
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.when
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
@@ -29,30 +28,20 @@ import uk.gov.hmrc.pillar2externalteststub.validation.syntax._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ORNBtnValidationSpec 
-    extends AnyWordSpec 
-    with Matchers 
-    with MockitoSugar 
-    with ScalaFutures 
-    with ORNDataFixture 
-    with TestOrgDataFixture {
+class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar with ScalaFutures with ORNDataFixture with TestOrgDataFixture {
 
   "BTN Status Validation" should {
 
     "Scenario 1: ORN create with BTN flag active (inactive = true)" should {
       "return error 003 'Request could not be processed'" in {
-        // Given: Organisation with BTN flag active
+
         when(mockOrgService.getOrganisation(organisationWithActiveBtnFlag.pillar2Id))
           .thenReturn(Future.successful(organisationWithActiveBtnFlag))
-        when(mockOrgService.isBtnFlagActive(organisationWithActiveBtnFlag.pillar2Id))
-          .thenReturn(Future.successful(true))
 
-        // When: Validating ORN request
         val result = ORNValidator.ornValidator(organisationWithActiveBtnFlag.pillar2Id).flatMap { validator =>
           Future.successful(validORNRequest.validate(validator))
         }
 
-        // Then: Should return error 003
         whenReady(result) { validationResult =>
           validationResult.isInvalid mustBe true
           validationResult.fold(
@@ -71,18 +60,14 @@ class ORNBtnValidationSpec
 
     "Scenario 2: ORN amend with BTN flag active (inactive = true)" should {
       "return error 003 'Request could not be processed'" in {
-        // Given: Organisation with BTN flag active
+
         when(mockOrgService.getOrganisation(organisationWithActiveBtnFlag.pillar2Id))
           .thenReturn(Future.successful(organisationWithActiveBtnFlag))
-        when(mockOrgService.isBtnFlagActive(organisationWithActiveBtnFlag.pillar2Id))
-          .thenReturn(Future.successful(true))
 
-        // When: Validating ORN amendment request
         val result = ORNValidator.ornValidator(organisationWithActiveBtnFlag.pillar2Id).flatMap { validator =>
           Future.successful(validORNRequest.validate(validator))
         }
 
-        // Then: Should return error 003 (same validation applies for both create and amend)
         whenReady(result) { validationResult =>
           validationResult.isInvalid mustBe true
           validationResult.fold(
@@ -100,18 +85,13 @@ class ORNBtnValidationSpec
 
     "Scenario 3: ORN create with BTN flag inactive (inactive = false)" should {
       "return success and allow submission" in {
-        // Given: Non-domestic organisation with BTN flag inactive
         when(mockOrgService.getOrganisation(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id))
           .thenReturn(Future.successful(nonDomesticOrganisationWithInactiveBtnFlag))
-        when(mockOrgService.isBtnFlagActive(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id))
-          .thenReturn(Future.successful(false))
 
-        // When: Validating ORN request
         val result = ORNValidator.ornValidator(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id).flatMap { validator =>
           Future.successful(validORNRequest.validate(validator))
         }
 
-        // Then: Should pass validation (return Valid)
         whenReady(result) { validationResult =>
           validationResult.isValid mustBe true
         }
@@ -120,18 +100,14 @@ class ORNBtnValidationSpec
 
     "Scenario 4: ORN amend with BTN flag inactive (inactive = false)" should {
       "return success and allow amendment" in {
-        // Given: Non-domestic organisation with BTN flag inactive
+
         when(mockOrgService.getOrganisation(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id))
           .thenReturn(Future.successful(nonDomesticOrganisationWithInactiveBtnFlag))
-        when(mockOrgService.isBtnFlagActive(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id))
-          .thenReturn(Future.successful(false))
 
-        // When: Validating ORN amendment request
         val result = ORNValidator.ornValidator(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id).flatMap { validator =>
           Future.successful(validORNRequest.validate(validator))
         }
 
-        // Then: Should pass validation (return Valid)
         whenReady(result) { validationResult =>
           validationResult.isValid mustBe true
         }
@@ -140,43 +116,25 @@ class ORNBtnValidationSpec
 
     "BTN status rule in isolation" should {
       "return error when BTN flag is active" in {
-        // Given: BTN flag is active
-        when(mockOrgService.isBtnFlagActive(anyString()))
-          .thenReturn(Future.successful(true))
+        val rule             = ORNValidationRules.btnStatusRule(organisationWithActiveBtnFlag)
+        val validationResult = validORNRequest.validate(rule)
 
-        // When: Applying BTN status rule
-        val result = ORNValidationRules.btnStatusRule("test-pillar2-id").map { rule =>
-          validORNRequest.validate(rule)
-        }
-
-        // Then: Should return error 003
-        whenReady(result) { validationResult =>
-          validationResult.isInvalid mustBe true
-          validationResult.fold(
-            errors => {
-              val error = errors.head.asInstanceOf[ORNValidationError]
-              error.error mustBe RequestCouldNotBeProcessed
-            },
-            _ => fail("Expected validation to fail")
-          )
-        }
+        validationResult.isInvalid mustBe true
+        validationResult.fold(
+          errors => {
+            val error = errors.head.asInstanceOf[ORNValidationError]
+            error.error mustBe RequestCouldNotBeProcessed
+          },
+          _ => fail("Expected validation to fail")
+        )
       }
 
       "return success when BTN flag is inactive" in {
-        // Given: BTN flag is inactive
-        when(mockOrgService.isBtnFlagActive(anyString()))
-          .thenReturn(Future.successful(false))
+        val rule             = ORNValidationRules.btnStatusRule(organisationWithInactiveBtnFlag)
+        val validationResult = validORNRequest.validate(rule)
 
-        // When: Applying BTN status rule
-        val result = ORNValidationRules.btnStatusRule("test-pillar2-id").map { rule =>
-          validORNRequest.validate(rule)
-        }
-
-        // Then: Should pass validation
-        whenReady(result) { validationResult =>
-          validationResult.isValid mustBe true
-        }
+        validationResult.isValid mustBe true
       }
     }
   }
-} 
+}

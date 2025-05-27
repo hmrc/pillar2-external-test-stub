@@ -29,24 +29,19 @@ object SubscriptionHelper {
 
   def retrieveSubscription(plrReference: String): (Status, SubscriptionResponse) =
     plrReference match {
-      // Error scenarios
       case "XEPLR0123456500" => (InternalServerError, ServerError500.response)
       case "XEPLR0123456503" => (ServiceUnavailable, ServiceUnavailable503.response)
       case "XEPLR5555555554" => (NotFound, NotFoundSubscription.response)
-      
-      // BTN flag test scenarios
-      case "XEPLR0000000301" => (Ok, successfulDomesticOnlyResponseWithActiveBtnFlag)     // BTN active (inactive = true)
-      case "XEPLR0000000302" => (Ok, successfulDomesticOnlyResponseWithInactiveBtnFlag)   // BTN inactive (inactive = false)
-      case "XEPLR0000000303" => (Ok, successfulNonDomesticResponseWithActiveBtnFlag)      // Non-domestic with BTN active
-      case "XEPLR0000000304" => (Ok, successfulNonDomesticResponseWithInactiveBtnFlag)    // Non-domestic with BTN inactive
-      
-      // Default scenarios
+
+      case "XEPLR0000000301" => (Ok, successfulDomesticOnlyResponseWithActiveBtnFlag)
+      case "XEPLR0000000302" => (Ok, successfulDomesticOnlyResponseWithInactiveBtnFlag)
+      case "XEPLR0000000303" => (Ok, successfulNonDomesticResponseWithActiveBtnFlag)
+      case "XEPLR0000000304" => (Ok, successfulNonDomesticResponseWithInactiveBtnFlag)
+
       case "XEPLR1234567890" => (Ok, successfulNonDomesticResponse)
       case _                 => (Ok, successfulDomesticOnlyResponse)
     }
 
-  // Additional subscription responses for BTN testing
-  
   private def successfulDomesticOnlyResponseWithActiveBtnFlag: SubscriptionSuccessResponse =
     successfulDomesticOnlyResponse.copy(
       accountStatus = AccountStatus(inactive = true)
