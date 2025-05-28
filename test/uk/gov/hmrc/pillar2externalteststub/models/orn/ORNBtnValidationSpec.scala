@@ -38,7 +38,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
         when(mockOrgService.getOrganisation(organisationWithActiveBtnFlag.pillar2Id))
           .thenReturn(Future.successful(organisationWithActiveBtnFlag))
 
-        val result = ORNValidator.ornValidator(organisationWithActiveBtnFlag.pillar2Id).flatMap { validator =>
+        val result = ORNValidator.ornValidator(organisationWithActiveBtnFlag.pillar2Id)(mockOrgService, global).flatMap { validator =>
           Future.successful(validORNRequest.validate(validator))
         }
 
@@ -64,7 +64,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
         when(mockOrgService.getOrganisation(organisationWithActiveBtnFlag.pillar2Id))
           .thenReturn(Future.successful(organisationWithActiveBtnFlag))
 
-        val result = ORNValidator.ornValidator(organisationWithActiveBtnFlag.pillar2Id).flatMap { validator =>
+        val result = ORNValidator.ornValidator(organisationWithActiveBtnFlag.pillar2Id)(mockOrgService, global).flatMap { validator =>
           Future.successful(validORNRequest.validate(validator))
         }
 
@@ -88,7 +88,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
         when(mockOrgService.getOrganisation(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id))
           .thenReturn(Future.successful(nonDomesticOrganisationWithInactiveBtnFlag))
 
-        val result = ORNValidator.ornValidator(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id).flatMap { validator =>
+        val result = ORNValidator.ornValidator(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id)(mockOrgService, global).flatMap { validator =>
           Future.successful(validORNRequest.validate(validator))
         }
 
@@ -104,7 +104,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
         when(mockOrgService.getOrganisation(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id))
           .thenReturn(Future.successful(nonDomesticOrganisationWithInactiveBtnFlag))
 
-        val result = ORNValidator.ornValidator(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id).flatMap { validator =>
+        val result = ORNValidator.ornValidator(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id)(mockOrgService, global).flatMap { validator =>
           Future.successful(validORNRequest.validate(validator))
         }
 

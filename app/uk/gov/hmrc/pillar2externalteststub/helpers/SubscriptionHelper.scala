@@ -32,33 +32,7 @@ object SubscriptionHelper {
       case "XEPLR0123456500" => (InternalServerError, ServerError500.response)
       case "XEPLR0123456503" => (ServiceUnavailable, ServiceUnavailable503.response)
       case "XEPLR5555555554" => (NotFound, NotFoundSubscription.response)
-
-      case "XEPLR0000000301" => (Ok, successfulDomesticOnlyResponseWithActiveBtnFlag)
-      case "XEPLR0000000302" => (Ok, successfulDomesticOnlyResponseWithInactiveBtnFlag)
-      case "XEPLR0000000303" => (Ok, successfulNonDomesticResponseWithActiveBtnFlag)
-      case "XEPLR0000000304" => (Ok, successfulNonDomesticResponseWithInactiveBtnFlag)
-
       case "XEPLR1234567890" => (Ok, successfulNonDomesticResponse)
       case _                 => (Ok, successfulDomesticOnlyResponse)
     }
-
-  private def successfulDomesticOnlyResponseWithActiveBtnFlag: SubscriptionSuccessResponse =
-    successfulDomesticOnlyResponse.copy(
-      accountStatus = AccountStatus(inactive = true)
-    )
-
-  private def successfulDomesticOnlyResponseWithInactiveBtnFlag: SubscriptionSuccessResponse =
-    successfulDomesticOnlyResponse.copy(
-      accountStatus = AccountStatus(inactive = false)
-    )
-
-  private def successfulNonDomesticResponseWithActiveBtnFlag: SubscriptionSuccessResponse =
-    successfulNonDomesticResponse.copy(
-      accountStatus = AccountStatus(inactive = true)
-    )
-
-  private def successfulNonDomesticResponseWithInactiveBtnFlag: SubscriptionSuccessResponse =
-    successfulNonDomesticResponse.copy(
-      accountStatus = AccountStatus(inactive = false)
-    )
 }
