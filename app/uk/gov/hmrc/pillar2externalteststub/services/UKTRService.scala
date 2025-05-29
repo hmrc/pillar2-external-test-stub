@@ -19,6 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.services
 import play.api.Logging
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WINDOW_MONTHS, FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS, generateChargeReference}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
@@ -65,7 +66,7 @@ class UKTRService @Inject() (
         UKTRLiabilityReturn.uktrSubmissionValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
       case _: UKTRNilReturn =>
         UKTRNilReturn.uktrNilReturnValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
-      case _ => Future.failed(ETMPBadRequest())
+      case _ => Future.failed(HIPBadRequest())
     }
 
   private def validateRequest(validator: ValidationRule[UKTRSubmission], request: UKTRSubmission): Future[Unit] =
@@ -123,12 +124,12 @@ class UKTRService @Inject() (
             oasRepository.insert(liability, pillar2Id, sub).map(_ => ())
           }
         }
-      case _ => Future.failed(ETMPBadRequest())
+      case _ => Future.failed(HIPBadRequest())
     }
 
   private def createResponse(request: UKTRSubmission, existingChargeRef: Option[String] = None): UKTRResponse = request match {
     case _: UKTRLiabilityReturn => successfulUKTRResponse(existingChargeRef)
     case _: UKTRNilReturn       => successfulNilReturnResponse
-    case _ => throw ETMPBadRequest()
+    case _ => throw HIPBadRequest()
   }
 }

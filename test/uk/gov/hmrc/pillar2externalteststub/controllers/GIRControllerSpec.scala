@@ -29,6 +29,7 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{GIRDataFixture, TestOrgDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.services.GIRService
 
@@ -71,7 +72,7 @@ class GIRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return ETMPBadRequest when request body is invalid JSON" in {
         val result = route(app, createGIRRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest()
+        result shouldFailWith HIPBadRequest()
       }
 
       "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {

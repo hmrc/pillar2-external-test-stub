@@ -29,7 +29,7 @@ import play.api.test.Helpers._
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ORNDataFixture, TestOrgDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.error.{HIPBadRequest, OrganisationNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.services.{ORNService, OrganisationService}
 
@@ -83,7 +83,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return ETMPBadRequest when request body is invalid JSON" in {
         val result = route(app, createSubmitRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest()
+        result shouldFailWith HIPBadRequest()
       }
 
       "should return ETMPInternalServerError when specific Pillar2 ID indicates server error" in {
@@ -137,7 +137,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return ETMPBadRequest when amendment request body is invalid JSON" in {
         val result = route(app, createAmendRequest(validPlrId, Json.obj("invalid" -> "request"))).get
-        result shouldFailWith ETMPBadRequest()
+        result shouldFailWith HIPBadRequest()
       }
 
       "should return InvalidReturn when the amendments's accounting period does not match that of the testOrg" in {
@@ -223,7 +223,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         val toDate   = "2024-12-31"
 
         val result = route(app, getORNRequest(validPlrId, fromDate, toDate)).get
-        result shouldFailWith ETMPBadRequest()
+        result shouldFailWith HIPBadRequest()
       }
     }
   }
