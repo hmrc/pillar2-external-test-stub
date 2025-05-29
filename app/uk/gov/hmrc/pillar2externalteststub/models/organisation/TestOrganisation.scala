@@ -46,7 +46,7 @@ case class TestOrganisationRequest(
 case class TestOrganisation(
   orgDetails:       OrgDetails,
   accountingPeriod: AccountingPeriod,
-  accountStatus:    AccountStatus = AccountStatus(inactive = false),
+  accountStatus:    AccountStatus,
   lastUpdated:      Instant = Instant.now()
 ) {
   def withPillar2Id(pillar2Id: String): TestOrganisationWithId =
@@ -112,7 +112,7 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
-        (__ \ "accountStatus").readWithDefault[AccountStatus](AccountStatus(inactive = false)) and
+        (__ \ "accountStatus").read[AccountStatus] and
         (__ \ "lastUpdated").read[Instant](mongoInstantFormat)
     )(TestOrganisation.apply _)
 
@@ -130,7 +130,7 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
-        (__ \ "accountStatus").readWithDefault[AccountStatus](AccountStatus(inactive = false)) and
+        (__ \ "accountStatus").read[AccountStatus] and
         (__ \ "lastUpdated").read[Instant](apiInstantFormat)
     )(TestOrganisation.apply _)
 

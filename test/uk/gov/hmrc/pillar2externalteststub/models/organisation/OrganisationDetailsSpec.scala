@@ -93,6 +93,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
     val organisationDetails = TestOrganisation(
       orgDetails = orgDetails,
       accountingPeriod = accountingPeriod,
+      accountStatus = AccountStatus(inactive = false),
       lastUpdated = fixedInstant
     )
 
@@ -114,6 +115,9 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
           "accountingPeriod": {
             "startDate": "2024-01-01",
             "endDate": "2024-12-31"
+          },
+          "accountStatus": {
+            "inactive": false
           },
           "lastUpdated": {
             "$date": {

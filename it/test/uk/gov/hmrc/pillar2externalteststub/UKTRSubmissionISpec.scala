@@ -61,7 +61,8 @@ class UKTRSubmissionISpec
 
   private val testOrg = TestOrganisation(
     orgDetails = orgDetails,
-    accountingPeriod = accountingPeriod
+    accountingPeriod = accountingPeriod,
+    accountStatus = AccountStatus(inactive = false)
   )
 
   private val testOrgWithId = TestOrganisationWithId(
