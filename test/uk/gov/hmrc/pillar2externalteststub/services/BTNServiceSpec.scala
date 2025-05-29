@@ -29,7 +29,6 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, ObligationsA
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisation
 import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
 
 import java.time.LocalDate
@@ -94,8 +93,8 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
-        when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
-          .thenReturn(Future.successful(domesticOrganisation))
+        when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId)))
+          .thenReturn(Future.successful(()))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
 
@@ -112,8 +111,8 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
-        when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
-          .thenReturn(Future.successful(domesticOrganisation))
+        when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId)))
+          .thenReturn(Future.successful(()))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
 
@@ -130,8 +129,8 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
-        when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
-          .thenReturn(Future.successful(domesticOrganisation))
+        when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId)))
+          .thenReturn(Future.successful(()))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
 
@@ -148,8 +147,8 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
-        when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
-          .thenReturn(Future.successful(domesticOrganisation))
+        when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId)))
+          .thenReturn(Future.successful(()))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
 
