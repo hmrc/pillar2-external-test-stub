@@ -26,9 +26,9 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WIND
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisation
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisation
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 
 import java.time.{Instant, LocalDate}
