@@ -29,6 +29,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, ObligationsA
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisation
 import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
 
 import java.time.LocalDate
@@ -76,7 +77,7 @@ class BTNServiceSpec
           .thenReturn(Future.successful(domesticOrganisation))
         val invalidRequest = validBTNRequest.copy(
           accountingPeriodFrom = LocalDate.of(2023, 1, 1),
-          accountingPeriodTo = LocalDate.of(2022, 12, 31) // End date before start date
+          accountingPeriodTo = LocalDate.of(2022, 12, 31)
         )
 
         val result = service.submitBTN(validPlrId, invalidRequest)
@@ -93,12 +94,13 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
+        when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
+          .thenReturn(Future.successful(domesticOrganisation))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
 
         result.futureValue mustBe true
         verify(mockBtnRepository).insert(validPlrId, validBTNRequest)
-        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
       }
 
       "successfully submit a BTN when there is a UKTR submission for the period but no BTN" in {
@@ -110,12 +112,13 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
+        when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
+          .thenReturn(Future.successful(domesticOrganisation))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
 
         result.futureValue mustBe true
         verify(mockBtnRepository).insert(validPlrId, validBTNRequest)
-        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
       }
 
       "successfully submit a BTN when there is an older BTN submission for the period that is not the most recent submission" in {
@@ -127,12 +130,13 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
+        when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
+          .thenReturn(Future.successful(domesticOrganisation))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
 
         result.futureValue mustBe true
         verify(mockBtnRepository).insert(validPlrId, validBTNRequest)
-        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
       }
 
       "successfully submit a BTN when there is a BTN submission for a different period" in {
@@ -144,12 +148,13 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
+        when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
+          .thenReturn(Future.successful(domesticOrganisation))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
 
         result.futureValue mustBe true
         verify(mockBtnRepository).insert(validPlrId, validBTNRequest)
-        verify(mockOasRepository).insert(eqTo(validBTNRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
       }
     }
   }

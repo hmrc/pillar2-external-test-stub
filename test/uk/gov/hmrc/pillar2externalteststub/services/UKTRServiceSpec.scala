@@ -28,6 +28,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisation
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 
 import java.time.{Instant, LocalDate}
@@ -51,6 +52,8 @@ class UKTRServiceSpec
     "when submitting a return" - {
       "should successfully submit a liability return" in {
         when(mockOrgService.getOrganisation(eqTo(validPlrId)))
+          .thenReturn(Future.successful(nonDomesticOrganisation))
+        when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation]))
           .thenReturn(Future.successful(nonDomesticOrganisation))
         when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
           .thenReturn(Future.successful(None))

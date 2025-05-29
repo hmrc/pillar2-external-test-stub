@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub
 
-import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.ArgumentMatchers.{eq => eqTo, any}
 import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
@@ -33,6 +33,7 @@ import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, ObligationsAndSubmissionsDataFixture, TestOrgDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.btn.mongo.BTNSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisation
 import uk.gov.hmrc.pillar2externalteststub.repositories.BTNSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
@@ -96,6 +97,7 @@ class BTNISpec
   "BTN submission endpoint" should {
     "successfully save and retrieve BTN submissions" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+      when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation])).thenReturn(Future.successful(organisationWithId))
 
       val response = submitBTN(validPlrId, validBTNRequest)
       response.status shouldBe 201
@@ -110,6 +112,7 @@ class BTNISpec
 
     "fail with TaxObligationAlreadyFulfilled when submitting twice in a row" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+      when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation])).thenReturn(Future.successful(organisationWithId))
 
       // First submission should succeed
       val firstResponse = submitBTN(validPlrId, validBTNRequest)
@@ -130,6 +133,9 @@ class BTNISpec
     }
 
     "support only one accountingPeriod per Pillar2 ID" in {
+      when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
+      when(mockOrgService.updateOrganisation(eqTo(validPlrId), any[TestOrganisation])).thenReturn(Future.successful(organisationWithId))
+      
       submitBTN(validPlrId, validBTNRequest).status shouldBe 201
 
       val secondRequest = validBTNRequest.copy(
