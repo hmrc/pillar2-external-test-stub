@@ -45,9 +45,9 @@ class UKTRService @Inject() (
       validator <- getValidator(pillar2Id, request)
       _         <- validateRequest(validator, request)
       _         <- validateNoExistingSubmission(pillar2Id)
-      _         <- processSubmission(pillar2Id, request)
-      _         <- organisationService.makeOrganisatonActive(pillar2Id)
-    } yield createResponse(request)
+      chargeRef = if (request.isInstanceOf[UKTRLiabilityReturn]) Some(generateChargeReference()) else None
+      _ <- processSubmission(pillar2Id, request, chargeRef = chargeRef)
+    } yield createResponse(request, chargeRef)
   }
 
   def amendUKTR(pillar2Id: String, request: UKTRSubmission): Future[UKTRResponse] = {
@@ -57,9 +57,10 @@ class UKTRService @Inject() (
       _                  <- amendmentWindowCheck(pillar2Id)
       validator          <- getValidator(pillar2Id, request)
       _                  <- validateRequest(validator, request)
-      _                  <- processSubmission(pillar2Id, request, isAmendment = true)
-      _                  <- organisationService.makeOrganisatonActive(pillar2Id)
-    } yield createResponse(request, existingSubmission.chargeReference)
+      maybeChargeRef     <- processSubmission(pillar2Id, request, isAmendment = true)
+      chargeRef = if (existingSubmission.chargeReference.isEmpty && request.isInstanceOf[UKTRLiabilityReturn]) maybeChargeRef
+                  else existingSubmission.chargeReference
+    } yield createResponse(request, chargeRef)
   }
 
   private def getValidator(pillar2Id: String, request: UKTRSubmission): Future[ValidationRule[UKTRSubmission]] =
@@ -103,33 +104,31 @@ class UKTRService @Inject() (
       case None             => Future.failed(RequestCouldNotBeProcessed)
     }
 
-  private def processSubmission(pillar2Id: String, request: UKTRSubmission, isAmendment: Boolean = false): Future[Unit] =
+  private def processSubmission(
+    pillar2Id:   String,
+    request:     UKTRSubmission,
+    chargeRef:   Option[String] = None,
+    isAmendment: Boolean = false
+  ): Future[Option[String]] =
     request match {
-      case nilReturn: UKTRNilReturn =>
+      case submission: UKTRSubmission =>
         if (isAmendment) {
-          uktrRepository.update(nilReturn, pillar2Id).flatMap { result =>
-            oasRepository.insert(nilReturn, pillar2Id, id = result._1, isAmendment = true).map(_ => ())
+          uktrRepository.update(submission, pillar2Id).flatMap { case (objectId, chargeRef) =>
+            oasRepository
+              .insert(submission, pillar2Id, objectId, isAmendment = true)
+              .map(_ => chargeRef)
           }
         } else {
-          uktrRepository.insert(nilReturn, pillar2Id).flatMap { sub =>
-            oasRepository.insert(nilReturn, pillar2Id, sub).map(_ => ())
-          }
-        }
-      case liability: UKTRLiabilityReturn =>
-        if (isAmendment) {
-          uktrRepository.update(liability, pillar2Id).flatMap { result =>
-            oasRepository.insert(liability, pillar2Id, id = result._1, isAmendment = true).map(_ => ())
-          }
-        } else {
-          val chargeRef = generateChargeReference()
-          uktrRepository.insert(liability, pillar2Id, Some(chargeRef)).flatMap { sub =>
-            oasRepository.insert(liability, pillar2Id, sub).map(_ => ())
+          uktrRepository.insert(submission, pillar2Id, chargeRef).flatMap { objectId =>
+            oasRepository
+              .insert(submission, pillar2Id, objectId)
+              .map(_ => chargeRef)
           }
         }
       case _ => Future.failed(HIPBadRequest())
     }
 
-  private def createResponse(request: UKTRSubmission, existingChargeRef: Option[String] = None): UKTRResponse = request match {
+  private def createResponse(request: UKTRSubmission, existingChargeRef: Option[String]): UKTRResponse = request match {
     case _: UKTRLiabilityReturn => successfulUKTRResponse(existingChargeRef)
     case _: UKTRNilReturn       => successfulNilReturnResponse
     case _ => throw HIPBadRequest()

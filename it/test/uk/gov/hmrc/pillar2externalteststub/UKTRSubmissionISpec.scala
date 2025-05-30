@@ -194,24 +194,39 @@ class UKTRSubmissionISpec
   "UKTR endpoints" should {
     "handle liability returns" should {
       "successfully submit a new liability return" in {
-        val response = submitUKTR(liabilitySubmission, validPlrId)
-        response.status shouldBe CREATED
+        val response          = submitUKTR(liabilitySubmission, validPlrId)
+        val responseChargeRef = Json.parse(response.body).as[LiabilitySuccessResponse].success.chargeReference
 
-        val submission = repository.findByPillar2Id(validPlrId).futureValue
-        submission shouldBe defined
+        val submission  = repository.findByPillar2Id(validPlrId).futureValue
+        val dbChargeRef = submission.head.chargeReference.head
+
+        response.status shouldBe CREATED
+        submission      shouldBe defined
+        responseChargeRef shouldEqual dbChargeRef
       }
 
       "successfully amend an existing liability return" in {
-
-        val createResponse = submitUKTR(liabilitySubmission, validPlrId)
+        val createResponse  = submitUKTR(liabilitySubmission, validPlrId)
+        val parentChargeRef = Json.parse(createResponse.body).as[LiabilitySuccessResponse].success.chargeReference
         createResponse.status shouldBe CREATED
 
-        val updatedBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject]).get
-        val response    = amendUKTR(updatedBody, validPlrId)
-        response.status shouldBe OK
+        val updatedBody   = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject]).get
+        val amendResponse = amendUKTR(updatedBody, validPlrId)
+        val chargeRef     = Json.parse(amendResponse.body).as[LiabilitySuccessResponse].success.chargeReference
+        amendResponse.status shouldBe OK
 
         val latestSubmission = repository.findByPillar2Id(validPlrId).futureValue
         latestSubmission shouldBe defined
+        chargeRef shouldEqual parentChargeRef
+      }
+
+      "retain the chargeRef in future amendments" in {
+        val updatedBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject]).get
+        submitUKTR(liabilitySubmission, validPlrId)
+        val firstAmendmentChargeRef  = Json.parse(amendUKTR(updatedBody, validPlrId).body).as[LiabilitySuccessResponse].success.chargeReference
+        val secondAmendmentChargeRef = Json.parse(amendUKTR(updatedBody, validPlrId).body).as[LiabilitySuccessResponse].success.chargeReference
+
+        secondAmendmentChargeRef shouldEqual firstAmendmentChargeRef
       }
 
       "return 422 when trying to amend non-existent liability return" in {
@@ -261,6 +276,15 @@ class UKTRSubmissionISpec
 
         val response = amendNilReturn(validPlrId)
         response.status shouldBe OK
+      }
+
+      "create a new chargeRef if a nil is amended with a liability and retain it in future amendments" in {
+        val updatedBody = Json.fromJson[UKTRSubmission](validRequestBody.as[JsObject]).get
+        submitNilReturn(validPlrId)
+        val firstAmendmentChargeRef  = Json.parse(amendUKTR(updatedBody, validPlrId).body).as[LiabilitySuccessResponse].success.chargeReference
+        val secondAmendmentChargeRef = Json.parse(amendUKTR(updatedBody, validPlrId).body).as[LiabilitySuccessResponse].success.chargeReference
+
+        secondAmendmentChargeRef shouldEqual firstAmendmentChargeRef
       }
 
       "fail with TaxObligationAlreadyFulfilled when submitting twice in a row" in {
