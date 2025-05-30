@@ -39,8 +39,7 @@ case class AccountStatus(
 
 case class TestOrganisationRequest(
   orgDetails:       OrgDetails,
-  accountingPeriod: AccountingPeriod,
-  accountStatus:    Option[AccountStatus] = None
+  accountingPeriod: AccountingPeriod
 )
 
 case class TestOrganisation(
@@ -105,7 +104,8 @@ object TestOrganisation {
     TestOrganisation(
       orgDetails = request.orgDetails,
       accountingPeriod = request.accountingPeriod,
-      accountStatus = request.accountStatus.getOrElse(AccountStatus(inactive = false))
+      //Initialise as active until we get a BTN
+      accountStatus = AccountStatus(inactive = false)
     )
 
   private val mongoReads: Reads[TestOrganisation] =

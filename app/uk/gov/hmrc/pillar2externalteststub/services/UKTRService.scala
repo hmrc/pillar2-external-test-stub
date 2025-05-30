@@ -19,7 +19,6 @@ package uk.gov.hmrc.pillar2externalteststub.services
 import play.api.Logging
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WINDOW_MONTHS, FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS, generateChargeReference}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.AccountStatus
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
@@ -46,7 +45,7 @@ class UKTRService @Inject() (
       _         <- validateRequest(validator, request)
       _         <- validateNoExistingSubmission(pillar2Id)
       _         <- processSubmission(pillar2Id, request)
-      _         <- updateOrganisationBtnStatus(pillar2Id, active = false)
+      _         <- organisationService.makeOrganisatonActive(pillar2Id)
     } yield createResponse(request)
   }
 
@@ -58,7 +57,7 @@ class UKTRService @Inject() (
       validator          <- getValidator(pillar2Id, request)
       _                  <- validateRequest(validator, request)
       _                  <- processSubmission(pillar2Id, request, isAmendment = true)
-      _                  <- updateOrganisationBtnStatus(pillar2Id, active = false)
+      _                  <- organisationService.makeOrganisatonActive(pillar2Id)
     } yield createResponse(request, existingSubmission.chargeReference)
   }
 
@@ -128,17 +127,6 @@ class UKTRService @Inject() (
         }
       case _ => Future.failed(ETMPBadRequest())
     }
-
-  private def updateOrganisationBtnStatus(pillar2Id: String, active: Boolean): Future[Unit] = {
-    logger.info(s"Updating BTN status for pillar2Id: $pillar2Id to active: $active")
-
-    organisationService.getOrganisation(pillar2Id).flatMap { org =>
-      val updatedOrg = org.organisation.copy(
-        accountStatus = AccountStatus(inactive = active)
-      )
-      organisationService.updateOrganisation(pillar2Id, updatedOrg).map(_ => ())
-    }
-  }
 
   private def createResponse(request: UKTRSubmission, existingChargeRef: Option[String] = None): UKTRResponse = request match {
     case _: UKTRLiabilityReturn => successfulUKTRResponse(existingChargeRef)

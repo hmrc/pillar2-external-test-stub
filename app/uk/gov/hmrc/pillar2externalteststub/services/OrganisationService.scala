@@ -16,10 +16,8 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 
-import uk.gov.hmrc.pillar2externalteststub.helpers.SubscriptionHelper
 import uk.gov.hmrc.pillar2externalteststub.models.error.{OrganisationAlreadyExists, OrganisationNotFound}
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.{AccountStatus, TestOrganisation, TestOrganisationWithId}
-import uk.gov.hmrc.pillar2externalteststub.models.subscription.{SubscriptionResponse, SubscriptionSuccessResponse}
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
 
 import javax.inject.{Inject, Singleton}
@@ -48,21 +46,6 @@ class OrganisationService @Inject() (
         case None      => Future.failed(OrganisationNotFound(pillar2Id))
       }
 
-  def getOrganisationWithSubscription(pillar2Id: String): Future[TestOrganisationWithId] =
-    for {
-      org              <- getOrganisation(pillar2Id)
-      subscriptionData <- getSubscriptionData(pillar2Id)
-      enrichedOrg = enrichOrganisationWithSubscription(org, subscriptionData)
-    } yield enrichedOrg
-
-  def getBtnFlagStatus(pillar2Id: String): Future[Boolean] =
-    getSubscriptionData(pillar2Id).map {
-      case success: SubscriptionSuccessResponse => success.accountStatus.inactive
-      case _ => false
-    }
-
-  def isBtnFlagActive(pillar2Id: String): Future[Boolean] = getBtnFlagStatus(pillar2Id)
-
   def updateOrganisation(pillar2Id: String, organisation: TestOrganisation): Future[TestOrganisationWithId] = {
     val organisationWithId = organisation.withPillar2Id(pillar2Id)
     repository.findByPillar2Id(pillar2Id).flatMap {
@@ -81,22 +64,29 @@ class OrganisationService @Inject() (
         repository.delete(pillar2Id).map(_ => ())
     }
 
-  private def getSubscriptionData(pillar2Id: String): Future[SubscriptionResponse] =
-    Future.successful {
-      val (_, response) = SubscriptionHelper.retrieveSubscription(pillar2Id)
-      response
+  def makeOrganisatonActive(pillar2Id: String): Future[Unit] =
+    repository.findByPillar2Id(pillar2Id).flatMap {
+      case None =>
+        Future.failed(OrganisationNotFound(pillar2Id))
+      case Some(orgWithId) =>
+        val isInactive = orgWithId.organisation.accountStatus.inactive
+        if (isInactive) {
+          repository.update(orgWithId.copy(organisation = orgWithId.organisation.copy(accountStatus = AccountStatus(inactive = false)))).map(_ => ())
+        } else {
+          Future.successful(())
+        }
     }
 
-  private def enrichOrganisationWithSubscription(
-    org:              TestOrganisationWithId,
-    subscriptionData: SubscriptionResponse
-  ): TestOrganisationWithId =
-    subscriptionData match {
-      case success: SubscriptionSuccessResponse =>
-        val updatedAccountStatus = AccountStatus(inactive = success.accountStatus.inactive)
-        val updatedOrganisation  = org.organisation.copy(accountStatus = updatedAccountStatus)
-        org.copy(organisation = updatedOrganisation)
-      case _ =>
-        org
+  def makeOrganisatonInactive(pillar2Id: String): Future[Unit] =
+    repository.findByPillar2Id(pillar2Id).flatMap {
+      case None =>
+        Future.failed(OrganisationNotFound(pillar2Id))
+      case Some(orgWithId) =>
+        val isInactive = orgWithId.organisation.accountStatus.inactive
+        if (isInactive) {
+          Future.successful(())
+        } else {
+          repository.update(orgWithId.copy(organisation = orgWithId.organisation.copy(accountStatus = AccountStatus(inactive = true)))).map(_ => ())
+        }
     }
 }

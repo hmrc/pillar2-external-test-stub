@@ -24,7 +24,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNValidator
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.ETMPInternalServerError
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType.BTN
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.AccountStatus
 import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
 
@@ -48,19 +47,8 @@ class BTNService @Inject() (
       _            <- checkForExistingSubmission(pillar2Id, request)
       submissionId <- btnRepository.insert(pillar2Id, request)
       _            <- oasRepository.insert(request, pillar2Id, submissionId)
-      _            <- updateOrganisationBtnStatus(pillar2Id, active = true)
+      _            <- organisationService.makeOrganisatonInactive(pillar2Id)
     } yield true
-  }
-
-  private def updateOrganisationBtnStatus(pillar2Id: String, active: Boolean): Future[Unit] = {
-    logger.info(s"Updating BTN status for pillar2Id: $pillar2Id to active: $active")
-
-    organisationService.getOrganisation(pillar2Id).flatMap { org =>
-      val updatedOrg = org.organisation.copy(
-        accountStatus = AccountStatus(inactive = active)
-      )
-      organisationService.updateOrganisation(pillar2Id, updatedOrg).map(_ => ())
-    }
   }
 
   private def validateRequest(validator: ValidationRule[BTNRequest], request: BTNRequest): Future[Unit] =
