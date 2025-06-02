@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
 import java.time.temporal.ChronoUnit
-import java.time.{ZoneOffset, ZonedDateTime}
+import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
 import scala.util.Random
 import scala.util.matching.Regex
 
@@ -35,9 +35,16 @@ object Pillar2Helper {
 
   def nowZonedDateTime:           String = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString
   def generateFormBundleNumber(): String = f"${Random.nextLong(1000000000000L) % 1000000000000L}%012d"
+
   def generateChargeReference(): String = {
     val letters = Random.alphanumeric.filter(_.isLetter).map(_.toUpper).take(2).mkString
     val digits  = f"${Random.nextLong(1000000000000L) % 1000000000000L}%012d"
     s"$letters$digits"
   }
+
+  def getAmendmentDeadline(organisationRegistrationDate: LocalDate): LocalDate =
+    organisationRegistrationDate
+      .plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
+      .plusMonths(AMENDMENT_WINDOW_MONTHS)
+      .minusDays(1)
 }

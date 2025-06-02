@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.services
 
 import play.api.Logging
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WINDOW_MONTHS, FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS, generateChargeReference}
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{generateChargeReference, getAmendmentDeadline}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
@@ -81,11 +81,7 @@ class UKTRService @Inject() (
 
   private def amendmentWindowCheck(pillar2Id: String): Future[Unit] =
     organisationService.getOrganisation(pillar2Id).flatMap { org =>
-      val amendmentsAllowed = !LocalDate.now.isAfter(
-        org.organisation.orgDetails.registrationDate
-          .plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
-          .plusMonths(AMENDMENT_WINDOW_MONTHS)
-      )
+      val amendmentsAllowed: Boolean = !LocalDate.now.isAfter(getAmendmentDeadline(org.organisation.orgDetails.registrationDate))
       if (amendmentsAllowed) Future.successful(()) else Future.failed(RequestCouldNotBeProcessed)
     }
 
