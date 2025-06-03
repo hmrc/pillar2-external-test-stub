@@ -47,6 +47,7 @@ class UKTRService @Inject() (
       _         <- validateNoExistingSubmission(pillar2Id)
       chargeRef = if (request.isInstanceOf[UKTRLiabilityReturn]) Some(generateChargeReference()) else None
       _ <- processSubmission(pillar2Id, request, chargeRef = chargeRef)
+      _ <- organisationService.makeOrganisatonActive(pillar2Id)
     } yield createResponse(request, chargeRef)
   }
 
@@ -60,6 +61,7 @@ class UKTRService @Inject() (
       maybeChargeRef     <- processSubmission(pillar2Id, request, isAmendment = true)
       chargeRef = if (existingSubmission.chargeReference.isEmpty && request.isInstanceOf[UKTRLiabilityReturn]) maybeChargeRef
                   else existingSubmission.chargeReference
+      _ <- organisationService.makeOrganisatonActive(pillar2Id)
     } yield createResponse(request, chargeRef)
   }
 
