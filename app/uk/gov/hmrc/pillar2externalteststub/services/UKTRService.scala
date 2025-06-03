@@ -46,6 +46,7 @@ class UKTRService @Inject() (
       _         <- validateRequest(validator, request)
       _         <- validateNoExistingSubmission(pillar2Id)
       _         <- processSubmission(pillar2Id, request)
+      _         <- organisationService.makeOrganisatonActive(pillar2Id)
     } yield createResponse(request)
   }
 
@@ -57,6 +58,7 @@ class UKTRService @Inject() (
       validator          <- getValidator(pillar2Id, request)
       _                  <- validateRequest(validator, request)
       _                  <- processSubmission(pillar2Id, request, isAmendment = true)
+      _                  <- organisationService.makeOrganisatonActive(pillar2Id)
     } yield createResponse(request, existingSubmission.chargeReference)
   }
 

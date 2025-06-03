@@ -45,9 +45,10 @@ class AuthActionFilterSpec extends AnyWordSpec with Matchers with ScalaFutures w
 
     "throw ETMPBadRequest" when {
       def testHeader(header: String, invalidValue: String = ""): Assertion = {
-        val headers = {
-          val filteredHeaders = hipHeaders.filterNot(_._1 == header)
-          if (invalidValue.isEmpty) filteredHeaders else filteredHeaders :+ (header -> invalidValue)
+        val headers = if (invalidValue.isEmpty) {
+          hipHeaders.filterNot(_._1 == header)
+        } else {
+          hipHeaders.filterNot(_._1 == header) :+ (header -> invalidValue)
         }
         authActionFilter.filter(FakeRequest().withHeaders(headers: _*)) shouldFailWith HIPBadRequest(s"Header is missing or invalid: $header")
       }

@@ -37,12 +37,14 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
   val organisationDetails: TestOrganisation = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
+    accountStatus = AccountStatus(inactive = false),
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
   )
 
   val testOrgDetails: TestOrganisation = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
+    accountStatus = AccountStatus(inactive = false),
     lastUpdated = Instant.now()
   )
 
@@ -61,6 +63,32 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
   val testOrganisation: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = validPlrId,
     organisation = organisationDetails
+  )
+
+  val organisationWithActiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = "XEPLR0000000301",
+    organisation = testOrgDetails.copy(accountStatus = AccountStatus(inactive = true))
+  )
+
+  val organisationWithInactiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = "XEPLR0000000302",
+    organisation = testOrgDetails.copy(accountStatus = AccountStatus(inactive = false))
+  )
+
+  val nonDomesticOrganisationWithActiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = "XEPLR0000000303",
+    organisation = testOrgDetails.copy(
+      orgDetails = testOrgDetails.orgDetails.copy(domesticOnly = false),
+      accountStatus = AccountStatus(inactive = true)
+    )
+  )
+
+  val nonDomesticOrganisationWithInactiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
+    pillar2Id = "XEPLR0000000304",
+    organisation = testOrgDetails.copy(
+      orgDetails = testOrgDetails.orgDetails.copy(domesticOnly = false),
+      accountStatus = AccountStatus(inactive = false)
+    )
   )
 
   val configurableRegistrationDate: PLens[TestOrganisationWithId, TestOrganisationWithId, LocalDate, LocalDate] =

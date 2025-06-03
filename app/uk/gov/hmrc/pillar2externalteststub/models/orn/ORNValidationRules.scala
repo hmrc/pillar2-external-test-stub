@@ -24,6 +24,7 @@ import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid,
 import uk.gov.hmrc.pillar2externalteststub.validation.{ValidationError, ValidationRule}
 
 import java.time.LocalDate
+
 case class ORNValidationError(error: ETMPError) extends ValidationError {
   override def errorCode:    String = error.code
   override def errorMessage: String = error.message
@@ -35,6 +36,14 @@ object ORNValidationRules {
     val isDomesticOnly = testOrg.organisation.orgDetails.domesticOnly
     ValidationRule[ORNRequest] { request =>
       if (isDomesticOnly) invalid(ORNValidationError(RequestCouldNotBeProcessed))
+      else valid(request)
+    }
+  }
+
+  def btnStatusRule(testOrg: TestOrganisationWithId): ValidationRule[ORNRequest] = {
+    val isBtnActive = testOrg.organisation.accountStatus.inactive
+    ValidationRule[ORNRequest] { request =>
+      if (isBtnActive) invalid(ORNValidationError(RequestCouldNotBeProcessed))
       else valid(request)
     }
   }

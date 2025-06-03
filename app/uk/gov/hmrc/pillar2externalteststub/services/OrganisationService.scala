@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.services
 
 import uk.gov.hmrc.pillar2externalteststub.models.error.{OrganisationAlreadyExists, OrganisationNotFound}
-import uk.gov.hmrc.pillar2externalteststub.models.organisation.{TestOrganisation, TestOrganisationWithId}
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.{AccountStatus, TestOrganisation, TestOrganisationWithId}
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
 
 import javax.inject.{Inject, Singleton}
@@ -62,5 +62,31 @@ class OrganisationService @Inject() (
         Future.failed(OrganisationNotFound(pillar2Id))
       case Some(_) =>
         repository.delete(pillar2Id).map(_ => ())
+    }
+
+  def makeOrganisatonActive(pillar2Id: String): Future[Unit] =
+    repository.findByPillar2Id(pillar2Id).flatMap {
+      case None =>
+        Future.failed(OrganisationNotFound(pillar2Id))
+      case Some(orgWithId) =>
+        val isInactive = orgWithId.organisation.accountStatus.inactive
+        if (isInactive) {
+          repository.update(orgWithId.copy(organisation = orgWithId.organisation.copy(accountStatus = AccountStatus(inactive = false)))).map(_ => ())
+        } else {
+          Future.successful(())
+        }
+    }
+
+  def makeOrganisatonInactive(pillar2Id: String): Future[Unit] =
+    repository.findByPillar2Id(pillar2Id).flatMap {
+      case None =>
+        Future.failed(OrganisationNotFound(pillar2Id))
+      case Some(orgWithId) =>
+        val isInactive = orgWithId.organisation.accountStatus.inactive
+        if (isInactive) {
+          Future.successful(())
+        } else {
+          repository.update(orgWithId.copy(organisation = orgWithId.organisation.copy(accountStatus = AccountStatus(inactive = true)))).map(_ => ())
+        }
     }
 }
