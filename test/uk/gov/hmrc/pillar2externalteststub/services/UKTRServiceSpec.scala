@@ -26,6 +26,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WIND
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
@@ -171,16 +172,18 @@ class UKTRServiceSpec
       }
 
       "should fail with RequestCouldNotBeProcessed when the amendment deadline has elapsed" in {
-        val testOrg = configurableRegistrationDate.replace(
-          LocalDate
-            .now()
-            .minusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
-            .minusMonths(AMENDMENT_WINDOW_MONTHS)
-            .minusDays(1)
-        )(nonDomesticOrganisation)
+        val registrationDateBeforeAmendmentWindow: LocalDate = LocalDate
+          .now()
+          .minusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
+          .minusMonths(AMENDMENT_WINDOW_MONTHS)
 
-        when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(testOrg))
-        when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId))).thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
+        val testOrg: TestOrganisationWithId =
+          configurableRegistrationDate.replace(registrationDateBeforeAmendmentWindow)(nonDomesticOrganisation)
+
+        when(mockOrgService.getOrganisation(eqTo(validPlrId)))
+          .thenReturn(Future.successful(testOrg))
+        when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
+          .thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
 
         val result = service.amendUKTR(validPlrId, liabilitySubmission)
         result shouldFailWith RequestCouldNotBeProcessed
