@@ -36,7 +36,7 @@ class GIRController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def submitGIR: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
+  def submitGIR: Action[JsValue] = (Action(parse.json)).async { implicit request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { pillar2Id =>
         request.body
