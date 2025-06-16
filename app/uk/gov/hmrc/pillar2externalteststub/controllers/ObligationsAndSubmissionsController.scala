@@ -124,25 +124,28 @@ class ObligationsAndSubmissionsController @Inject() (
     val dueDate  = regDate.plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
     val canAmend = !LocalDate.now().isAfter(dueDate.plusMonths(AMENDMENT_WINDOW_MONTHS))
 
-    val p2TaxReturnSubmissions = submissions
-      .filter(s =>
-        s.submissionType == UKTR_CREATE ||
-          s.submissionType == UKTR_AMEND ||
-          s.submissionType == BTN
-      )
-      .sortBy(_.receivedDate)
-      .reverse
-      .take(MAX_NO_SUBMISSIONS)
+    def filterSubmissions(
+      submissions:     Seq[Submission],
+      submissionTypes: Seq[SubmissionType]
+    ): Option[Seq[Submission]] = {
+      val filteredSubmissions = submissions
+        .filter(s => submissionTypes.contains(s.submissionType))
+        .sortBy(_.receivedDate)
+        .reverse
+        .take(MAX_NO_SUBMISSIONS)
 
-    val girSubmissions = submissions
-      .filter(s =>
-        s.submissionType == SubmissionType.GIR ||
-          s.submissionType == ORN_CREATE ||
-          s.submissionType == ORN_AMEND
-      )
-      .sortBy(_.receivedDate)
-      .reverse
-      .take(MAX_NO_SUBMISSIONS)
+      if (filteredSubmissions.isEmpty) None else Some(filteredSubmissions)
+    }
+
+    val p2TaxReturnSubmissions: Option[Seq[Submission]] = filterSubmissions(
+      submissions,
+      Seq(UKTR_CREATE, UKTR_AMEND, BTN)
+    )
+
+    val girSubmissions: Option[Seq[Submission]] = filterSubmissions(
+      submissions,
+      Seq(SubmissionType.GIR, ORN_CREATE, ORN_AMEND)
+    )
 
     val domesticObligation = Seq(
       Obligation(
@@ -153,14 +156,13 @@ class ObligationsAndSubmissionsController @Inject() (
       )
     )
 
-    val obligations = if (!p2TaxReturnSubmissions.sortBy(_.receivedDate).reverse.headOption.exists(_.submissionType == BTN)) {
+    val obligations =
       domesticObligation :+ Obligation(
         obligationType = GIR,
-        status = if (girSubmissions.isEmpty) Open else Fulfilled,
+        status = if (girSubmissions.isEmpty || girSubmissions.exists(_.head.submissionType == BTN)) Open else Fulfilled,
         canAmend = true,
         submissions = girSubmissions
       )
-    } else domesticObligation
 
     AccountingPeriodDetails(
       startDate = startDate,
