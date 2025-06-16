@@ -266,9 +266,11 @@ class ObligationsAndSubmissionsISpec
       val obligations             = (accountingPeriodDetails.head \ "obligations").as[Seq[JsValue]]
       val p2Submissions           = (obligations.head \ "submissions").as[Seq[JsValue]]
 
-      obligations.size                                   shouldBe 1
+      obligations.size                                   shouldBe 2
       (obligations.head \ "status").as[String]           shouldBe "Fulfilled"
       (p2Submissions.head \ "submissionType").as[String] shouldBe "BTN"
+      (obligations(1) \ "status").as[String]             shouldBe "Open"
+      (obligations(1) \ "obligationType").as[String]     shouldBe "GIR"
     }
 
     "handle error cases correctly" in {
