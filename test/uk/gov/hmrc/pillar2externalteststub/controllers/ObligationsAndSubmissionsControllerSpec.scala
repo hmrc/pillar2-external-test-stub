@@ -171,7 +171,10 @@ class ObligationsAndSubmissionsControllerSpec
           val obligations  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
 
           obligations.size mustBe 2
+          obligations.head.obligationType mustBe UKTR
           obligations.head.status mustBe Fulfilled
+          obligations(1).obligationType mustBe GIR
+          obligations(1).status mustBe Fulfilled
         }
         "show as open if the last submission is not a BTN" in {
           when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))

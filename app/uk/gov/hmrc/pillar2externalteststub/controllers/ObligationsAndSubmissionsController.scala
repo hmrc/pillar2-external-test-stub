@@ -159,7 +159,7 @@ class ObligationsAndSubmissionsController @Inject() (
     val obligations =
       domesticObligation :+ Obligation(
         obligationType = GIR,
-        status = if (girSubmissions.isEmpty || girSubmissions.exists(_.head.submissionType == BTN)) Open else Fulfilled,
+        status = if (girSubmissions.nonEmpty || p2TaxReturnSubmissions.exists(_.head.submissionType == BTN)) Fulfilled else Open,
         canAmend = true,
         submissions = girSubmissions
       )
