@@ -19,7 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions
 import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
 import play.api.libs.json.{Json, OFormat}
 
-final case class Obligation(obligationType: ObligationType, status: ObligationStatus, canAmend: Boolean, submissions: Seq[Submission])
+final case class Obligation(obligationType: ObligationType, status: ObligationStatus, canAmend: Boolean, submissions: Option[Seq[Submission]])
 
 object Obligation {
   implicit val format: OFormat[Obligation] = Json.format[Obligation]

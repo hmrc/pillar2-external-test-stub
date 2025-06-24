@@ -159,7 +159,7 @@ class ObligationsAndSubmissionsControllerSpec
       }
 
       "should conditionally show the GIR obligation" - {
-        "not show if the last submission is a BTN" in {
+        "show as fulfilled if the last submission is a BTN" in {
           when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
           mockBySubmissionType(UKTR_CREATE)
           mockBySubmissionType(BTN)
@@ -170,9 +170,13 @@ class ObligationsAndSubmissionsControllerSpec
           val jsonResponse = contentAsJson(result)
           val obligations  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
 
-          obligations.size mustBe 1
+          obligations.size mustBe 2
+          obligations.head.obligationType mustBe UKTR
+          obligations.head.status mustBe Fulfilled
+          obligations(1).obligationType mustBe GIR
+          obligations(1).status mustBe Fulfilled
         }
-        "show if the last submission is not a BTN" in {
+        "show as open if the last submission is not a BTN" in {
           when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
           mockBySubmissionType(BTN)
           mockBySubmissionType(UKTR_CREATE)
@@ -184,6 +188,10 @@ class ObligationsAndSubmissionsControllerSpec
           val obligations  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
 
           obligations.size mustBe 2
+          obligations.head.obligationType mustBe UKTR
+          obligations.head.status mustBe Fulfilled
+          obligations(1).obligationType mustBe GIR
+          obligations(1).status mustBe Open
         }
       }
 
@@ -238,7 +246,12 @@ class ObligationsAndSubmissionsControllerSpec
         val result = route(app, createRequest()).value
         status(result) mustBe OK
         val jsonResponse = contentAsJson(result)
-        (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 0 \ "submissions").as[Seq[Submission]] mustBe empty
+        val obligations  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
+
+        obligations.head.submissions mustBe None
+        obligations.head.obligationType mustBe UKTR
+        obligations(1).submissions mustBe None
+        obligations(1).obligationType mustBe GIR
       }
 
       "should return ObligationStatus Open when there are no submissions" in {
