@@ -56,12 +56,14 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
     "serialize to JSON correctly" in {
       val period = AccountingPeriod(
         startDate = LocalDate.of(2024, 1, 1),
-        endDate = LocalDate.of(2024, 12, 31)
+        endDate = LocalDate.of(2024, 12, 31),
+        underEnquiry = Some(true)
       )
 
       val json = Json.toJson(period)
       json.toString should include("2024-01-01")
       json.toString should include("2024-12-31")
+      json.toString should include("true")
     }
 
     "deserialize from JSON correctly" in {
@@ -86,7 +88,8 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
 
     val accountingPeriod = AccountingPeriod(
       startDate = LocalDate.of(2024, 1, 1),
-      endDate = LocalDate.of(2024, 12, 31)
+      endDate = LocalDate.of(2024, 12, 31),
+      underEnquiry = Some(true)
     )
 
     val fixedInstant = Instant.parse("2024-01-01T00:00:00Z")
@@ -102,6 +105,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
       json.toString should include("Test Org")
       json.toString should include("2024-01-01")
       json.toString should include(""""$date":{"$numberLong":"1704067200000"}""")
+      json.toString should include(""""underEnquiry":true""")
     }
 
     "deserialize from JSON correctly" in {
@@ -114,7 +118,8 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
           },
           "accountingPeriod": {
             "startDate": "2024-01-01",
-            "endDate": "2024-12-31"
+            "endDate": "2024-12-31",
+            "underEnquiry": true
           },
           "accountStatus": {
             "inactive": false
@@ -129,8 +134,9 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
 
       json.validate[TestOrganisation](TestOrganisation.mongoFormat) shouldBe a[JsSuccess[_]]
       val parsed = json.as[TestOrganisation](TestOrganisation.mongoFormat)
-      parsed.orgDetails.organisationName shouldBe "Test Org"
-      parsed.lastUpdated                 shouldBe fixedInstant
+      parsed.orgDetails.organisationName   shouldBe "Test Org"
+      parsed.lastUpdated                   shouldBe fixedInstant
+      parsed.accountingPeriod.underEnquiry shouldBe Some(true)
     }
 
     "create OrganisationDetailsWithId correctly" in {
