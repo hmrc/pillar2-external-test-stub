@@ -38,27 +38,28 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
     accountStatus = AccountStatus(inactive = false),
-    lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
-  )
-
-  val testOrgDetails: TestOrganisation = TestOrganisation(
-    orgDetails = orgDetails,
-    accountingPeriod = accountingPeriod,
-    accountStatus = AccountStatus(inactive = false),
-    lastUpdated = Instant.now()
+    lastUpdated = Instant.parse("2024-01-01T00:00:00Z")
   )
 
   val nonDomesticOrganisation: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = nonDomesticPlrId,
-    organisation = testOrgDetails
+    organisation = organisationDetails
   )
 
   val domesticOrganisation: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = validPlrId,
-    organisation = testOrgDetails.copy(orgDetails = testOrgDetails.orgDetails.copy(domesticOnly = true))
+    organisation = organisationDetails.copy(orgDetails = organisationDetails.orgDetails.copy(domesticOnly = true))
   )
 
   val organisationWithId: TestOrganisationWithId = organisationDetails.withPillar2Id(validPlrId)
+
+  val orgWithApUnderEnquiry: TestOrganisationWithId = organisationWithId.copy(
+    organisation = organisationWithId.organisation.copy(
+      accountingPeriod = organisationWithId.organisation.accountingPeriod.copy(
+        underEnquiry = Some(true)
+      )
+    )
+  )
 
   val testOrganisation: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = validPlrId,
@@ -67,26 +68,26 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
 
   val organisationWithActiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = "XEPLR0000000301",
-    organisation = testOrgDetails.copy(accountStatus = AccountStatus(inactive = true))
+    organisation = organisationDetails.copy(accountStatus = AccountStatus(inactive = true))
   )
 
   val organisationWithInactiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = "XEPLR0000000302",
-    organisation = testOrgDetails.copy(accountStatus = AccountStatus(inactive = false))
+    organisation = organisationDetails.copy(accountStatus = AccountStatus(inactive = false))
   )
 
   val nonDomesticOrganisationWithActiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = "XEPLR0000000303",
-    organisation = testOrgDetails.copy(
-      orgDetails = testOrgDetails.orgDetails.copy(domesticOnly = false),
+    organisation = organisationDetails.copy(
+      orgDetails = organisationDetails.orgDetails.copy(domesticOnly = false),
       accountStatus = AccountStatus(inactive = true)
     )
   )
 
   val nonDomesticOrganisationWithInactiveBtnFlag: TestOrganisationWithId = TestOrganisationWithId(
     pillar2Id = "XEPLR0000000304",
-    organisation = testOrgDetails.copy(
-      orgDetails = testOrgDetails.orgDetails.copy(domesticOnly = false),
+    organisation = organisationDetails.copy(
+      orgDetails = organisationDetails.orgDetails.copy(domesticOnly = false),
       accountStatus = AccountStatus(inactive = false)
     )
   )

@@ -27,8 +27,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, ObligationsAndSubmissionsDataFixture, TestOrgDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{AccountingPeriodUnderEnquiry, RequestCouldNotBeProcessed, TaxObligationAlreadyFulfilled}
 import uk.gov.hmrc.pillar2externalteststub.repositories.{BTNSubmissionRepository, ObligationsAndSubmissionsRepository}
 
 import java.time.LocalDate
@@ -82,6 +81,15 @@ class BTNServiceSpec
         val result = service.submitBTN(validPlrId, invalidRequest)
 
         result shouldFailWith RequestCouldNotBeProcessed
+      }
+
+      "fail with AccountingPeriodUnderEnquiry when an accounting period is under enquiry" in {
+        when(mockOrgService.getOrganisation(anyString()))
+          .thenReturn(Future.successful(orgWithApUnderEnquiry))
+
+        val result = service.submitBTN(validPlrId, validBTNRequest)
+
+        result shouldFailWith AccountingPeriodUnderEnquiry
       }
 
       "successfully submit a BTN when no existing submission for period" in {
