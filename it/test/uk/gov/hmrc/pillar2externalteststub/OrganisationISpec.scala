@@ -16,23 +16,22 @@
 
 package uk.gov.hmrc.pillar2externalteststub
 
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import org.scalatest.BeforeAndAfterEach
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.StringContextOps
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
-import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
 import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
+import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext
