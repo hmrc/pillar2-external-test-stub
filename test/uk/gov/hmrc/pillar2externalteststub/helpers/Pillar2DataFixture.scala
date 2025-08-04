@@ -53,6 +53,7 @@ trait Pillar2DataFixture {
 
   val accountingPeriod: AccountingPeriod = AccountingPeriod(
     startDate = LocalDate.of(2024, 1, 1),
-    endDate = LocalDate.of(2024, 12, 31)
+    endDate = LocalDate.of(2024, 12, 31),
+    None
   )
 }

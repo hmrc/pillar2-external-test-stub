@@ -81,6 +81,7 @@ class ObligationsAndSubmissionsController @Inject() (
           testOrg.organisation.accountingPeriod.startDate,
           testOrg.organisation.accountingPeriod.endDate,
           testOrg.organisation.orgDetails.registrationDate,
+          testOrg.organisation.accountingPeriod.underEnquiry,
           Seq.empty
         )
       )
@@ -91,6 +92,7 @@ class ObligationsAndSubmissionsController @Inject() (
           accountingPeriod.startDate,
           accountingPeriod.endDate,
           testOrg.organisation.orgDetails.registrationDate,
+          testOrg.organisation.accountingPeriod.underEnquiry,
           submissions.map(toSubmission)
         )
       }.toSeq
@@ -116,10 +118,11 @@ class ObligationsAndSubmissionsController @Inject() (
     )
 
   private def createAccountingPeriodDetails(
-    startDate:   LocalDate,
-    endDate:     LocalDate,
-    regDate:     LocalDate,
-    submissions: Seq[Submission]
+    startDate:    LocalDate,
+    endDate:      LocalDate,
+    regDate:      LocalDate,
+    underEnquiry: Option[Boolean],
+    submissions:  Seq[Submission]
   ): AccountingPeriodDetails = {
     val dueDate  = regDate.plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
     val canAmend = !LocalDate.now().isAfter(dueDate.plusMonths(AMENDMENT_WINDOW_MONTHS))
@@ -168,7 +171,7 @@ class ObligationsAndSubmissionsController @Inject() (
       startDate = startDate,
       endDate = endDate,
       dueDate = dueDate,
-      underEnquiry = false,
+      underEnquiry = underEnquiry.fold(false)(identity),
       obligations = obligations
     )
   }

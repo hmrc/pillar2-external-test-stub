@@ -34,7 +34,7 @@ class OrganisationService @Inject() (
       case Some(_) =>
         Future.failed(OrganisationAlreadyExists(pillar2Id))
       case None =>
-        repository.insert(organisationWithId).map(_ => organisationWithId)
+        repository.insert(organisationWithId).map(_ => organisationWithId.withUnderEnquiry(organisationWithId))
     }
   }
 
@@ -42,7 +42,7 @@ class OrganisationService @Inject() (
     repository
       .findByPillar2Id(pillar2Id)
       .flatMap {
-        case Some(org) => Future.successful(org)
+        case Some(org) => Future.successful(org.withUnderEnquiry(org))
         case None      => Future.failed(OrganisationNotFound(pillar2Id))
       }
 

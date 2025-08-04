@@ -199,6 +199,14 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       (json \ "errors" \ "text").as[String] shouldBe "Invalid Total Liability UTPR"
     }
 
+    "handle AccountingPeriodUnderEnquiry error" in {
+      val result = errorHandler.onServerError(dummyRequest, AccountingPeriodUnderEnquiry)
+      status(result) shouldBe UNPROCESSABLE_ENTITY
+      val json = contentAsJson(result)
+      (json \ "errors" \ "code").as[String] shouldBe "100"
+      (json \ "errors" \ "text").as[String] shouldBe "Accounting period under enquiry"
+    }
+
     "handle HIPBadRequest error" in {
       val result = errorHandler.onServerError(dummyRequest, HIPBadRequest("Missing Header"))
       status(result) shouldBe BAD_REQUEST

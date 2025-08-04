@@ -28,10 +28,7 @@ case class OrgDetails(
   registrationDate: LocalDate
 )
 
-case class AccountingPeriod(
-  startDate: LocalDate,
-  endDate:   LocalDate
-)
+case class AccountingPeriod(startDate: LocalDate, endDate: LocalDate, underEnquiry: Option[Boolean])
 
 case class AccountStatus(
   inactive: Boolean
@@ -55,7 +52,18 @@ case class TestOrganisation(
 case class TestOrganisationWithId(
   pillar2Id:    String,
   organisation: TestOrganisation
-)
+) {
+  def withUnderEnquiry(org: TestOrganisationWithId): TestOrganisationWithId =
+    TestOrganisationWithId(
+      pillar2Id,
+      org.organisation
+        .copy(
+          accountingPeriod = org.organisation.accountingPeriod.copy(
+            underEnquiry = org.organisation.accountingPeriod.underEnquiry.fold(Some(false))(Some(_))
+          )
+        )
+    )
+}
 
 object OrgDetails {
   implicit val format: Format[OrgDetails] = Json.format[OrgDetails]

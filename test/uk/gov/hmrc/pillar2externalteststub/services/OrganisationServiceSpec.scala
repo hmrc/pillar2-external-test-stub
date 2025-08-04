@@ -49,7 +49,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
         .thenReturn(Future.successful(true))
 
       val result = service.createOrganisation(validPlrId, organisationDetails).futureValue
-      result shouldBe organisationWithId
+      result shouldBe organisationWithId.withUnderEnquiry(organisationWithId)
       verify(mockRepository, times(1)).findByPillar2Id(validPlrId)
       verify(mockRepository, times(1)).insert(organisationWithId)
     }
@@ -89,7 +89,7 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
         .thenReturn(Future.successful(Some(organisationWithId)))
 
       val result = service.getOrganisation(validPlrId).futureValue
-      result shouldBe organisationWithId
+      result shouldBe organisationWithId.withUnderEnquiry(organisationWithId)
       verify(mockRepository, times(1)).findByPillar2Id(validPlrId)
     }
 
