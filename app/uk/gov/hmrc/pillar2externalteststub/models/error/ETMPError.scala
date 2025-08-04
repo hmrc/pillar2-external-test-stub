@@ -89,6 +89,11 @@ object ETMPError {
     override val message: String = "Invalid Total Liability UTPR"
   }
 
+  case object AccountingPeriodUnderEnquiry extends ETMPError {
+    override val code:    String = "100"
+    override val message: String = "Accounting period under enquiry"
+  }
+
   case object ETMPInternalServerError extends ETMPError {
     override val code:    String         = "500"
     override val message: String         = "Internal server error"

@@ -17,14 +17,23 @@
 package uk.gov.hmrc.pillar2externalteststub.models.btn
 
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoActiveSubscription, RequestCouldNotBeProcessed}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{AccountingPeriodUnderEnquiry, NoActiveSubscription, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.invalid
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 
 import scala.concurrent.{ExecutionContext, Future}
 object BTNValidator {
+
+  private def underEnquiryRule(org: TestOrganisationWithId): ValidationRule[BTNRequest] =
+    ValidationRule[BTNRequest] { request =>
+      org.organisation.accountingPeriod.underEnquiry match {
+        case Some(true) => invalid(BTNValidationError(AccountingPeriodUnderEnquiry))
+        case _          => valid(request)
+      }
+    }
 
   def btnValidator(
     pillar2Id: String
@@ -36,7 +45,8 @@ object BTNValidator {
       .getOrganisation(pillar2Id)
       .map { org =>
         ValidationRule.compose(
-          BaseSubmissionValidationRules.accountingPeriodMatchesOrgRule[BTNRequest](org, BTNValidationError(RequestCouldNotBeProcessed))
+          BaseSubmissionValidationRules.accountingPeriodMatchesOrgRule[BTNRequest](org, BTNValidationError(RequestCouldNotBeProcessed)),
+          underEnquiryRule(org)
         )(FailFast)
       }
       .recover { case _: OrganisationNotFound =>
