@@ -341,9 +341,9 @@ class UKTRSubmissionISpec
         response.status shouldBe UNPROCESSABLE_ENTITY
       }
 
-      "return 422 for empty liableEntities array" in {
+      "return 400 for empty liableEntities array" in {
         val response = submitCustomPayload(emptyLiableEntitiesJson, validPlrId)
-        response.status shouldBe UNPROCESSABLE_ENTITY
+        response.status shouldBe BAD_REQUEST
       }
 
       "return 400 for invalid amounts" in {
