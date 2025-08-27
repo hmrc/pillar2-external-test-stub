@@ -26,6 +26,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WIND
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
@@ -391,7 +392,7 @@ class UKTRServiceSpec
           )
 
           val result = service.submitUKTR(validPlrId, invalidSubmission)
-          result shouldFailWith InvalidReturn
+          result shouldFailWith HIPBadRequest()
         }
 
         "should fail when ukChargeableEntityName is invalid" in {
