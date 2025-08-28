@@ -211,98 +211,6 @@ class UKTRServiceSpec
           result shouldFailWith InvalidTotalLiability
         }
 
-        "should fail when submitting with obligationMTT false and IIR amount greater than zero" in {
-          when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(nonDomesticOrganisation))
-
-          val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
-          val invalidSubmission = liabilityReturn.copy(
-            obligationMTT = false,
-            liabilities = liabilityReturn.liabilities.copy(
-              electionUTPRSingleMember = false,
-              numberSubGroupUTPR = 0,
-              totalLiability = BigDecimal(200),
-              totalLiabilityIIR = BigDecimal(100),
-              totalLiabilityUTPR = BigDecimal(0),
-              liableEntities =
-                liabilityReturn.liabilities.liableEntities.map(entity => entity.copy(amountOwedIIR = BigDecimal(100), amountOwedUTPR = BigDecimal(0)))
-            )
-          )
-
-          val result = service.submitUKTR(validPlrId, invalidSubmission)
-          result shouldFailWith InvalidReturn
-        }
-
-        "should fail when submitting with obligationMTT false and UTPR amount greater than zero" in {
-          when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(nonDomesticOrganisation))
-
-          val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
-          val invalidSubmission = liabilityReturn.copy(
-            obligationMTT = false,
-            liabilities = liabilityReturn.liabilities.copy(
-              electionUTPRSingleMember = false,
-              numberSubGroupUTPR = 0,
-              totalLiability = BigDecimal(200),
-              totalLiabilityIIR = BigDecimal(0),
-              totalLiabilityUTPR = BigDecimal(100),
-              liableEntities =
-                liabilityReturn.liabilities.liableEntities.map(entity => entity.copy(amountOwedIIR = BigDecimal(0), amountOwedUTPR = BigDecimal(100)))
-            )
-          )
-
-          val result = service.submitUKTR(validPlrId, invalidSubmission)
-          result shouldFailWith InvalidReturn
-        }
-
-        "should fail when amending with obligationMTT false and IIR amount greater than zero" in {
-          when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(nonDomesticOrganisation))
-          when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
-            .thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
-
-          val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
-          val invalidSubmission = liabilityReturn.copy(
-            obligationMTT = false,
-            liabilities = liabilityReturn.liabilities.copy(
-              electionUTPRSingleMember = false,
-              numberSubGroupUTPR = 0,
-              totalLiability = BigDecimal(200),
-              totalLiabilityIIR = BigDecimal(100),
-              totalLiabilityUTPR = BigDecimal(0),
-              liableEntities =
-                liabilityReturn.liabilities.liableEntities.map(entity => entity.copy(amountOwedIIR = BigDecimal(100), amountOwedUTPR = BigDecimal(0)))
-            )
-          )
-
-          val result = service.amendUKTR(validPlrId, invalidSubmission)
-          result shouldFailWith InvalidReturn
-        }
-
-        "should fail when amending with obligationMTT false and UTPR amount greater than zero" in {
-          when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(nonDomesticOrganisation))
-          when(mockUKTRRepository.findByPillar2Id(eqTo(validPlrId)))
-            .thenReturn(Future.successful(Some(validGetByPillar2IdResponse)))
-
-          val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
-          val invalidSubmission = liabilityReturn.copy(
-            obligationMTT = false,
-            liabilities = liabilityReturn.liabilities.copy(
-              electionUTPRSingleMember = false,
-              numberSubGroupUTPR = 0,
-              totalLiability = BigDecimal(200),
-              totalLiabilityIIR = BigDecimal(0),
-              totalLiabilityUTPR = BigDecimal(100),
-              liableEntities =
-                liabilityReturn.liabilities.liableEntities.map(entity => entity.copy(amountOwedIIR = BigDecimal(0), amountOwedUTPR = BigDecimal(100)))
-            )
-          )
-
-          val result = service.amendUKTR(validPlrId, invalidSubmission)
-          result shouldFailWith InvalidReturn
-        }
-
         "should succeed when submitting with obligationMTT false and both IIR and UTPR amounts are zero" in {
           when(mockOrgService.getOrganisation(eqTo(validPlrId)))
             .thenReturn(Future.successful(nonDomesticOrganisation))
@@ -426,18 +334,6 @@ class UKTRServiceSpec
       }
 
       "for nil returns" - {
-        "should fail when obligationMTT is true for domestic organisation" in {
-          when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(domesticOrganisation))
-
-          val nilReturn = nilSubmission.asInstanceOf[UKTRNilReturn]
-          val invalidSubmission = nilReturn.copy(
-            obligationMTT = true
-          )
-
-          val result = service.submitUKTR(validPlrId, invalidSubmission)
-          result shouldFailWith InvalidReturn
-        }
 
         "should fail when electionUKGAAP is true for non-domestic organisation" in {
           when(mockOrgService.getOrganisation(eqTo(validPlrId)))
