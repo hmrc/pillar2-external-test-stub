@@ -25,6 +25,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{ValidationResult, invalid, valid}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -147,8 +148,9 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
           liableEntities = Seq.empty
         )
       )
-      val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
+      intercept[HIPBadRequest] {
+        Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+      }
     }
 
     "should fail validation when obligationMTT is true for domestic organisation" in {
