@@ -75,16 +75,12 @@ class UKTRService @Inject() (
     }
 
   private def validateRequest(validator: ValidationRule[UKTRSubmission], request: UKTRSubmission): Future[Unit] =
-    request match {
-      case lr: UKTRLiabilityReturn if lr.liabilities.liableEntities.isEmpty => Future.failed(HIPBadRequest())
-      case _ =>
-        validator.validate(request) match {
-          case cats.data.Validated.Valid(_) => Future.successful(())
-          case cats.data.Validated.Invalid(e) =>
-            e.head match {
-              case UKTRSubmissionError(error) => Future.failed(error)
-              case _                          => Future.failed(ETMPInternalServerError)
-            }
+    validator.validate(request) match {
+      case cats.data.Validated.Valid(_) => Future.successful(())
+      case cats.data.Validated.Invalid(errors) =>
+        errors.head match {
+          case UKTRSubmissionError(error) => Future.failed(error)
+          case _                          => Future.failed(ETMPInternalServerError)
         }
     }
 
