@@ -139,7 +139,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     }
 
     "should fail validation when liableEntities is empty" in {
-      val invalidReturn = validLiabilityReturn.copy(
+      val emptyLiableEntitiesReturn = validLiabilityReturn.copy(
         liabilities = validLiabilityReturn.liabilities.copy(
           electionDTTSingleMember = false,
           electionUTPRSingleMember = false,
@@ -149,7 +149,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         )
       )
       intercept[HIPBadRequest] {
-        Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+        Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(emptyLiableEntitiesReturn)), 5.seconds)
       }
     }
 
