@@ -558,4 +558,139 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
       )
     )
   )
+
+  def domesticGroupWithMTTLiabilities: JsObject = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> true,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 1,
+      "numberSubGroupUTPR"       -> 0,
+      "totalLiability"           -> 200,
+      "totalLiabilityDTT"        -> 100,
+      "totalLiabilityIIR"        -> 100,
+      "totalLiabilityUTPR"       -> 0,
+      "liableEntities" -> Json.arr(
+        Json.obj(
+          "ukChargeableEntityName" -> "New Company",
+          "idType"                 -> "CRN",
+          "idValue"                -> "1234",
+          "amountOwedDTT"          -> 100,
+          "amountOwedIIR"          -> 100,
+          "amountOwedUTPR"         -> 0
+        )
+      )
+    )
+  )
+
+  def domesticGroupWithoutMTTLiabilities: JsObject = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> true,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 1,
+      "numberSubGroupUTPR"       -> 0,
+      "totalLiability"           -> 100,
+      "totalLiabilityDTT"        -> 100,
+      "totalLiabilityIIR"        -> 0,
+      "totalLiabilityUTPR"       -> 0,
+      "liableEntities" -> Json.arr(
+        Json.obj(
+          "ukChargeableEntityName" -> "New Company",
+          "idType"                 -> "CRN",
+          "idValue"                -> "1234",
+          "amountOwedDTT"          -> 100,
+          "amountOwedIIR"          -> 0,
+          "amountOwedUTPR"         -> 0
+        )
+      )
+    )
+  )
+
+  def mneGroupWithNoMTTObligationButMTTLiabilities: JsObject = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> true,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 1,
+      "numberSubGroupUTPR"       -> 0,
+      "totalLiability"           -> 200,
+      "totalLiabilityDTT"        -> 100,
+      "totalLiabilityIIR"        -> 100,
+      "totalLiabilityUTPR"       -> 0,
+      "liableEntities" -> Json.arr(
+        Json.obj(
+          "ukChargeableEntityName" -> "New Company",
+          "idType"                 -> "CRN",
+          "idValue"                -> "1234",
+          "amountOwedDTT"          -> 100,
+          "amountOwedIIR"          -> 100,
+          "amountOwedUTPR"         -> 0
+        )
+      )
+    )
+  )
+
+  def mneGroupWithMTTObligation: JsObject = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> true,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> true,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 1,
+      "numberSubGroupUTPR"       -> 0,
+      "totalLiability"           -> 200,
+      "totalLiabilityDTT"        -> 100,
+      "totalLiabilityIIR"        -> 100,
+      "totalLiabilityUTPR"       -> 0,
+      "liableEntities" -> Json.arr(
+        Json.obj(
+          "ukChargeableEntityName" -> "New Company",
+          "idType"                 -> "CRN",
+          "idValue"                -> "1234",
+          "amountOwedDTT"          -> 100,
+          "amountOwedIIR"          -> 100,
+          "amountOwedUTPR"         -> 0
+        )
+      )
+    )
+  )
+
+  def mneGroupWithNoMTTObligationAndNoMTTLiabilities: JsObject = Json.obj(
+    "accountingPeriodFrom" -> accountingPeriod.startDate.toString,
+    "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
+    "obligationMTT"        -> false,
+    "electionUKGAAP"       -> false,
+    "liabilities" -> Json.obj(
+      "electionDTTSingleMember"  -> true,
+      "electionUTPRSingleMember" -> false,
+      "numberSubGroupDTT"        -> 1,
+      "numberSubGroupUTPR"       -> 0,
+      "totalLiability"           -> 100,
+      "totalLiabilityDTT"        -> 100,
+      "totalLiabilityIIR"        -> 0,
+      "totalLiabilityUTPR"       -> 0,
+      "liableEntities" -> Json.arr(
+        Json.obj(
+          "ukChargeableEntityName" -> "New Company",
+          "idType"                 -> "CRN",
+          "idValue"                -> "1234",
+          "amountOwedDTT"          -> 100,
+          "amountOwedIIR"          -> 0,
+          "amountOwedUTPR"         -> 0
+        )
+      )
+    )
+  )
 }
