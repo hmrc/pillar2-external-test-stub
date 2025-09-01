@@ -138,7 +138,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityUTPR))
     }
 
-    "should fail validation when liableEntities is empty".ignore {
+    "should fail validation when liableEntities is empty" in {
       val emptyLiableEntitiesReturn = validLiabilityReturn.copy(
         liabilities = validLiabilityReturn.liabilities.copy(
           electionDTTSingleMember = false,
