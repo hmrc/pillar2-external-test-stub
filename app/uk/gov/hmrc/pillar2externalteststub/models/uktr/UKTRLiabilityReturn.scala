@@ -19,6 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules.{accountingPeriodMatchesOrgRule, accountingPeriodSanityCheckRule}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -100,12 +101,7 @@ object UKTRLiabilityReturn {
 
   private[uktr] val liabilityEntityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.nonEmpty) valid[UKTRLiabilityReturn](data)
-    else
-      invalid(
-        UKTRSubmissionError(
-          InvalidReturn
-        )
-      )
+    else throw HIPBadRequest()
   }
 
   private[uktr] val electionDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>

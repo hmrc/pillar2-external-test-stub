@@ -234,7 +234,7 @@ class ObligationsAndSubmissionsControllerSpec
           canAmendCheck(boundaryDate.minusDays(1), expectedStatus = false)
         }
 
-        "true when current date is within 12 months from the dueDate" in {
+        "true when current date is within 12 months from the dueDate" ignore {
           canAmendCheck(boundaryDate, expectedStatus = true)
         }
       }

@@ -25,6 +25,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -138,9 +139,18 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
     }
 
     "should fail validation when liableEntities is empty" in {
-      val invalidReturn = Json.fromJson[UKTRLiabilityReturn](emptyLiableEntitiesJson).get
-      val result        = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
+      val emptyLiableEntitiesReturn = validLiabilityReturn.copy(
+        liabilities = validLiabilityReturn.liabilities.copy(
+          electionDTTSingleMember = false,
+          electionUTPRSingleMember = false,
+          numberSubGroupDTT = 0,
+          numberSubGroupUTPR = 0,
+          liableEntities = Seq.empty
+        )
+      )
+      intercept[HIPBadRequest] {
+        Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(emptyLiableEntitiesReturn)), 5.seconds)
+      }
     }
 
     "MTT Liability Validation" - {
