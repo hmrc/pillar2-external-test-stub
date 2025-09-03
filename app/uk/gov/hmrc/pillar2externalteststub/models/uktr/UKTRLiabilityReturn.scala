@@ -19,6 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules.{accountingPeriodMatchesOrgRule, accountingPeriodSanityCheckRule}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
@@ -100,12 +101,7 @@ object UKTRLiabilityReturn {
 
   private[uktr] val liabilityEntityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     if (data.liabilities.liableEntities.nonEmpty) valid[UKTRLiabilityReturn](data)
-    else
-      invalid(
-        UKTRSubmissionError(
-          InvalidReturn
-        )
-      )
+    else throw HIPBadRequest()
   }
 
   private[uktr] val electionDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
@@ -162,20 +158,22 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private[uktr] val nonMTTAmountsRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (
-      !data.obligationMTT && (
-        data.liabilities.totalLiabilityIIR > 0 ||
-          data.liabilities.totalLiabilityUTPR > 0 ||
-          data.liabilities.liableEntities.exists(entity => entity.amountOwedIIR > 0 || entity.amountOwedUTPR > 0)
-      )
-    ) {
-      invalid(
-        UKTRSubmissionError(
-          InvalidReturn
-        )
-      )
-    } else valid[UKTRLiabilityReturn](data)
+  private[uktr] def mttLiabilityValidationRule(org: TestOrganisationWithId): ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
+    val isDomestic = org.organisation.orgDetails.domesticOnly
+    val hasMTTLiabilities =
+      data.liabilities.totalLiabilityIIR > 0 ||
+        data.liabilities.totalLiabilityUTPR > 0 ||
+        data.liabilities.liableEntities.exists(entity => entity.amountOwedIIR > 0 || entity.amountOwedUTPR > 0)
+
+    (isDomestic, data.obligationMTT, hasMTTLiabilities) match {
+      case (true, _, true) =>
+        invalid(UKTRSubmissionError(InvalidReturn))
+
+      case (false, false, true) =>
+        invalid(UKTRSubmissionError(InvalidReturn))
+
+      case _ => valid(data)
+    }
   }
 
   def uktrSubmissionValidator(
@@ -185,7 +183,7 @@ object UKTRLiabilityReturn {
       .getOrganisation(plrReference)
       .map { org =>
         ValidationRule.compose(
-          UKTRValidationRules.obligationMTTRule[UKTRLiabilityReturn](org),
+          mttLiabilityValidationRule(org),
           UKTRValidationRules.electionUKGAAPRule[UKTRLiabilityReturn](org),
           accountingPeriodMatchesOrgRule[UKTRLiabilityReturn](org, UKTRSubmissionError(InvalidReturn)),
           accountingPeriodSanityCheckRule[UKTRLiabilityReturn](UKTRSubmissionError(InvalidReturn)),
@@ -198,8 +196,7 @@ object UKTRLiabilityReturn {
           totalLiabilityUTPRRule(org),
           ukChargeableEntityNameRule,
           idTypeRule,
-          idValueRule,
-          nonMTTAmountsRule
+          idValueRule
         )(FailFast)
       }
       .recover { case _: OrganisationNotFound =>
