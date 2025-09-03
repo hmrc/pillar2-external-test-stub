@@ -91,12 +91,10 @@ object UKTRLiabilityReturn {
 
     if (!notMTTLiableYetPositiveTotal && totalUTPR == totalUTPRAmountOwed)
       valid[UKTRLiabilityReturn](data)
-    else
-      invalid(
-        UKTRSubmissionError(
-          InvalidTotalLiabilityUTPR
-        )
-      )
+    else {
+      val errorType = if (!data.obligationMTT && totalUTPR > 0) InvalidReturn else InvalidTotalLiabilityUTPR
+      invalid(UKTRSubmissionError(errorType))
+    }
   }
 
   private[uktr] val liabilityEntityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>

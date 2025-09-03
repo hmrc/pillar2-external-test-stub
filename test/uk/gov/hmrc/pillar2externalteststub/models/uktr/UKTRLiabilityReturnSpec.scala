@@ -188,6 +188,21 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         val result      = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(validReturn)), 5.seconds)
         result mustEqual valid(validReturn)
       }
+
+      "should fail validation when domestic obligationMTT is false and UTPR is more than zero" in {
+        val organisations = Set(domesticOrganisation, nonDomesticOrganisation)
+        organisations.foreach { org =>
+          when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(org))
+          val invalidReturn = validLiabilityReturn.copy(
+            obligationMTT = false,
+            liabilities = validLiabilityReturn.liabilities.copy(
+              totalLiabilityUTPR = BigDecimal(100)
+            )
+          )
+          val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+          result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
+        }
+      }
     }
 
     "should fail validation when electionUKGAAP is true for non-domestic organisation" in {
