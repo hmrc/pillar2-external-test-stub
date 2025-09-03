@@ -77,7 +77,7 @@ object UKTRLiabilityReturn {
     if (!notMTTLiableYetPositiveTotal && totalIIR == totalIIRAmountOwed)
       valid[UKTRLiabilityReturn](data)
     else {
-      val errorType = if (!data.obligationMTT && totalIIR > 0) InvalidReturn else InvalidTotalLiabilityIIR
+      val errorType = if (!data.obligationMTT && notMTTLiableYetPositiveTotal) InvalidReturn else InvalidTotalLiabilityIIR
       invalid(UKTRSubmissionError(errorType))
     }
   }
