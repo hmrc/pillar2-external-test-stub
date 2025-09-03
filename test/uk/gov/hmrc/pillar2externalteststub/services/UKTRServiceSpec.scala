@@ -332,22 +332,6 @@ class UKTRServiceSpec
           result shouldFailWith InvalidReturn
         }
       }
-
-      "for nil returns" - {
-
-        "should fail when electionUKGAAP is true for non-domestic organisation" in {
-          when(mockOrgService.getOrganisation(eqTo(validPlrId)))
-            .thenReturn(Future.successful(nonDomesticOrganisation))
-
-          val nilReturn = nilSubmission.asInstanceOf[UKTRNilReturn]
-          val invalidSubmission = nilReturn.copy(
-            electionUKGAAP = true
-          )
-
-          val result = service.submitUKTR(validPlrId, invalidSubmission)
-          result shouldFailWith InvalidReturn
-        }
-      }
     }
   }
 }

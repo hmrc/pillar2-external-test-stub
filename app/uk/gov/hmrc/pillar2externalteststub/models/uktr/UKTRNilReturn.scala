@@ -45,7 +45,6 @@ object UKTRNilReturn {
       .getOrganisation(plrReference)
       .map { org =>
         ValidationRule.compose(
-          UKTRValidationRules.electionUKGAAPRule[UKTRNilReturn](org),
           accountingPeriodMatchesOrgRule[UKTRNilReturn](org, UKTRSubmissionError(InvalidReturn)),
           accountingPeriodSanityCheckRule[UKTRNilReturn](UKTRSubmissionError(InvalidReturn))
         )(FailFast)
