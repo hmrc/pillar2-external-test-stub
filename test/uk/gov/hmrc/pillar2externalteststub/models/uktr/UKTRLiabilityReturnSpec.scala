@@ -22,8 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
-import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.helpers.{TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
@@ -189,16 +188,19 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         result mustEqual valid(validReturn)
       }
 
-      "should fail validation when obligationMTT is false and IIR is more than zero" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
-        val invalidReturn = validLiabilityReturn.copy(
-          obligationMTT = false,
-          liabilities = validLiabilityReturn.liabilities.copy(
-            totalLiabilityIIR = BigDecimal(100)
+      "should fail validation when domestic obligationMTT is false and IIR is more than zero" in {
+        val organisations = Set(domesticOrganisation, nonDomesticOrganisation)
+        organisations.foreach { org =>
+          when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(org))
+          val invalidReturn = validLiabilityReturn.copy(
+            obligationMTT = false,
+            liabilities = validLiabilityReturn.liabilities.copy(
+              totalLiabilityIIR = BigDecimal(100)
+            )
           )
-        )
-        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-        result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
+          val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
+          result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
+        }
       }
     }
 
