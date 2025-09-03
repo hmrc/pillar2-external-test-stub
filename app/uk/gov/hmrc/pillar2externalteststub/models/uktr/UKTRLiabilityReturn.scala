@@ -76,10 +76,10 @@ object UKTRLiabilityReturn {
 
     if (!notMTTLiableYetPositiveTotal && totalIIR == totalIIRAmountOwed)
       valid[UKTRLiabilityReturn](data)
-    else
-      invalid(
-        UKTRSubmissionError(InvalidTotalLiabilityIIR)
-      )
+    else {
+      val errorType = if (!data.obligationMTT && totalIIR > 0) InvalidReturn else InvalidTotalLiabilityIIR
+      invalid(UKTRSubmissionError(errorType))
+    }
   }
 
   private[uktr] def totalLiabilityUTPRRule(org: TestOrganisationWithId): ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
