@@ -197,7 +197,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
           )
         )
         val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-        result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiabilityIIR))
+        result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
       }
 
       "total UTPR liability is not nil" in {
