@@ -189,7 +189,7 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         result mustEqual valid(validReturn)
       }
 
-      "should fail validation when MTT is false and IIR is more than zero" in {
+      "should fail validation when obligationMTT is false and IIR is more than zero" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
         val invalidReturn = validLiabilityReturn.copy(
           obligationMTT = false,
