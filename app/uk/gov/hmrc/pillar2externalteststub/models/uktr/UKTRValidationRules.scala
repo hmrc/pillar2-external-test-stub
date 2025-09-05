@@ -36,21 +36,4 @@ object UKTRValidationRules {
         )
       } else valid[T](data)
     }
-
-  // Common validation for electionUKGAAP - checks if non-domestic organisations can have electionUKGAAP set to true
-  def electionUKGAAPRule[T <: UKTRSubmission](
-    org: TestOrganisationWithId
-  ): ValidationRule[T] =
-    ValidationRule[T] { data =>
-      val isDomestic = org.organisation.orgDetails.domesticOnly
-      (data.electionUKGAAP, isDomestic) match {
-        case (true, false) =>
-          invalid(
-            UKTRSubmissionError(
-              InvalidReturn
-            )
-          )
-        case _ => valid[T](data)
-      }
-    }
 }

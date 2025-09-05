@@ -184,7 +184,6 @@ object UKTRLiabilityReturn {
       .map { org =>
         ValidationRule.compose(
           mttLiabilityValidationRule(org),
-          UKTRValidationRules.electionUKGAAPRule[UKTRLiabilityReturn](org),
           accountingPeriodMatchesOrgRule[UKTRLiabilityReturn](org, UKTRSubmissionError(InvalidReturn)),
           accountingPeriodSanityCheckRule[UKTRLiabilityReturn](UKTRSubmissionError(InvalidReturn)),
           electionDTTRule,

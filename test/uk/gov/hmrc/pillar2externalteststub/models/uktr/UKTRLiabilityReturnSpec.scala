@@ -190,15 +190,6 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       }
     }
 
-    "should fail validation when electionUKGAAP is true for non-domestic organisation" in {
-      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-      val invalidReturn = validLiabilityReturn.copy(
-        electionUKGAAP = true
-      )
-      val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
-    }
-
     "should fail validation when accounting period doesn't match organisation's" in {
       val invalidReturn = Json.fromJson[UKTRLiabilityReturn](invalidAccountingPeriodJson).get
       val result        = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)

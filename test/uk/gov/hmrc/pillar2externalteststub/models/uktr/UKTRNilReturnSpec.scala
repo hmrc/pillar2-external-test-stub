@@ -43,15 +43,6 @@ class UKTRNilReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFixture w
       result mustEqual valid(validNilReturn)
     }
 
-    "should fail validation when electionUKGAAP is true for non-domestic organisation" in {
-      when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-      val invalidReturn = validNilReturn.copy(
-        electionUKGAAP = true
-      )
-      val result = Await.result(UKTRNilReturn.uktrNilReturnValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-      result mustEqual invalid(UKTRSubmissionError(InvalidReturn))
-    }
-
     "should fail validation when accounting period doesn't match organisation's" in {
       val invalidReturn = validNilReturn.copy(
         accountingPeriodFrom = validNilReturn.accountingPeriodFrom.plusDays(1),
