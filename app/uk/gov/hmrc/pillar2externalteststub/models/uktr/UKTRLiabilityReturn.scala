@@ -138,8 +138,9 @@ object UKTRLiabilityReturn {
       )
   }
 
+  // Validation rules for idType and idValue are now in the API, the two rules below are for added security
   private[uktr] val idTypeRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => f.idType.equals("UTR") || f.idType.equals("CRN"))) valid[UKTRLiabilityReturn](data)
+    if (data.liabilities.liableEntities.forall(f => f.idType.nonEmpty && f.idType.length <= 4)) valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
