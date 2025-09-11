@@ -57,7 +57,9 @@ object UKTRLiabilityReturn {
       acc + entity.amountOwedDTT
     }
 
-    if (data.liabilities.totalLiabilityDTT == totalDTTAmountOwed)
+    val declaredTotal = data.liabilities.totalLiabilityDTT
+
+    if (declaredTotal > 0 && declaredTotal == totalDTTAmountOwed)
       valid[UKTRLiabilityReturn](data)
     else
       invalid(
