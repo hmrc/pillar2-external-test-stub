@@ -107,12 +107,12 @@ object UKTRLiabilityReturn {
   }
 
   private[uktr] val electionDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    val numberSubGroupDTT       = data.liabilities.numberSubGroupDTT
-    val numberOfLiableEntities  = data.liabilities.liableEntities.count(_.amountOwedDTT > 0)
-    val electionDTTSingleMember = data.liabilities.electionDTTSingleMember
+    val isDTTSingleMember = data.liabilities.electionDTTSingleMember
+    val subGroupDTTCount       = data.liabilities.numberSubGroupDTT
+    val positiveAmountOwedDTTEntities  = data.liabilities.liableEntities.count(_.amountOwedDTT > 0)
 
-    val subgroupMissingWhenElected = electionDTTSingleMember && numberSubGroupDTT <= 0
-    val subgroupCountMismatch      = numberSubGroupDTT != numberOfLiableEntities
+    val subgroupMissingWhenElected = isDTTSingleMember && subGroupDTTCount <= 0
+    val subgroupCountMismatch      = subGroupDTTCount != positiveAmountOwedDTTEntities
 
     if (subgroupMissingWhenElected || subgroupCountMismatch) {
       invalid(UKTRSubmissionError(InvalidDTTElection))
@@ -122,12 +122,12 @@ object UKTRLiabilityReturn {
   }
 
   private[uktr] val electionUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    val numberSubGroupUTPR       = data.liabilities.numberSubGroupUTPR
-    val numberOfLiableEntities   = data.liabilities.liableEntities.count(_.amountOwedUTPR > 0)
-    val electionUTPRSingleMember = data.liabilities.electionUTPRSingleMember
+    val isUTPRSingleMember = data.liabilities.electionUTPRSingleMember
+    val subGroupUTPRCount       = data.liabilities.numberSubGroupUTPR
+    val positiveAmountOwedUTPREntities   = data.liabilities.liableEntities.count(_.amountOwedUTPR > 0)
 
-    val subgroupMissingWhenElected = electionUTPRSingleMember && numberSubGroupUTPR <= 0
-    val subgroupCountMismatch      = numberSubGroupUTPR != numberOfLiableEntities
+    val subgroupMissingWhenElected = isUTPRSingleMember && subGroupUTPRCount <= 0
+    val subgroupCountMismatch      = subGroupUTPRCount != positiveAmountOwedUTPREntities
 
     if (subgroupMissingWhenElected || subgroupCountMismatch) {
       invalid(UKTRSubmissionError(InvalidUTPRElection))
