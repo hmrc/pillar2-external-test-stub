@@ -22,7 +22,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WINDOW_MONTHS, FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS}
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AmendmentWindow, FirstAccountingPeriodDueDateFromRegistration}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
@@ -174,8 +174,8 @@ class UKTRServiceSpec
       "should fail with RequestCouldNotBeProcessed when the amendment deadline has elapsed" in {
         val registrationDateBeforeAmendmentWindow: LocalDate = LocalDate
           .now()
-          .minusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
-          .minusMonths(AMENDMENT_WINDOW_MONTHS)
+          .minusMonths(FirstAccountingPeriodDueDateFromRegistration)
+          .minusMonths(AmendmentWindow)
 
         val testOrg: TestOrganisationWithId =
           configurableRegistrationDate.replace(registrationDateBeforeAmendmentWindow)(nonDomesticOrganisation)

@@ -124,18 +124,18 @@ class ObligationsAndSubmissionsController @Inject() (
     underEnquiry: Option[Boolean],
     submissions:  Seq[Submission]
   ): AccountingPeriodDetails = {
-    val dueDate  = regDate.plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
-    val canAmend = !LocalDate.now().isAfter(dueDate.plusMonths(AMENDMENT_WINDOW_MONTHS))
+    val dueDate:  LocalDate = regDate.plusMonths(FirstAccountingPeriodDueDateFromRegistration)
+    val canAmend: Boolean   = !LocalDate.now().isAfter(dueDate.plusMonths(AmendmentWindow))
 
     def filterSubmissions(
       submissions:     Seq[Submission],
       submissionTypes: Seq[SubmissionType]
     ): Option[Seq[Submission]] = {
-      val filteredSubmissions = submissions
+      val filteredSubmissions: Seq[Submission] = submissions
         .filter(s => submissionTypes.contains(s.submissionType))
         .sortBy(_.receivedDate)
         .reverse
-        .take(MAX_NO_SUBMISSIONS)
+        .take(MaxNumberOfSubmissions)
 
       if (filteredSubmissions.isEmpty) None else Some(filteredSubmissions)
     }
@@ -159,11 +159,11 @@ class ObligationsAndSubmissionsController @Inject() (
       )
     )
 
-    val obligations =
+    val obligations: Seq[Obligation] =
       domesticObligation :+ Obligation(
         obligationType = GIR,
         status = if (girSubmissions.nonEmpty || p2TaxReturnSubmissions.exists(_.head.submissionType == BTN)) Fulfilled else Open,
-        canAmend = true,
+        canAmend = true, // always true for GIR
         submissions = girSubmissions
       )
 
