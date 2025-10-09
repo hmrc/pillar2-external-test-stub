@@ -31,7 +31,7 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AmendmentWindowMonths, FirstAccountingPeriodDueDateFromRegistrationMonths, ServerErrorPlrId}
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AmendmentWindow, FirstAccountingPeriodDueDateFromRegistration, ServerErrorPlrId}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
@@ -216,9 +216,9 @@ class ObligationsAndSubmissionsControllerSpec
       "set canAmend flag correctly based on due date and obligation type" - {
         val today: LocalDate = LocalDate.now()
         val approxRegistrationDate: LocalDate =
-          today.minusMonths(FirstAccountingPeriodDueDateFromRegistrationMonths + AmendmentWindowMonths)
+          today.minusMonths(FirstAccountingPeriodDueDateFromRegistration + AmendmentWindow)
         val actualDeadline: LocalDate =
-          approxRegistrationDate.plusMonths(FirstAccountingPeriodDueDateFromRegistrationMonths).plusMonths(AmendmentWindowMonths)
+          approxRegistrationDate.plusMonths(FirstAccountingPeriodDueDateFromRegistration).plusMonths(AmendmentWindow)
         val dayAdjustment:                 Long      = ChronoUnit.DAYS.between(actualDeadline, today)
         val exactBoundaryRegistrationDate: LocalDate = approxRegistrationDate.plusDays(dayAdjustment)
 

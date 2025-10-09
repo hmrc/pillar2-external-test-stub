@@ -124,8 +124,8 @@ class ObligationsAndSubmissionsController @Inject() (
     underEnquiry: Option[Boolean],
     submissions:  Seq[Submission]
   ): AccountingPeriodDetails = {
-    val dueDate:  LocalDate = regDate.plusMonths(FirstAccountingPeriodDueDateFromRegistrationMonths)
-    val canAmend: Boolean   = !LocalDate.now().isAfter(dueDate.plusMonths(AmendmentWindowMonths))
+    val dueDate:  LocalDate = regDate.plusMonths(FirstAccountingPeriodDueDateFromRegistration)
+    val canAmend: Boolean   = !LocalDate.now().isAfter(dueDate.plusMonths(AmendmentWindow))
 
     def filterSubmissions(
       submissions:     Seq[Submission],
