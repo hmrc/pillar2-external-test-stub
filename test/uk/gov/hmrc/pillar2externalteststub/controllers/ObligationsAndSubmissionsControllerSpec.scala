@@ -26,11 +26,12 @@ import org.scalatest.{Assertion, OptionValues}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsArray, JsValue}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AMENDMENT_WINDOW_MONTHS, FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS, ServerErrorPlrId}
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AmendmentWindow, FirstAccountingPeriodDueDateFromRegistration, ServerErrorPlrId}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
@@ -39,9 +40,11 @@ import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.Obli
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
+import java.time.temporal.ChronoUnit
 import java.time.{Instant, LocalDate}
 import scala.concurrent.Future
 
@@ -109,11 +112,11 @@ class ObligationsAndSubmissionsControllerSpec
 
         val jsonResponse         = contentAsJson(result)
         val obligations          = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
-        val firstOligationType   = obligations.head.obligationType
+        val firstObligationType  = obligations.head.obligationType
         val secondObligationType = obligations(1).obligationType
 
         obligations.size mustBe 2
-        firstOligationType mustBe UKTR
+        firstObligationType mustBe UKTR
         secondObligationType mustBe GIR
       }
 
@@ -126,11 +129,11 @@ class ObligationsAndSubmissionsControllerSpec
 
         val jsonResponse         = contentAsJson(result)
         val obligations          = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[Seq[Obligation]]
-        val firstOligationType   = obligations.head.obligationType
+        val firstObligationType  = obligations.head.obligationType
         val secondObligationType = obligations(1).obligationType
 
         obligations.size mustBe 2
-        firstOligationType mustBe UKTR
+        firstObligationType mustBe UKTR
         secondObligationType mustBe GIR
       }
 
@@ -176,6 +179,7 @@ class ObligationsAndSubmissionsControllerSpec
           obligations(1).obligationType mustBe GIR
           obligations(1).status mustBe Fulfilled
         }
+
         "show as open if the last submission is not a BTN" in {
           when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
           mockBySubmissionType(BTN)
@@ -209,33 +213,38 @@ class ObligationsAndSubmissionsControllerSpec
         submissions.head.submissionType mustBe SubmissionType.GIR
       }
 
-      "set canAmend flag correctly based on due date and oblgation type" - {
-        val boundaryDate = LocalDate.now.minusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS + AMENDMENT_WINDOW_MONTHS)
+      "set canAmend flag correctly based on due date and obligation type" - {
+        val today: LocalDate = LocalDate.now()
+        val approxRegistrationDate: LocalDate =
+          today.minusMonths(FirstAccountingPeriodDueDateFromRegistration + AmendmentWindow)
+        val actualDeadline: LocalDate =
+          approxRegistrationDate.plusMonths(FirstAccountingPeriodDueDateFromRegistration).plusMonths(AmendmentWindow)
+        val dayAdjustment:                 Long      = ChronoUnit.DAYS.between(actualDeadline, today)
+        val exactBoundaryRegistrationDate: LocalDate = approxRegistrationDate.plusDays(dayAdjustment)
 
         def canAmendCheck(registrationDate: LocalDate, expectedStatus: Boolean): Assertion = {
-          val testOrg = configurableRegistrationDate.replace(registrationDate)(domesticOrganisation)
+          val testOrg: TestOrganisationWithId = configurableRegistrationDate.replace(registrationDate)(domesticOrganisation)
 
           when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(testOrg))
-          when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
-            .thenReturn(Future.successful(Seq.empty))
+          when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate])).thenReturn(Future.successful(Seq.empty))
 
-          val result = route(app, createRequest()).value
+          val result: Future[Result] = route(app, createRequest()).value
           status(result) mustBe OK
 
-          (contentAsJson(result) \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 0 \ "obligationType").as[String] mustBe "UKTR"
-          (contentAsJson(result) \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 0 \ "canAmend").as[Boolean] mustBe expectedStatus
+          val obligations: JsArray = (contentAsJson(result) \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations").as[JsArray]
 
-          //GIR is always true
-          (contentAsJson(result) \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "obligationType").as[String] mustBe "GIR"
-          (contentAsJson(result) \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "canAmend").as[Boolean] mustBe true
+          (obligations(0) \ "obligationType").as[String] mustBe "UKTR"
+          (obligations(0) \ "canAmend").as[Boolean] mustBe expectedStatus
+          (obligations(1) \ "obligationType").as[String] mustBe "GIR"
+          (obligations(1) \ "canAmend").as[Boolean] mustBe true
         }
 
         "false when current date is over 12 months after the dueDate" in {
-          canAmendCheck(boundaryDate.minusDays(1), expectedStatus = false)
+          canAmendCheck(exactBoundaryRegistrationDate.minusDays(1), expectedStatus = false)
         }
 
-        "true when current date is within 12 months from the dueDate" ignore {
-          canAmendCheck(boundaryDate, expectedStatus = true)
+        "true when current date is within 12 months from the dueDate" in {
+          canAmendCheck(exactBoundaryRegistrationDate, expectedStatus = true)
         }
       }
 

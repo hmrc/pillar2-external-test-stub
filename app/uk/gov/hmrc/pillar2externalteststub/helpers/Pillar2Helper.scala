@@ -15,23 +15,27 @@
  */
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
+import uk.gov.hmrc.pillar2externalteststub.models.common.Types.NumberOfMonths
+
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
 import scala.util.Random
 import scala.util.matching.Regex
 
 object Pillar2Helper {
-  val pillar2Regex: Regex = "^[A-Z0-9]{1,15}$".r
-  val ServerErrorPlrId          = "XEPLR5000000000"
-  val correlationidHeader       = "correlationid"
-  val correlationidHeaderRegex  = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-  val xReceiptDateHeaderRegex   = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z"
-  val xReceiptDateHeader        = "X-Receipt-Date"
-  val xOriginatingSystemHeader  = "X-Originating-System"
-  val xTransmittingSystemHeader = "X-Transmitting-System"
-  val MAX_NO_SUBMISSIONS:                         Int  = 10
-  val AMENDMENT_WINDOW_MONTHS:                    Long = 12
-  val FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS: Long = 18
+  val pillar2Regex:              Regex  = "^[A-Z0-9]{1,15}$".r
+  val ServerErrorPlrId:          String = "XEPLR5000000000"
+  val correlationidHeader:       String = "correlationid"
+  val correlationidHeaderRegex:  String = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+  val xReceiptDateHeaderRegex:   String = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z"
+  val xReceiptDateHeader:        String = "X-Receipt-Date"
+  val xOriginatingSystemHeader:  String = "X-Originating-System"
+  val xTransmittingSystemHeader: String = "X-Transmitting-System"
+  val MaxNumberOfSubmissions:    Int    = 10
+
+  // FIXME: this is First Accounting Period Due Date from the end of the Accounting Period - not the Registration Date
+  val FirstAccountingPeriodDueDateFromRegistration: NumberOfMonths = 18
+  val AmendmentWindow:                              NumberOfMonths = 12
 
   def nowZonedDateTime:           String = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS).toString
   def generateFormBundleNumber(): String = f"${Random.nextLong(1000000000000L) % 1000000000000L}%012d"
@@ -44,7 +48,8 @@ object Pillar2Helper {
 
   def getAmendmentDeadline(organisationRegistrationDate: LocalDate): LocalDate =
     organisationRegistrationDate
-      .plusMonths(FIRST_AP_DUE_DATE_FROM_REGISTRATION_MONTHS)
-      .plusMonths(AMENDMENT_WINDOW_MONTHS)
+      .plusMonths(FirstAccountingPeriodDueDateFromRegistration)
+      .plusMonths(AmendmentWindow)
       .minusDays(1)
+
 }
