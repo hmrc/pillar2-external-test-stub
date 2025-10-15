@@ -107,32 +107,28 @@ object UKTRLiabilityReturn {
   }
 
   private[uktr] val electionDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    val isDTTSingleMember             = data.liabilities.electionDTTSingleMember
-    val subGroupDTTCount              = data.liabilities.numberSubGroupDTT
-    val positiveAmountOwedDTTEntities = data.liabilities.liableEntities.count(_.amountOwedDTT > 0)
+    val isDTTSingleMember = data.liabilities.electionDTTSingleMember
+    val subGroupDTTCount  = data.liabilities.numberSubGroupDTT
 
-    val subgroupMissingWhenElected = isDTTSingleMember && subGroupDTTCount <= 0
-    val subgroupCountMismatch      = subGroupDTTCount != positiveAmountOwedDTTEntities
+    val failedSingleMemberCheck = isDTTSingleMember && subGroupDTTCount < 1
 
-    if (subgroupMissingWhenElected || subgroupCountMismatch) {
+    if (failedSingleMemberCheck) {
       invalid(UKTRSubmissionError(InvalidDTTElection))
     } else {
-      valid(data)
+      valid[UKTRLiabilityReturn](data)
     }
   }
 
   private[uktr] val electionUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    val isUTPRSingleMember             = data.liabilities.electionUTPRSingleMember
-    val subGroupUTPRCount              = data.liabilities.numberSubGroupUTPR
-    val positiveAmountOwedUTPREntities = data.liabilities.liableEntities.count(_.amountOwedUTPR > 0)
+    val isUTPRSingleMember = data.liabilities.electionUTPRSingleMember
+    val subGroupUTPRCount  = data.liabilities.numberSubGroupUTPR
 
-    val subgroupMissingWhenElected = isUTPRSingleMember && subGroupUTPRCount <= 0
-    val subgroupCountMismatch      = subGroupUTPRCount != positiveAmountOwedUTPREntities
+    val failedSingleMemberCheck = isUTPRSingleMember && subGroupUTPRCount < 1
 
-    if (subgroupMissingWhenElected || subgroupCountMismatch) {
+    if (failedSingleMemberCheck) {
       invalid(UKTRSubmissionError(InvalidUTPRElection))
     } else {
-      valid(data)
+      valid[UKTRLiabilityReturn](data)
     }
   }
 
