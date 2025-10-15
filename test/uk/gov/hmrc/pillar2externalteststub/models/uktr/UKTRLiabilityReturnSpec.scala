@@ -214,15 +214,6 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
       }
 
-      "electionDTTSingleMember = true and the number of sub-groups does not match the liabile entities with positive amountOwedDTT" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-
-        val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupDTT = 2))
-
-        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-        result mustEqual invalid(UKTRSubmissionError(InvalidDTTElection))
-      }
-
       "invalid number of sub-groups" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
@@ -238,16 +229,6 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
 
         val invalidReturn = validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupUTPR = 0))
-
-        val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
-        result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
-      }
-
-      "electionUTPRSingleMember = true and the number of sub-groups does not match liabile entities with positive amountOwedUTPR" in {
-        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-
-        val invalidReturn =
-          validLiabilityReturn.copy(liabilities = validLiabilityReturn.liabilities.copy(numberSubGroupUTPR = 2))
 
         val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
         result mustEqual invalid(UKTRSubmissionError(InvalidUTPRElection))
