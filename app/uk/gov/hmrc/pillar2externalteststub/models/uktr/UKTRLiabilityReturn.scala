@@ -107,8 +107,8 @@ object UKTRLiabilityReturn {
   }
 
   private[uktr] val electionDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    val isDTTSingleMember             = data.liabilities.electionDTTSingleMember
-    val subGroupDTTCount              = data.liabilities.numberSubGroupDTT
+    val isDTTSingleMember = data.liabilities.electionDTTSingleMember
+    val subGroupDTTCount  = data.liabilities.numberSubGroupDTT
 
     val failedSingleMemberCheck = isDTTSingleMember && subGroupDTTCount < 1
 
@@ -120,8 +120,8 @@ object UKTRLiabilityReturn {
   }
 
   private[uktr] val electionUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    val isUTPRSingleMember             = data.liabilities.electionUTPRSingleMember
-    val subGroupUTPRCount              = data.liabilities.numberSubGroupUTPR
+    val isUTPRSingleMember = data.liabilities.electionUTPRSingleMember
+    val subGroupUTPRCount  = data.liabilities.numberSubGroupUTPR
 
     val failedSingleMemberCheck = isUTPRSingleMember && subGroupUTPRCount < 1
 
