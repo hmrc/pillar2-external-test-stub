@@ -25,8 +25,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class OrganisationService @Inject() (
-  repository:  OrganisationRepository
-)(implicit ec: ExecutionContext) {
+  repository: OrganisationRepository
+)(using ec:   ExecutionContext) {
 
   def createOrganisation(pillar2Id: String, details: TestOrganisation): Future[TestOrganisationWithId] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)

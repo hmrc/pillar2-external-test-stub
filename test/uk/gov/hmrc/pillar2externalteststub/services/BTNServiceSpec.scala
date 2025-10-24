@@ -53,7 +53,7 @@ class BTNServiceSpec
 
   private val mockBtnRepository = mock[BTNSubmissionRepository]
   private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
-  protected val service         = new BTNService(mockBtnRepository, mockOasRepository, mockOrgService)(global)
+  protected val service         = new BTNService(mockBtnRepository, mockOasRepository, mockOrgService)(using global)
 
   "BTNService" should {
     "submitBTN" should {

@@ -37,7 +37,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ObligationsAndSubmissionsRepository @Inject() (
   mongoComponent: MongoComponent,
   config:         AppConfig
-)(implicit ec:    ExecutionContext)
+)(using ec:       ExecutionContext)
     extends PlayMongoRepository[ObligationsAndSubmissionsMongoSubmission](
       collectionName = "obligations-and-submissions",
       mongoComponent = mongoComponent,

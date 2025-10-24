@@ -35,6 +35,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, OrganisationRepository, UKTRSubmissionRepository}
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
@@ -56,8 +57,8 @@ class UKTRSubmissionISpec
   override protected val repository: UKTRSubmissionRepository            = app.injector.instanceOf[UKTRSubmissionRepository]
   private val orgRepository:         OrganisationRepository              = app.injector.instanceOf[OrganisationRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  implicit val ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier                       = HeaderCarrier()
+  given ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                   HeaderCarrier                       = HeaderCarrier()
 
   private val testOrg = TestOrganisation(
     orgDetails = orgDetails,
@@ -89,7 +90,7 @@ class UKTRSubmissionISpec
       )
       .build()
 
-  private def updateSubmissionWithCorrectAccountingPeriod(submission: UKTRSubmission): UKTRSubmission = {
+  def updateSubmissionWithCorrectAccountingPeriod(submission: UKTRSubmission): UKTRSubmission = {
 
     val jsonSubmission = Json.toJson(submission).as[JsObject]
 
@@ -104,7 +105,7 @@ class UKTRSubmissionISpec
     }
   }
 
-  private def submitUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
+  def submitUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
     val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
@@ -114,7 +115,7 @@ class UKTRSubmissionISpec
       .futureValue
   }
 
-  private def submitUKTRWithoutAuth(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
+  def submitUKTRWithoutAuth(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
     val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
@@ -124,7 +125,7 @@ class UKTRSubmissionISpec
       .futureValue
   }
 
-  private def submitCustomPayload(payload: JsObject, pillar2Id: String): HttpResponse =
+  def submitCustomPayload(payload: JsObject, pillar2Id: String): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(payload)
@@ -132,7 +133,7 @@ class UKTRSubmissionISpec
       .execute[HttpResponse]
       .futureValue
 
-  private def amendUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
+  def amendUKTR(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
     val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
@@ -142,7 +143,7 @@ class UKTRSubmissionISpec
       .futureValue
   }
 
-  private def amendUKTRWithoutAuth(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
+  def amendUKTRWithoutAuth(submission: UKTRSubmission, pillar2Id: String): HttpResponse = {
     val updatedSubmission = updateSubmissionWithCorrectAccountingPeriod(submission)
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
@@ -152,7 +153,7 @@ class UKTRSubmissionISpec
       .futureValue
   }
 
-  private def submitNilReturn(pillar2Id: String): HttpResponse =
+  def submitNilReturn(pillar2Id: String): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(correctNilReturnJson)
@@ -160,7 +161,7 @@ class UKTRSubmissionISpec
       .execute[HttpResponse]
       .futureValue
 
-  private def amendNilReturn(pillar2Id: String): HttpResponse =
+  def amendNilReturn(pillar2Id: String): HttpResponse =
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(correctNilReturnJson)
@@ -168,7 +169,7 @@ class UKTRSubmissionISpec
       .execute[HttpResponse]
       .futureValue
 
-  private def setupTestOrganisations(): Unit = {
+  def setupTestOrganisations(): Unit = {
 
     val _ = Await.result(orgRepository.insert(testOrgWithId), 5.seconds)
 

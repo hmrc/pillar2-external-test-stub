@@ -64,7 +64,7 @@ class ORNSubmissionRepositorySpec
   override protected val repository: ORNSubmissionRepository =
     app.injector.instanceOf[ORNSubmissionRepository]
 
-  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   private val testPillar2Id = "XMPLR0000000000"
   private val testRequest = ORNRequest(

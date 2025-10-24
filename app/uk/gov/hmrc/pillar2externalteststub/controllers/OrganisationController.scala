@@ -32,11 +32,11 @@ import scala.concurrent.Future
 class OrganisationController @Inject() (
   cc:                  ControllerComponents,
   organisationService: OrganisationService
-)(implicit ec:         ExecutionContext)
+)(using ec:            ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def create(pillar2Id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def create(pillar2Id: String): Action[JsValue] = Action.async(parse.json) { request =>
     if (pillar2Id.trim.isEmpty) {
       Future.failed(EmptyRequestBody)
     } else {
@@ -54,13 +54,13 @@ class OrganisationController @Inject() (
     }
   }
 
-  def get(pillar2Id: String): Action[AnyContent] = Action.async { implicit request =>
+  def get(pillar2Id: String): Action[AnyContent] = Action.async { request =>
     organisationService.getOrganisation(pillar2Id).map { org =>
       Ok(Json.toJson(org))
     }
   }
 
-  def update(pillar2Id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def update(pillar2Id: String): Action[JsValue] = Action.async(parse.json) { request =>
     request.body
       .validate[TestOrganisationRequest]
       .fold(
@@ -74,7 +74,7 @@ class OrganisationController @Inject() (
       )
   }
 
-  def delete(pillar2Id: String): Action[AnyContent] = Action.async { implicit request =>
+  def delete(pillar2Id: String): Action[AnyContent] = Action.async { request =>
     logger.info(s"Deleting organisation with pillar2Id: $pillar2Id")
     organisationService.deleteOrganisation(pillar2Id).map { _ =>
       NoContent

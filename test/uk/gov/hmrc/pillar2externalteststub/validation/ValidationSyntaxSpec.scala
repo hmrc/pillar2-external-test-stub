@@ -56,7 +56,7 @@ object TestSubmission {
     else invalidNec(NonEmptyChain.fromSeq(invalidAmounts).get)
   }
 
-  implicit val validator: ValidationRule[TestSubmission] =
+  given validator: ValidationRule[TestSubmission] =
     ValidationRule.compose(dateValidation, liabilityValidation, amountValidation)(AccumulateErrors)
 }
 
@@ -130,7 +130,7 @@ class ValidationSyntaxSpec extends AnyWordSpec with Matchers {
         )
       )
 
-      val result = submission.validate(failFastValidator)
+      val result = submission.validate(using failFastValidator)
       result.isInvalid mustBe true
       result.toEither match {
         case Left(errors) =>

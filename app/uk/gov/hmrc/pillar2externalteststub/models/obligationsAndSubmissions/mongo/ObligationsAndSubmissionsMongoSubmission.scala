@@ -42,7 +42,7 @@ case class ObligationsAndSubmissionsMongoSubmission(
 case class AccountingPeriod(startDate: LocalDate, endDate: LocalDate)
 
 object AccountingPeriod {
-  implicit val format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
+  given format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
 }
 
 object ObligationsAndSubmissionsMongoSubmission {
@@ -77,6 +77,6 @@ object ObligationsAndSubmissionsMongoSubmission {
     )
   }
 
-  implicit val format: OFormat[ObligationsAndSubmissionsMongoSubmission] = Json.format[ObligationsAndSubmissionsMongoSubmission]
+  given format: OFormat[ObligationsAndSubmissionsMongoSubmission] = Json.format[ObligationsAndSubmissionsMongoSubmission]
 
 }

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub
 
-import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
@@ -26,7 +26,7 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.{Application, inject}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
@@ -35,6 +35,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.models.gir.mongo.GIRSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{GIRSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -56,8 +58,8 @@ class GIRISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: GIRSubmissionRepository             = app.injector.instanceOf[GIRSubmissionRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  implicit val ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier                       = HeaderCarrier()
+  given ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                   HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -69,7 +71,7 @@ class GIRISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitGIR(pillar2Id: String, request: GIRRequest): HttpResponse =
+  def submitGIR(pillar2Id: String, request: GIRRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/pillar2/test/globe-information-return")
       .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))

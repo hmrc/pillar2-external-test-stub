@@ -39,7 +39,7 @@ class ORNValidatorSpec extends AnyWordSpec with Matchers with MockitoSugar with 
       when(mockRepository.findByPillar2Id(anyString())).thenReturn(Future.successful(Seq.empty))
 
       val result = ORNValidator.ornValidator(validPlrId)(mockOrgService, global).flatMap { validator =>
-        Future.successful(validORNRequest.validate(validator))
+        Future.successful(validORNRequest.validate(using validator))
       }
 
       whenReady(result) { validationResult =>

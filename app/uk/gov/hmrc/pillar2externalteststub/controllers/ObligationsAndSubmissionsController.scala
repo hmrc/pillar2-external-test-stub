@@ -46,11 +46,11 @@ class ObligationsAndSubmissionsController @Inject() (
   cc:                  ControllerComponents,
   organisationService: OrganisationService,
   oasRepository:       ObligationsAndSubmissionsRepository
-)(implicit ec:         ExecutionContext)
+)(using ec:            ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def getObligationsAndSubmissions(fromDate: String, toDate: String): Action[AnyContent] = (Action andThen authFilter).async { implicit request =>
+  def getObligationsAndSubmissions(fromDate: String, toDate: String): Action[AnyContent] = (Action andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap { pillar2Id =>
       (for {
         from <- Future.fromTry(Try(LocalDate.parse(fromDate)))
@@ -70,7 +70,7 @@ class ObligationsAndSubmissionsController @Inject() (
     }
   }
 
-  private def generateHistory(testOrg: TestOrganisationWithId, oasSubmissions: Seq[ObligationsAndSubmissionsMongoSubmission]): Result = {
+  def generateHistory(testOrg: TestOrganisationWithId, oasSubmissions: Seq[ObligationsAndSubmissionsMongoSubmission]): Result = {
     // Group submissions by accounting period
     val submissionsByPeriod = oasSubmissions.groupBy(_.accountingPeriod)
 
@@ -110,14 +110,14 @@ class ObligationsAndSubmissionsController @Inject() (
     )
   }
 
-  private def toSubmission(submission: ObligationsAndSubmissionsMongoSubmission): Submission =
+  def toSubmission(submission: ObligationsAndSubmissionsMongoSubmission): Submission =
     Submission(
       submissionType = submission.submissionType,
       receivedDate = submission.submittedAt.atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS),
       country = submission.ornCountryGir
     )
 
-  private def createAccountingPeriodDetails(
+  def createAccountingPeriodDetails(
     startDate:    LocalDate,
     endDate:      LocalDate,
     regDate:      LocalDate,

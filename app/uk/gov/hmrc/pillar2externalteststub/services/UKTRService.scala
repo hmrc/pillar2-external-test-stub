@@ -36,7 +36,7 @@ class UKTRService @Inject() (
   uktrRepository:      UKTRSubmissionRepository,
   oasRepository:       ObligationsAndSubmissionsRepository,
   organisationService: OrganisationService
-)(implicit ec:         ExecutionContext)
+)(using ec:            ExecutionContext)
     extends Logging {
 
   def submitUKTR(pillar2Id: String, request: UKTRSubmission): Future[UKTRResponse] = {
@@ -65,16 +65,16 @@ class UKTRService @Inject() (
     } yield createResponse(request, chargeRef)
   }
 
-  private def getValidator(pillar2Id: String, request: UKTRSubmission): Future[ValidationRule[UKTRSubmission]] =
+  def getValidator(pillar2Id: String, request: UKTRSubmission): Future[ValidationRule[UKTRSubmission]] =
     request match {
       case _: UKTRLiabilityReturn =>
-        UKTRLiabilityReturn.uktrSubmissionValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
+        UKTRLiabilityReturn.uktrSubmissionValidator(pillar2Id)(using organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
       case _: UKTRNilReturn =>
-        UKTRNilReturn.uktrNilReturnValidator(pillar2Id)(organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
+        UKTRNilReturn.uktrNilReturnValidator(pillar2Id)(using organisationService, ec).map(_.asInstanceOf[ValidationRule[UKTRSubmission]])
       case _ => Future.failed(HIPBadRequest())
     }
 
-  private def validateRequest(validator: ValidationRule[UKTRSubmission], request: UKTRSubmission): Future[Unit] =
+  def validateRequest(validator: ValidationRule[UKTRSubmission], request: UKTRSubmission): Future[Unit] =
     validator.validate(request) match {
       case cats.data.Validated.Valid(_) => Future.successful(())
       case cats.data.Validated.Invalid(errors) =>
@@ -84,25 +84,25 @@ class UKTRService @Inject() (
         }
     }
 
-  private def amendmentWindowCheck(pillar2Id: String): Future[Unit] =
+  def amendmentWindowCheck(pillar2Id: String): Future[Unit] =
     organisationService.getOrganisation(pillar2Id).flatMap { org =>
       val amendmentsAllowed: Boolean = !LocalDate.now.isAfter(getAmendmentDeadline(org.organisation.orgDetails.registrationDate))
       if (amendmentsAllowed) Future.successful(()) else Future.failed(RequestCouldNotBeProcessed)
     }
 
-  private def validateNoExistingSubmission(pillar2Id: String): Future[Unit] =
+  def validateNoExistingSubmission(pillar2Id: String): Future[Unit] =
     uktrRepository.findByPillar2Id(pillar2Id).flatMap {
       case Some(_) => Future.failed(TaxObligationAlreadyFulfilled)
       case None    => Future.successful(())
     }
 
-  private def getExistingSubmission(pillar2Id: String): Future[UKTRMongoSubmission] =
+  def getExistingSubmission(pillar2Id: String): Future[UKTRMongoSubmission] =
     uktrRepository.findByPillar2Id(pillar2Id).flatMap {
       case Some(submission) => Future.successful(submission)
       case None             => Future.failed(RequestCouldNotBeProcessed)
     }
 
-  private def processSubmission(
+  def processSubmission(
     pillar2Id:   String,
     request:     UKTRSubmission,
     chargeRef:   Option[String] = None,
@@ -126,7 +126,7 @@ class UKTRService @Inject() (
       case _ => Future.failed(HIPBadRequest())
     }
 
-  private def createResponse(request: UKTRSubmission, existingChargeRef: Option[String]): UKTRResponse = request match {
+  def createResponse(request: UKTRSubmission, existingChargeRef: Option[String]): UKTRResponse = request match {
     case _: UKTRLiabilityReturn => successfulUKTRResponse(existingChargeRef)
     case _: UKTRNilReturn       => successfulNilReturnResponse
     case _ => throw HIPBadRequest()

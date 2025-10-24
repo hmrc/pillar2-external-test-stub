@@ -18,7 +18,6 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
-import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.gir.{GIRRequest, GIRSuccessResponse}
 import uk.gov.hmrc.pillar2externalteststub.services.GIRService
@@ -29,14 +28,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class GIRController @Inject() (
-  cc:          ControllerComponents,
-  authFilter:  AuthActionFilter,
-  girService:  GIRService
-)(implicit ec: ExecutionContext)
+  cc:         ControllerComponents,
+  girService: GIRService
+)(using ec:   ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def submitGIR: Action[JsValue] = (Action(parse.json)).async { implicit request =>
+  def submitGIR: Action[JsValue] = (Action(parse.json)).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { pillar2Id =>
         request.body

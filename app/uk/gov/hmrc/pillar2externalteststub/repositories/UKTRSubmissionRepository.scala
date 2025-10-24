@@ -35,7 +35,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
+class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(using ec: ExecutionContext)
     extends PlayMongoRepository[UKTRMongoSubmission](
       collectionName = "uktr-submissions",
       mongoComponent = mongoComponent,

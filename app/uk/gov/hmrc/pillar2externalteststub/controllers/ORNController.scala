@@ -40,11 +40,11 @@ class ORNController @Inject() (
   authFilter:          AuthActionFilter,
   ornService:          ORNService,
   organisationService: OrganisationService
-)(implicit ec:         ExecutionContext)
+)(using ec:            ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def submitORN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
+  def submitORN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { pillar2Id =>
         request.body
@@ -56,7 +56,7 @@ class ORNController @Inject() (
       }
   }
 
-  def amendORN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
+  def amendORN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { pillar2Id =>
         request.body
@@ -69,7 +69,7 @@ class ORNController @Inject() (
   }
 
   def getORN(accountingPeriodFrom: String, accountingPeriodTo: String): Action[AnyContent] =
-    (Action andThen authFilter).async { implicit request =>
+    (Action andThen authFilter).async { request =>
       def parseDates(from: String, to: String): Future[(LocalDate, LocalDate)] =
         for {
           fromDate <- Future.fromTry(Try(LocalDate.parse(from)))
@@ -103,11 +103,11 @@ class ORNController @Inject() (
         }
     }
 
-  private def validateORN(pillar2Id: String, request: ORNRequest, isAmendment: Boolean = false): Future[Result] = {
+  def validateORN(pillar2Id: String, request: ORNRequest, isAmendment: Boolean = false): Future[Result] = {
     logger.info(s"Validating ORN submission for pillar2Id: $pillar2Id")
 
-    ORNValidator.ornValidator(pillar2Id)(organisationService, ec).flatMap { validator =>
-      val validationResult = request.validate(validator)
+    ORNValidator.ornValidator(pillar2Id)(using organisationService, ec).flatMap { validator =>
+      val validationResult = request.validate(using validator)
 
       validationResult.toEither match {
         case Left(errors) =>

@@ -22,7 +22,7 @@ import play.api.libs.json.{Json, OFormat}
 final case class Obligation(obligationType: ObligationType, status: ObligationStatus, canAmend: Boolean, submissions: Option[Seq[Submission]])
 
 object Obligation {
-  implicit val format: OFormat[Obligation] = Json.format[Obligation]
+  given format: OFormat[Obligation] = Json.format[Obligation]
 }
 
 sealed trait ObligationStatus extends EnumEntry

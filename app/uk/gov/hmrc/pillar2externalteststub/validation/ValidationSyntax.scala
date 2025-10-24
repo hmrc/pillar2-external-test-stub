@@ -18,8 +18,8 @@ package uk.gov.hmrc.pillar2externalteststub.validation
 
 import ValidationResult._
 trait ValidationSyntax {
-  implicit class ValidateOps[A](value: A) {
-    def validate(implicit rule: ValidationRule[A]): ValidationResult[A] =
+  extension [A](value: A) {
+    def validate(using rule: ValidationRule[A]): ValidationResult[A] =
       rule.validate(value)
   }
 }

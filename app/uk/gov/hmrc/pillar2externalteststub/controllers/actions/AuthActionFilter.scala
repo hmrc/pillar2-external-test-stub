@@ -26,7 +26,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthActionFilter @Inject() ()(implicit ec: ExecutionContext) extends ActionFilter[Request] {
+class AuthActionFilter @Inject() ()(using ec: ExecutionContext) extends ActionFilter[Request] {
 
   override def filter[A](request: Request[A]): Future[Option[Result]] = {
     def validateHeader(header: String, validationFn: String => Boolean): Future[Unit] =

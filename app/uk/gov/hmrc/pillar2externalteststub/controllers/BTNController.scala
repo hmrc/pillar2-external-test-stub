@@ -33,14 +33,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BTNController @Inject() (
-  cc:          ControllerComponents,
-  authFilter:  AuthActionFilter,
-  btnService:  BTNService
-)(implicit ec: ExecutionContext)
+  cc:         ControllerComponents,
+  authFilter: AuthActionFilter,
+  btnService: BTNService
+)(using ec:   ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def submitBTN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
+  def submitBTN: Action[JsValue] = (Action(parse.json) andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { pillar2Id =>
         request.body
@@ -52,7 +52,7 @@ class BTNController @Inject() (
       }
   }
 
-  private def handleSubmission(pillar2Id: String, request: BTNRequest): Future[Result] =
+  def handleSubmission(pillar2Id: String, request: BTNRequest): Future[Result] =
     pillar2Id match {
       case ServerErrorPlrId => Future.failed(ETMPInternalServerError)
       case _ =>

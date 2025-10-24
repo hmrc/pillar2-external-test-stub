@@ -39,7 +39,7 @@ case class UKTRLiabilityReturn(
 
 object UKTRLiabilityReturn {
 
-  implicit val uktrSubmissionDataFormat: OFormat[UKTRLiabilityReturn] = Json.format[UKTRLiabilityReturn]
+  given uktrSubmissionDataFormat: OFormat[UKTRLiabilityReturn] = Json.format[UKTRLiabilityReturn]
 
   private[uktr] val totalLiabilityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     val totalLiability = data.liabilities.totalLiabilityDTT + data.liabilities.totalLiabilityIIR + data.liabilities.totalLiabilityUTPR
@@ -186,8 +186,8 @@ object UKTRLiabilityReturn {
   }
 
   def uktrSubmissionValidator(
-    plrReference:                 String
-  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
+    plrReference:              String
+  )(using organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
     organisationService
       .getOrganisation(plrReference)
       .map { org =>
