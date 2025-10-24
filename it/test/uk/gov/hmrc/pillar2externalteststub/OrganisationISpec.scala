@@ -32,6 +32,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext

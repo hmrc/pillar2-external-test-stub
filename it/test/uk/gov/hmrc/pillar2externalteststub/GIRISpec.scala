@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub
 
-import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
@@ -26,7 +26,7 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.{Application, inject}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
@@ -35,6 +35,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.models.gir.mongo.GIRSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{GIRSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import scala.concurrent.{ExecutionContext, Future}
 
