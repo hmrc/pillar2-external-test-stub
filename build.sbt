@@ -38,6 +38,7 @@ lazy val microservice = Project(appName, file("."))
 
 addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
 addCommandAlias("lint", ";scalafmtAll;scalafmtSbt;scalafixAll")
+addCommandAlias("prePush", "reload;clean;compile;test;lint")
 
 lazy val it = project
   .enablePlugins(play.sbt.PlayScala)
