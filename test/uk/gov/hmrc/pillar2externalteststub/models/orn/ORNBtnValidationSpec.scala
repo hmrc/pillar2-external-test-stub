@@ -39,7 +39,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
           .thenReturn(Future.successful(organisationWithActiveBtnFlag))
 
         val result = ORNValidator.ornValidator(organisationWithActiveBtnFlag.pillar2Id)(mockOrgService, global).flatMap { validator =>
-          Future.successful(validORNRequest.validate(validator))
+          Future.successful(validORNRequest.validate(using validator))
         }
 
         whenReady(result) { validationResult =>
@@ -65,7 +65,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
           .thenReturn(Future.successful(organisationWithActiveBtnFlag))
 
         val result = ORNValidator.ornValidator(organisationWithActiveBtnFlag.pillar2Id)(mockOrgService, global).flatMap { validator =>
-          Future.successful(validORNRequest.validate(validator))
+          Future.successful(validORNRequest.validate(using validator))
         }
 
         whenReady(result) { validationResult =>
@@ -89,7 +89,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
           .thenReturn(Future.successful(nonDomesticOrganisationWithInactiveBtnFlag))
 
         val result = ORNValidator.ornValidator(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id)(mockOrgService, global).flatMap { validator =>
-          Future.successful(validORNRequest.validate(validator))
+          Future.successful(validORNRequest.validate(using validator))
         }
 
         whenReady(result) { validationResult =>
@@ -105,7 +105,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
           .thenReturn(Future.successful(nonDomesticOrganisationWithInactiveBtnFlag))
 
         val result = ORNValidator.ornValidator(nonDomesticOrganisationWithInactiveBtnFlag.pillar2Id)(mockOrgService, global).flatMap { validator =>
-          Future.successful(validORNRequest.validate(validator))
+          Future.successful(validORNRequest.validate(using validator))
         }
 
         whenReady(result) { validationResult =>
@@ -117,7 +117,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
     "BTN status rule in isolation" should {
       "return error when BTN flag is active" in {
         val rule             = ORNValidationRules.btnStatusRule(organisationWithActiveBtnFlag)
-        val validationResult = validORNRequest.validate(rule)
+        val validationResult = validORNRequest.validate(using rule)
 
         validationResult.isInvalid mustBe true
         validationResult.fold(
@@ -131,7 +131,7 @@ class ORNBtnValidationSpec extends AnyWordSpec with Matchers with MockitoSugar w
 
       "return success when BTN flag is inactive" in {
         val rule             = ORNValidationRules.btnStatusRule(organisationWithInactiveBtnFlag)
-        val validationResult = validORNRequest.validate(rule)
+        val validationResult = validORNRequest.validate(using rule)
 
         validationResult.isValid mustBe true
       }

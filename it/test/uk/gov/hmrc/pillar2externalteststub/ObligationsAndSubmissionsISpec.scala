@@ -56,8 +56,8 @@ class ObligationsAndSubmissionsISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository:  ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
   private val organisationRepository: OrganisationRepository              = app.injector.instanceOf[OrganisationRepository]
-  implicit val ec:                    ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                    HeaderCarrier                       = HeaderCarrier()
+  given ec:                    ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                    HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -68,7 +68,7 @@ class ObligationsAndSubmissionsISpec
       )
       .build()
 
-  private def getObligationsAndSubmissions(
+  def getObligationsAndSubmissions(
     pillar2Id: String,
     fromDate:  String = accountingPeriod.startDate.toString,
     toDate:    String = accountingPeriod.endDate.toString
@@ -79,7 +79,7 @@ class ObligationsAndSubmissionsISpec
       .execute[HttpResponse]
       .futureValue
 
-  private def insertSubmission(
+  def insertSubmission(
     pillar2Id:        String,
     submissionType:   SubmissionType,
     accountingPeriod: AccountingPeriod

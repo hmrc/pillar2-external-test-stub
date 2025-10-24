@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class BTNSubmissionRepository @Inject() (
   mongoComponent: MongoComponent,
   config:         AppConfig
-)(implicit ec:    ExecutionContext)
+)(using ec:       ExecutionContext)
     extends PlayMongoRepository[BTNSubmission](
       collectionName = "btn-submissions",
       mongoComponent = mongoComponent,

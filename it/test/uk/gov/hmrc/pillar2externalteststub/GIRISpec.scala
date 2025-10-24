@@ -56,8 +56,8 @@ class GIRISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: GIRSubmissionRepository             = app.injector.instanceOf[GIRSubmissionRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  implicit val ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier                       = HeaderCarrier()
+  given ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                   HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -69,7 +69,7 @@ class GIRISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitGIR(pillar2Id: String, request: GIRRequest): HttpResponse =
+  def submitGIR(pillar2Id: String, request: GIRRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/pillar2/test/globe-information-return")
       .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))

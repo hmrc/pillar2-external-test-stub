@@ -59,8 +59,8 @@ class BTNISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: BTNSubmissionRepository             = app.injector.instanceOf[BTNSubmissionRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  implicit val ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier                       = HeaderCarrier()
+  given ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                   HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -72,7 +72,7 @@ class BTNISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitBTN(pillar2Id: String, request: BTNRequest): HttpResponse =
+  def submitBTN(pillar2Id: String, request: BTNRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
       .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))

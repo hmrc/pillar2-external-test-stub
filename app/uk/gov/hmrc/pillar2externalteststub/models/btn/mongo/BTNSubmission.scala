@@ -77,7 +77,7 @@ object BTNSubmission {
         (__ \ "accountingPeriodFrom").write[LocalDate] and
         (__ \ "accountingPeriodTo").write[LocalDate] and
         (__ \ "submittedAt").write[Instant](mongoInstantFormat)
-    )(unlift(BTNSubmission.unapply))
+    )(submission => (submission._id, submission.pillar2Id, submission.accountingPeriodFrom, submission.accountingPeriodTo, submission.submittedAt))
 
   val mongoFormat: OFormat[BTNSubmission] = OFormat(mongoReads, mongoWrites)
 }

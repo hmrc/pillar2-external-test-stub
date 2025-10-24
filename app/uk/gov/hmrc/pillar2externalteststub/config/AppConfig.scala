@@ -24,5 +24,5 @@ import javax.inject.{Inject, Singleton}
 class AppConfig @Inject() (config: Configuration) {
 
   val appName:                 String = config.get[String]("appName")
-  val defaultDataExpireInDays: Int    = config.get[Int]("defaultDataExpireInDays")
+  val defaultDataExpireInDays: Long   = config.get[Long]("defaultDataExpireInDays")
 }

@@ -128,7 +128,7 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
     }
   }
 
-  private def createRequestWithBody(pillar2Id: String, body: UKTRSubmission, isAmend: Boolean = false) = {
+  def createRequestWithBody(pillar2Id: String, body: UKTRSubmission, isAmend: Boolean = false): FakeRequest[JsValue] = {
     val method = if (isAmend) PUT else POST
     val url    = if (isAmend) "/RESTAdapter/plr/uk-tax-return" else "/RESTAdapter/plr/uk-tax-return"
     FakeRequest(method, url)
@@ -136,12 +136,12 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
       .withBody(Json.toJson(body))
   }
 
-  private def createRequest(pillar2Id: String, body: JsValue) =
+  def createRequest(pillar2Id: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/RESTAdapter/plr/uk-tax-return")
       .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .withBody(body)
 
-  private def createAmendRequest(pillar2Id: String, body: JsValue) =
+  def createAmendRequest(pillar2Id: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(PUT, "/RESTAdapter/plr/uk-tax-return")
       .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
       .withBody(body)

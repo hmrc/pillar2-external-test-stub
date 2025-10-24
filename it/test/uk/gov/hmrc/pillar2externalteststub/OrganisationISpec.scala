@@ -51,8 +51,8 @@ class OrganisationISpec
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: OrganisationRepository = app.injector.instanceOf[OrganisationRepository]
-  implicit val ec:                   ExecutionContext       = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier          = HeaderCarrier()
+  given ec:                   ExecutionContext       = app.injector.instanceOf[ExecutionContext]
+  given hc:                   HeaderCarrier          = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -73,30 +73,30 @@ class OrganisationISpec
     accountingPeriod = testAccountingPeriod
   )
 
-  private def extractOrganisationName(json: JsValue): String =
+  def extractOrganisationName(json: JsValue): String =
     (json \ "organisation" \ "orgDetails" \ "organisationName").as[String]
 
-  private def createOrganisation(id: String, request: TestOrganisationRequest): HttpResponse =
+  def createOrganisation(id: String, request: TestOrganisationRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/pillar2/test/organisation/$id")
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
 
-  private def getOrganisation(id: String): HttpResponse =
+  def getOrganisation(id: String): HttpResponse =
     httpClient
       .get(url"$baseUrl/pillar2/test/organisation/$id")
       .execute[HttpResponse]
       .futureValue
 
-  private def updateOrganisation(id: String, request: TestOrganisationRequest): HttpResponse =
+  def updateOrganisation(id: String, request: TestOrganisationRequest): HttpResponse =
     httpClient
       .put(url"$baseUrl/pillar2/test/organisation/$id")
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
 
-  private def deleteOrganisation(id: String): HttpResponse =
+  def deleteOrganisation(id: String): HttpResponse =
     httpClient
       .delete(url"$baseUrl/pillar2/test/organisation/$id")
       .execute[HttpResponse]

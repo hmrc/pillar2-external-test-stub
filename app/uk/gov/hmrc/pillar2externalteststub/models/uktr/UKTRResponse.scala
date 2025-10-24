@@ -23,16 +23,16 @@ sealed trait UKTRResponse
 case class LiabilitySuccessResponse(success: LiabilityReturnSuccess) extends UKTRResponse
 
 object LiabilitySuccessResponse {
-  implicit val format: OFormat[LiabilitySuccessResponse] = Json.format[LiabilitySuccessResponse]
+  given format: OFormat[LiabilitySuccessResponse] = Json.format[LiabilitySuccessResponse]
 }
 case class NilSuccessResponse(success: NilReturnSuccess) extends UKTRResponse
 
 object NilSuccessResponse {
-  implicit val format: OFormat[NilSuccessResponse] = Json.format[NilSuccessResponse]
+  given format: OFormat[NilSuccessResponse] = Json.format[NilSuccessResponse]
 }
 
 object UKTRResponse {
-  implicit val writes: Writes[UKTRResponse] = Writes {
+  given writes: Writes[UKTRResponse] = Writes {
     case l: LiabilitySuccessResponse => Json.obj("success" -> l.success)
     case n: NilSuccessResponse       => Json.obj("success" -> n.success)
   }

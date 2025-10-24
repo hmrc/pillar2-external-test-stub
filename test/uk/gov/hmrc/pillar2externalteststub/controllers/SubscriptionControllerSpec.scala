@@ -21,6 +21,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.Json
+import play.api.mvc.AnyContentAsEmpty
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -31,11 +32,11 @@ import scala.concurrent.Future
 
 class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with OptionValues with Pillar2DataFixture {
 
-  private def authorizedRequest(plrReference: String) =
+  def authorizedRequest(plrReference: String): FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest(GET, routes.SubscriptionController.retrieveSubscription(plrReference).url)
       .withHeaders(hipHeaders: _*)
 
-  private def unauthorizedRequest(plrReference: String) =
+  def unauthorizedRequest(plrReference: String): FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest(GET, routes.SubscriptionController.retrieveSubscription(plrReference).url)
       .withHeaders(hipHeaders.tail: _*)
 

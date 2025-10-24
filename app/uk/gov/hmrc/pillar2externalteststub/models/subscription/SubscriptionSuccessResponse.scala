@@ -30,7 +30,7 @@ case class SubscriptionSuccessResponse(
 ) extends SubscriptionResponse
 
 object SubscriptionSuccessResponse {
-  implicit val writes: OWrites[SubscriptionSuccessResponse] = Json.writes[SubscriptionSuccessResponse]
+  given writes: OWrites[SubscriptionSuccessResponse] = Json.writes[SubscriptionSuccessResponse]
 
   def successfulDomesticOnlyResponse: SubscriptionSuccessResponse =
     SubscriptionSuccessResponse(

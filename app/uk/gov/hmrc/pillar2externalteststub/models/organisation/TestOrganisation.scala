@@ -66,19 +66,19 @@ case class TestOrganisationWithId(
 }
 
 object OrgDetails {
-  implicit val format: Format[OrgDetails] = Json.format[OrgDetails]
+  given format: Format[OrgDetails] = Json.format[OrgDetails]
 }
 
 object AccountingPeriod {
-  implicit val format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
+  given format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
 }
 
 object AccountStatus {
-  implicit val format: Format[AccountStatus] = Json.format[AccountStatus]
+  given format: Format[AccountStatus] = Json.format[AccountStatus]
 }
 
 object TestOrganisationRequest {
-  implicit val format: Format[TestOrganisationRequest] = Json.format[TestOrganisationRequest]
+  given format: Format[TestOrganisationRequest] = Json.format[TestOrganisationRequest]
 }
 
 object TestOrganisation {
@@ -121,16 +121,16 @@ object TestOrganisation {
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
         (__ \ "accountStatus").read[AccountStatus] and
-        (__ \ "lastUpdated").read[Instant](mongoInstantFormat)
-    )(TestOrganisation.apply _)
+        (__ \ "lastUpdated").read[Instant](using mongoInstantFormat)
+    )(TestOrganisation.apply)
 
   private val mongoWrites: OWrites[TestOrganisation] =
     (
       (__ \ "orgDetails").write[OrgDetails] and
         (__ \ "accountingPeriod").write[AccountingPeriod] and
         (__ \ "accountStatus").write[AccountStatus] and
-        (__ \ "lastUpdated").write(mongoInstantFormat)
-    )(unlift(TestOrganisation.unapply))
+        (__ \ "lastUpdated").write(using mongoInstantFormat)
+    )(testOrg => (testOrg.orgDetails, testOrg.accountingPeriod, testOrg.accountStatus, testOrg.lastUpdated))
 
   val mongoFormat: OFormat[TestOrganisation] = OFormat(mongoReads, mongoWrites)
 
@@ -139,20 +139,20 @@ object TestOrganisation {
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
         (__ \ "accountStatus").read[AccountStatus] and
-        (__ \ "lastUpdated").read[Instant](apiInstantFormat)
-    )(TestOrganisation.apply _)
+        (__ \ "lastUpdated").read[Instant](using apiInstantFormat)
+    )(TestOrganisation.apply)
 
   private val apiWrites: OWrites[TestOrganisation] =
     (
       (__ \ "orgDetails").write[OrgDetails] and
         (__ \ "accountingPeriod").write[AccountingPeriod] and
         (__ \ "accountStatus").write[AccountStatus] and
-        (__ \ "lastUpdated").write(apiInstantFormat)
-    )(unlift(TestOrganisation.unapply))
+        (__ \ "lastUpdated").write(using apiInstantFormat)
+    )(testOrg => (testOrg.orgDetails, testOrg.accountingPeriod, testOrg.accountStatus, testOrg.lastUpdated))
 
-  implicit val format: OFormat[TestOrganisation] = OFormat(apiReads, apiWrites)
+  given format: OFormat[TestOrganisation] = OFormat(apiReads, apiWrites)
 }
 
 object TestOrganisationWithId {
-  implicit val format: Format[TestOrganisationWithId] = Json.format[TestOrganisationWithId]
+  given format: Format[TestOrganisationWithId] = Json.format[TestOrganisationWithId]
 }

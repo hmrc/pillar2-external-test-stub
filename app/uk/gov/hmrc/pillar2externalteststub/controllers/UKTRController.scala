@@ -34,30 +34,30 @@ class UKTRController @Inject() (
   cc:          ControllerComponents,
   authFilter:  AuthActionFilter,
   uktrService: UKTRService
-)(implicit ec: ExecutionContext)
+)(using ec:    ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def submitUKTR: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
+  def submitUKTR: Action[JsValue] = (Action(parse.json) andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { pillar2Id =>
         request.body
           .validate[UKTRSubmission]
           .fold(
             _ => Future.failed(HIPBadRequest()),
-            uktrRequest => uktrService.submitUKTR(pillar2Id, uktrRequest).map(response => Created(Json.toJson(response)(writes)))
+            uktrRequest => uktrService.submitUKTR(pillar2Id, uktrRequest).map(response => Created(Json.toJson(response)(using writes)))
           )
       }
   }
 
-  def amendUKTR: Action[JsValue] = (Action(parse.json) andThen authFilter).async { implicit request =>
+  def amendUKTR: Action[JsValue] = (Action(parse.json) andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { pillar2Id =>
         request.body
           .validate[UKTRSubmission]
           .fold(
             _ => Future.failed(HIPBadRequest()),
-            uktrRequest => uktrService.amendUKTR(pillar2Id, uktrRequest).map(response => Ok(Json.toJson(response)(writes)))
+            uktrRequest => uktrService.amendUKTR(pillar2Id, uktrRequest).map(response => Ok(Json.toJson(response)(using writes)))
           )
       }
   }

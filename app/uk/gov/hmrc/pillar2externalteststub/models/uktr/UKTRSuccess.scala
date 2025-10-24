@@ -22,7 +22,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{generateCharge
 case class LiabilityReturnSuccess(processingDate: String, formBundleNumber: String, chargeReference: String)
 
 object LiabilityReturnSuccess {
-  implicit val format: OFormat[LiabilityReturnSuccess] = Json.format[LiabilityReturnSuccess]
+  given format: OFormat[LiabilityReturnSuccess] = Json.format[LiabilityReturnSuccess]
 
   def successfulUKTRResponse(chargeReference: Option[String] = None): LiabilitySuccessResponse =
     LiabilitySuccessResponse(
@@ -37,7 +37,7 @@ object LiabilityReturnSuccess {
 case class NilReturnSuccess(processingDate: String, formBundleNumber: String)
 
 object NilReturnSuccess {
-  implicit val format: OFormat[NilReturnSuccess] = Json.format[NilReturnSuccess]
+  given format: OFormat[NilReturnSuccess] = Json.format[NilReturnSuccess]
 
   def successfulNilReturnResponse: NilSuccessResponse = NilSuccessResponse(
     NilReturnSuccess(

@@ -24,5 +24,5 @@ import java.time.LocalDate
 case class GIRRequest(accountingPeriodFrom: LocalDate, accountingPeriodTo: LocalDate) extends BaseSubmission
 
 object GIRRequest {
-  implicit val format: OFormat[GIRRequest] = Json.format[GIRRequest]
+  given format: OFormat[GIRRequest] = Json.format[GIRRequest]
 }

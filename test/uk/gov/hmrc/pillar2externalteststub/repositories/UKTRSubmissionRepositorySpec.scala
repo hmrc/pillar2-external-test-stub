@@ -45,7 +45,7 @@ class UKTRSubmissionRepositorySpec
     .overrides(bind[MongoComponent].toInstance(mongoComponent))
     .build()
   val repository: UKTRSubmissionRepository =
-    new UKTRSubmissionRepository(config, mongoComponent)(app.injector.instanceOf[ExecutionContext])
+    new UKTRSubmissionRepository(config, mongoComponent)(using app.injector.instanceOf[ExecutionContext])
 
   def submitLiabilityUktr(chargeReference: Option[String] = None): Future[ObjectId] =
     repository.insert(liabilitySubmission, validPlrId, chargeReference)

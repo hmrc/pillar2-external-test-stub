@@ -35,14 +35,14 @@ class BTNService @Inject() (
   btnRepository:       BTNSubmissionRepository,
   oasRepository:       ObligationsAndSubmissionsRepository,
   organisationService: OrganisationService
-)(implicit ec:         ExecutionContext)
+)(using ec:            ExecutionContext)
     extends Logging {
 
   def submitBTN(pillar2Id: String, request: BTNRequest): Future[Boolean] = {
     logger.info(s"Submitting BTN for pillar2Id: $pillar2Id")
 
     for {
-      validator    <- BTNValidator.btnValidator(pillar2Id)(organisationService, ec)
+      validator    <- BTNValidator.btnValidator(pillar2Id)(using organisationService, ec)
       _            <- validateRequest(validator, request)
       _            <- checkForExistingSubmission(pillar2Id, request)
       submissionId <- btnRepository.insert(pillar2Id, request)
@@ -51,7 +51,7 @@ class BTNService @Inject() (
     } yield true
   }
 
-  private def validateRequest(validator: ValidationRule[BTNRequest], request: BTNRequest): Future[Unit] =
+  def validateRequest(validator: ValidationRule[BTNRequest], request: BTNRequest): Future[Unit] =
     validator.validate(request) match {
       case Valid(_) => Future.successful(())
       case Invalid(errors) =>
@@ -61,7 +61,7 @@ class BTNService @Inject() (
         }
     }
 
-  private def checkForExistingSubmission(pillar2Id: String, request: BTNRequest): Future[Unit] =
+  def checkForExistingSubmission(pillar2Id: String, request: BTNRequest): Future[Unit] =
     oasRepository.findByPillar2Id(pillar2Id, request.accountingPeriodFrom, request.accountingPeriodTo).map { obligationsAndSubmissions =>
       val latestSubmissionInRequestPeriod = obligationsAndSubmissions
         .filter(submission =>

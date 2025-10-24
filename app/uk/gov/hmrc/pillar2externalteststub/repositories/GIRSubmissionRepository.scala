@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class GIRSubmissionRepository @Inject() (
   mongoComponent: MongoComponent,
   config:         AppConfig
-)(implicit ec:    ExecutionContext)
+)(using ec:       ExecutionContext)
     extends PlayMongoRepository[GIRSubmission](
       collectionName = "gir-submissions",
       mongoComponent = mongoComponent,

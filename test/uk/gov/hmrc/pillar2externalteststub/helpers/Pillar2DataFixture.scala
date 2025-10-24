@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 
 trait Pillar2DataFixture {
 
-  implicit class AwaitFuture[T](fut: Future[T]) {
+  extension [T](fut: Future[T]) {
     def shouldFailWith(expected: Throwable): Assertion = {
       val err = Await.result(fut.failed, 5.seconds)
       err shouldBe expected

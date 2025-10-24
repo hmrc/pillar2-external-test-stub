@@ -76,7 +76,7 @@ object GIRSubmission {
         (__ \ "accountingPeriodFrom").write[LocalDate] and
         (__ \ "accountingPeriodTo").write[LocalDate] and
         (__ \ "submittedAt").write[Instant](mongoInstantFormat)
-    )(unlift(GIRSubmission.unapply))
+    )(submission => (submission._id, submission.pillar2Id, submission.accountingPeriodFrom, submission.accountingPeriodTo, submission.submittedAt))
 
   val mongoFormat: OFormat[GIRSubmission] = OFormat(mongoReads, mongoWrites)
 }
