@@ -19,16 +19,7 @@ lazy val microservice = Project(appName, file("."))
     PlayKeys.playDefaultPort := 10055,
     Compile / scalafmtOnCompile := true,
     Test / scalafmtOnCompile := true,
-    libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
-    // Suppress warnings in generated routes files
-    scalacOptions ++= Seq(
-      "-Wconf:src=routes/.*:s", // Suppress warnings in route files
-      "-Wconf:msg=parameter.*is never used:s", // Suppress unused parameter warnings
-      "-Wconf:msg=Flag.*set repeatedly:s",
-      "-Wconf:msg=Setting -Wunused set to all redundantly:s",
-      "-Wconf:msg=Unreachable case except for null.*:s",
-      "-Werror" // Treat all other warnings as errors
-    )
+    libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
   )
   .settings(
     Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
@@ -56,4 +47,14 @@ inThisBuild(
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision
   )
+)
+
+// Suppress warnings in generated routes files
+ThisBuild / scalacOptions ++= Seq(
+  "-Wconf:src=routes/.*:s", // Suppress warnings in route files
+  "-Wconf:msg=parameter.*is never used:s", // Suppress unused parameter warnings
+  "-Wconf:msg=Flag.*set repeatedly:s",
+  "-Wconf:msg=Setting -Wunused set to all redundantly:s",
+  "-Wconf:msg=Unreachable case except for null.*:s",
+  "-Werror" // Treat all other warnings as errors
 )
