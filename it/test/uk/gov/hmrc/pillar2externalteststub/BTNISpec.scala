@@ -98,7 +98,7 @@ class BTNISpec
   "BTN submission endpoint" should {
     "successfully save and retrieve BTN submissions" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
-      when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
+      when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
 
       val response = submitBTN(validPlrId, validBTNRequest)
       response.status shouldBe 201
@@ -113,7 +113,7 @@ class BTNISpec
 
     "fail with TaxObligationAlreadyFulfilled when submitting twice in a row" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
-      when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
+      when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
 
       // First submission should succeed
       val firstResponse = submitBTN(validPlrId, validBTNRequest)
@@ -135,7 +135,7 @@ class BTNISpec
 
     "support only one accountingPeriod per Pillar2 ID" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
-      when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
+      when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
       
       submitBTN(validPlrId, validBTNRequest).status shouldBe 201
 

@@ -64,7 +64,7 @@ class OrganisationService @Inject() (
         repository.delete(pillar2Id).map(_ => ())
     }
 
-  def makeOrganisatonActive(pillar2Id: String): Future[Unit] =
+  def makeOrganisationActive(pillar2Id: String): Future[Unit] =
     repository.findByPillar2Id(pillar2Id).flatMap {
       case None =>
         Future.failed(OrganisationNotFound(pillar2Id))
@@ -77,7 +77,7 @@ class OrganisationService @Inject() (
         }
     }
 
-  def makeOrganisatonInactive(pillar2Id: String): Future[Unit] =
+  def makeOrganisationInactive(pillar2Id: String): Future[Unit] =
     repository.findByPillar2Id(pillar2Id).flatMap {
       case None =>
         Future.failed(OrganisationNotFound(pillar2Id))

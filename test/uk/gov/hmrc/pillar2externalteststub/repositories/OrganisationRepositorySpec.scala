@@ -19,14 +19,14 @@ package uk.gov.hmrc.pillar2externalteststub.repositories
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
-import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
-import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, UKTRDataFixture}
+import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
 import uk.gov.hmrc.pillar2externalteststub.models.organisation._
 
@@ -38,7 +38,8 @@ class OrganisationRepositorySpec
     with IntegrationPatience
     with UKTRDataFixture
     with BTNDataFixture
-    with TestOrgDataFixture {
+    with TestOrgDataFixture
+    with MockitoSugar {
 
   override protected val databaseName: String = "test-organisation-repository"
 

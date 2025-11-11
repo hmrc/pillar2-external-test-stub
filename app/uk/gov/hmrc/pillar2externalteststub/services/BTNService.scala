@@ -47,7 +47,7 @@ class BTNService @Inject() (
       _            <- checkForExistingSubmission(pillar2Id, request)
       submissionId <- btnRepository.insert(pillar2Id, request)
       _            <- oasRepository.insert(request, pillar2Id, submissionId)
-      _            <- organisationService.makeOrganisatonInactive(pillar2Id)
+      _            <- organisationService.makeOrganisationInactive(pillar2Id)
     } yield true
   }
 
