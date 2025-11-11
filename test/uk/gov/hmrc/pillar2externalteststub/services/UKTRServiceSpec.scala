@@ -334,10 +334,10 @@ class UKTRServiceSpec
         }
 
         "should fail when creating a response with an unsupported submission type" in {
-          val weirdSubmission = mock[UKTRSubmission]
+          val invalidSubmission = mock[UKTRSubmission]
 
           intercept[HIPBadRequest] {
-            service.createResponse(weirdSubmission, None)
+            service.createResponse(invalidSubmission, None)
           }
         }
       }
