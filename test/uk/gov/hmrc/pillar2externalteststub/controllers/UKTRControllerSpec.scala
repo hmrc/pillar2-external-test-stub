@@ -73,7 +73,7 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
 
       "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/RESTAdapter/plr/uk-tax-return")
-          .withHeaders(hipHeaders: _*)
+          .withHeaders(hipHeaders*)
           .withBody(validRequestBody)
 
         val result = route(app, request).get
@@ -129,20 +129,20 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
   }
 
   def createRequestWithBody(pillar2Id: String, body: UKTRSubmission, isAmend: Boolean = false): FakeRequest[JsValue] = {
-    val method = if (isAmend) PUT else POST
-    val url    = if (isAmend) "/RESTAdapter/plr/uk-tax-return" else "/RESTAdapter/plr/uk-tax-return"
+    val method = if isAmend then PUT else POST
+    val url    = if isAmend then "/RESTAdapter/plr/uk-tax-return" else "/RESTAdapter/plr/uk-tax-return"
     FakeRequest(method, url)
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .withBody(Json.toJson(body))
   }
 
   def createRequest(pillar2Id: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/RESTAdapter/plr/uk-tax-return")
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .withBody(body)
 
   def createAmendRequest(pillar2Id: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(PUT, "/RESTAdapter/plr/uk-tax-return")
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .withBody(body)
 }

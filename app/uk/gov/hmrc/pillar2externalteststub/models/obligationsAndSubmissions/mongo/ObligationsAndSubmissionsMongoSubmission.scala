@@ -54,9 +54,9 @@ object ObligationsAndSubmissionsMongoSubmission {
     isAmendment: Boolean = false
   ): ObligationsAndSubmissionsMongoSubmission = {
     val submissionType = submission match {
-      case _: UKTRNilReturn | _: UKTRLiabilityReturn => if (isAmendment) SubmissionType.UKTR_AMEND else SubmissionType.UKTR_CREATE
+      case _: UKTRNilReturn | _: UKTRLiabilityReturn => if isAmendment then SubmissionType.UKTR_AMEND else SubmissionType.UKTR_CREATE
       case _: BTNRequest => SubmissionType.BTN
-      case _: ORNRequest => if (isAmendment) SubmissionType.ORN_AMEND else SubmissionType.ORN_CREATE
+      case _: ORNRequest => if isAmendment then SubmissionType.ORN_AMEND else SubmissionType.ORN_CREATE
       case _: GIRRequest => SubmissionType.GIR
       case _ => throw new IllegalArgumentException("Unsupported submission type")
     }

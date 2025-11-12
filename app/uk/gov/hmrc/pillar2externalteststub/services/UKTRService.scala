@@ -45,7 +45,7 @@ class UKTRService @Inject() (
       validator <- getValidator(pillar2Id, request)
       _         <- validateRequest(validator, request)
       _         <- validateNoExistingSubmission(pillar2Id)
-      chargeRef = if (request.isInstanceOf[UKTRLiabilityReturn]) Some(generateChargeReference()) else None
+      chargeRef = if request.isInstanceOf[UKTRLiabilityReturn] then Some(generateChargeReference()) else None
       _ <- processSubmission(pillar2Id, request, chargeRef = chargeRef)
       _ <- organisationService.makeOrganisationActive(pillar2Id)
     } yield createResponse(request, chargeRef)
@@ -59,7 +59,7 @@ class UKTRService @Inject() (
       validator          <- getValidator(pillar2Id, request)
       _                  <- validateRequest(validator, request)
       maybeChargeRef     <- processSubmission(pillar2Id, request, isAmendment = true)
-      chargeRef = if (existingSubmission.chargeReference.isEmpty && request.isInstanceOf[UKTRLiabilityReturn]) maybeChargeRef
+      chargeRef = if existingSubmission.chargeReference.isEmpty && request.isInstanceOf[UKTRLiabilityReturn] then maybeChargeRef
                   else existingSubmission.chargeReference
       _ <- organisationService.makeOrganisationActive(pillar2Id)
     } yield createResponse(request, chargeRef)
@@ -87,7 +87,7 @@ class UKTRService @Inject() (
   def amendmentWindowCheck(pillar2Id: String): Future[Unit] =
     organisationService.getOrganisation(pillar2Id).flatMap { org =>
       val amendmentsAllowed: Boolean = !LocalDate.now.isAfter(getAmendmentDeadline(org.organisation.orgDetails.registrationDate))
-      if (amendmentsAllowed) Future.successful(()) else Future.failed(RequestCouldNotBeProcessed)
+      if amendmentsAllowed then Future.successful(()) else Future.failed(RequestCouldNotBeProcessed)
     }
 
   def validateNoExistingSubmission(pillar2Id: String): Future[Unit] =
@@ -110,7 +110,7 @@ class UKTRService @Inject() (
   ): Future[Option[String]] =
     request match {
       case submission: UKTRSubmission =>
-        if (isAmendment) {
+        if isAmendment then {
           uktrRepository.update(submission, pillar2Id).flatMap { case (objectId, chargeRef) =>
             oasRepository
               .insert(submission, pillar2Id, objectId, isAmendment = true)

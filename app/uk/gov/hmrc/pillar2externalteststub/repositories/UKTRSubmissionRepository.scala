@@ -72,7 +72,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .toFuture()
       .map(_ => document._id)
       .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to ${if (chargeReference.isEmpty) "amend" else "create"} UKTR - ${e.getMessage}"))
+        Future.failed(DatabaseError(s"Failed to ${if chargeReference.isEmpty then "amend" else "create"} UKTR - ${e.getMessage}"))
       }
   }
 
@@ -82,8 +82,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .recoverWith { case _: Exception => throw RequestCouldNotBeProcessed }
       .flatMap { parentSubmission =>
         val chargeReference: Option[String] =
-          if (submission.liabilities.isInstanceOf[Liability] && parentSubmission.chargeReference.isEmpty)
-            Some(generateChargeReference())
+          if submission.liabilities.isInstanceOf[Liability] && parentSubmission.chargeReference.isEmpty then Some(generateChargeReference())
           else parentSubmission.chargeReference
         insert(submission, pillar2Id, chargeReference).map(objectId => (objectId, chargeReference))
       }

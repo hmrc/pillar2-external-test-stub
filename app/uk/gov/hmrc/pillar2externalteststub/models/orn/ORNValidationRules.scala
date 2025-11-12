@@ -35,7 +35,7 @@ object ORNValidationRules {
   def domesticOnlyRule(testOrg: TestOrganisationWithId): ValidationRule[ORNRequest] = {
     val isDomesticOnly = testOrg.organisation.orgDetails.domesticOnly
     ValidationRule[ORNRequest] { request =>
-      if (isDomesticOnly) invalid(ORNValidationError(RequestCouldNotBeProcessed))
+      if isDomesticOnly then invalid(ORNValidationError(RequestCouldNotBeProcessed))
       else valid(request)
     }
   }
@@ -43,7 +43,7 @@ object ORNValidationRules {
   def btnStatusRule(testOrg: TestOrganisationWithId): ValidationRule[ORNRequest] = {
     val isBtnActive = testOrg.organisation.accountStatus.inactive
     ValidationRule[ORNRequest] { request =>
-      if (isBtnActive) invalid(ORNValidationError(RequestCouldNotBeProcessed))
+      if isBtnActive then invalid(ORNValidationError(RequestCouldNotBeProcessed))
       else valid(request)
     }
   }
@@ -51,13 +51,13 @@ object ORNValidationRules {
   def filedDateGIRRule: ValidationRule[ORNRequest] =
     ValidationRule[ORNRequest] { request =>
       val filedGirDateFutureDate = request.filedDateGIR.isAfter(LocalDate.now)
-      if (filedGirDateFutureDate) invalid(ORNValidationError(RequestCouldNotBeProcessed))
+      if filedGirDateFutureDate then invalid(ORNValidationError(RequestCouldNotBeProcessed))
       else valid(request)
     }
 
   def countryISOComplianceRule: ValidationRule[ORNRequest] =
     ValidationRule[ORNRequest] { request =>
-      if (!countryList.contains(request.countryGIR) || !countryList.contains(request.issuingCountryTIN)) {
+      if !countryList.contains(request.countryGIR) || !countryList.contains(request.issuingCountryTIN) then {
         invalid(ORNValidationError(RequestCouldNotBeProcessed))
       } else valid(request)
     }

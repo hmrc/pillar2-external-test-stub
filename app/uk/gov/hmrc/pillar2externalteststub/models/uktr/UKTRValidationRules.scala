@@ -28,7 +28,7 @@ object UKTRValidationRules {
     org: TestOrganisationWithId
   ): ValidationRule[T] =
     ValidationRule[T] { data =>
-      if (data.obligationMTT && org.organisation.orgDetails.domesticOnly) {
+      if data.obligationMTT && org.organisation.orgDetails.domesticOnly then {
         invalid(
           UKTRSubmissionError(
             InvalidReturn

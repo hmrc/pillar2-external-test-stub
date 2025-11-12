@@ -37,7 +37,7 @@ class OrganisationController @Inject() (
     with Logging {
 
   def create(pillar2Id: String): Action[JsValue] = Action.async(parse.json) { request =>
-    if (pillar2Id.trim.isEmpty) {
+    if pillar2Id.trim.isEmpty then {
       Future.failed(EmptyRequestBody)
     } else {
       request.body

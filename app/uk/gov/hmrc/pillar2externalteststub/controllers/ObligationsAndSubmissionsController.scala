@@ -55,7 +55,7 @@ class ObligationsAndSubmissionsController @Inject() (
       (for {
         from <- Future.fromTry(Try(LocalDate.parse(fromDate)))
         to   <- Future.fromTry(Try(LocalDate.parse(toDate)))
-        _ = if (from.isAfter(to)) throw RequestCouldNotBeProcessed
+        _ = if from.isAfter(to) then throw RequestCouldNotBeProcessed
         testOrg        <- organisationService.getOrganisation(pillar2Id)
         oasSubmissions <- oasRepository.findByPillar2Id(pillar2Id, from, to)
       } yield generateHistory(testOrg, oasSubmissions))
@@ -75,7 +75,7 @@ class ObligationsAndSubmissionsController @Inject() (
     val submissionsByPeriod = oasSubmissions.groupBy(_.accountingPeriod)
 
     // If no submissions, return the organisation's default accounting period
-    val accountingPeriodDetails = if (submissionsByPeriod.isEmpty) {
+    val accountingPeriodDetails = if submissionsByPeriod.isEmpty then {
       Seq(
         createAccountingPeriodDetails(
           testOrg.organisation.accountingPeriod.startDate,
@@ -137,7 +137,7 @@ class ObligationsAndSubmissionsController @Inject() (
         .reverse
         .take(MaxNumberOfSubmissions)
 
-      if (filteredSubmissions.isEmpty) None else Some(filteredSubmissions)
+      if filteredSubmissions.isEmpty then None else Some(filteredSubmissions)
     }
 
     val p2TaxReturnSubmissions: Option[Seq[Submission]] = filterSubmissions(
@@ -153,7 +153,7 @@ class ObligationsAndSubmissionsController @Inject() (
     val domesticObligation = Seq(
       Obligation(
         obligationType = UKTR,
-        status = if (p2TaxReturnSubmissions.isEmpty) Open else Fulfilled,
+        status = if p2TaxReturnSubmissions.isEmpty then Open else Fulfilled,
         canAmend = canAmend,
         submissions = p2TaxReturnSubmissions
       )
@@ -162,7 +162,7 @@ class ObligationsAndSubmissionsController @Inject() (
     val obligations: Seq[Obligation] =
       domesticObligation :+ Obligation(
         obligationType = GIR,
-        status = if (girSubmissions.nonEmpty || p2TaxReturnSubmissions.exists(_.head.submissionType == BTN)) Fulfilled else Open,
+        status = if girSubmissions.nonEmpty || p2TaxReturnSubmissions.exists(_.head.submissionType == BTN) then Fulfilled else Open,
         canAmend = true, // always true for GIR
         submissions = girSubmissions
       )

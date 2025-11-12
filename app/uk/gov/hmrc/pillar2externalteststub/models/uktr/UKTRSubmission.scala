@@ -35,7 +35,7 @@ object UKTRSubmission {
 
   given formatUKTRSubmission: Format[UKTRSubmission] = new Format[UKTRSubmission] {
     override def reads(json: JsValue): JsResult[UKTRSubmission] =
-      if ((json \ "liabilities" \ "returnType").isDefined) {
+      if (json \ "liabilities" \ "returnType").isDefined then {
         Json.fromJson[UKTRNilReturn](json)
       } else {
         Json.fromJson[UKTRLiabilityReturn](json)

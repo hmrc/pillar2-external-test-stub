@@ -52,9 +52,9 @@ trait GIRDataFixture extends Pillar2DataFixture {
 
   def createGIRRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/pillar2/test/globe-information-return")
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
       .withBody(body)
 
   def createGIRRequestWithBody(plrId: String, request: GIRRequest): FakeRequest[JsValue] =
-    createGIRRequest(plrId, Json.toJson(request)).withHeaders(hipHeaders: _*)
+    createGIRRequest(plrId, Json.toJson(request)).withHeaders(hipHeaders*)
 }

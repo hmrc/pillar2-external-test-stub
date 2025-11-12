@@ -30,7 +30,7 @@ class AuthActionFilter @Inject() ()(using ec: ExecutionContext) extends ActionFi
 
   override def filter[A](request: Request[A]): Future[Option[Result]] = {
     def validateHeader(header: String, validationFn: String => Boolean): Future[Unit] =
-      if (request.headers.get(header).exists(validationFn)) Future.successful(())
+      if request.headers.get(header).exists(validationFn) then Future.successful(())
       else {
         logger.error(s"Header is missing or invalid: $header")
         Future.failed(HIPBadRequest(s"Header is missing or invalid: $header"))
@@ -42,7 +42,7 @@ class AuthActionFilter @Inject() ()(using ec: ExecutionContext) extends ActionFi
       _ <- validateHeader(xOriginatingSystemHeader, _.equals("MDTP"))
       _ <- validateHeader(xTransmittingSystemHeader, _.equals("HIP"))
       authResult <- {
-        if (request.headers.get(HeaderNames.authorisation).isDefined) Future.successful(None)
+        if request.headers.get(HeaderNames.authorisation).isDefined then Future.successful(None)
         else Future.successful(Some(Unauthorized))
       }
     } yield authResult

@@ -34,11 +34,11 @@ class SubscriptionControllerSpec extends AnyFreeSpec with Matchers with GuiceOne
 
   def authorizedRequest(plrReference: String): FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest(GET, routes.SubscriptionController.retrieveSubscription(plrReference).url)
-      .withHeaders(hipHeaders: _*)
+      .withHeaders(hipHeaders*)
 
   def unauthorizedRequest(plrReference: String): FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest(GET, routes.SubscriptionController.retrieveSubscription(plrReference).url)
-      .withHeaders(hipHeaders.tail: _*)
+      .withHeaders(hipHeaders.tail*)
 
   "SubscriptionController" - {
 

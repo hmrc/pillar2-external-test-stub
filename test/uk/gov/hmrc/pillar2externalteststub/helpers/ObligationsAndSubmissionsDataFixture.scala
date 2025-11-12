@@ -31,7 +31,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
       pillar2Id = validPlrId,
       accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
       submissionType = subtype,
-      ornCountryGir = if (subtype == ORN_CREATE || subtype == ORN_AMEND) Some("US") else None,
+      ornCountryGir = if subtype == ORN_CREATE || subtype == ORN_AMEND then Some("US") else None,
       submittedAt = Instant.now()
     )
 

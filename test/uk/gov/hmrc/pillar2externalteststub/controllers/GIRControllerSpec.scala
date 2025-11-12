@@ -57,7 +57,7 @@ class GIRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/pillar2/test/globe-information-return")
-          .withHeaders(hipHeaders: _*)
+          .withHeaders(hipHeaders*)
           .withBody(validGIRRequestBody)
 
         val result = route(app, request).get

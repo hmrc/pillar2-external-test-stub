@@ -70,7 +70,7 @@ class OrganisationService @Inject() (
         Future.failed(OrganisationNotFound(pillar2Id))
       case Some(orgWithId) =>
         val isInactive = orgWithId.organisation.accountStatus.inactive
-        if (isInactive) {
+        if isInactive then {
           repository.update(orgWithId.copy(organisation = orgWithId.organisation.copy(accountStatus = AccountStatus(inactive = false)))).map(_ => ())
         } else {
           Future.successful(())
@@ -83,7 +83,7 @@ class OrganisationService @Inject() (
         Future.failed(OrganisationNotFound(pillar2Id))
       case Some(orgWithId) =>
         val isInactive = orgWithId.organisation.accountStatus.inactive
-        if (isInactive) {
+        if isInactive then {
           Future.successful(())
         } else {
           repository.update(orgWithId.copy(organisation = orgWithId.organisation.copy(accountStatus = AccountStatus(inactive = true)))).map(_ => ())

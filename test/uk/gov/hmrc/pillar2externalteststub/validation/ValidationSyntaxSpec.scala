@@ -38,12 +38,12 @@ case class TestSubmission(
 
 object TestSubmission {
   val dateValidation: ValidationRule[TestSubmission] = ValidationRule[TestSubmission] { submission =>
-    if (submission.periodEnd.isAfter(submission.periodStart)) valid(submission)
+    if submission.periodEnd.isAfter(submission.periodStart) then valid(submission)
     else invalid(InvalidDateRange("/periodDates", "End date must be after start date"))
   }
 
   val liabilityValidation: ValidationRule[TestSubmission] = ValidationRule[TestSubmission] { submission =>
-    if (submission.liabilities.nonEmpty) valid(submission)
+    if submission.liabilities.nonEmpty then valid(submission)
     else invalid(MandatoryFieldMissing("/liabilities"))
   }
 
@@ -52,7 +52,7 @@ object TestSubmission {
       case (liability, index) if liability.amount < 0 =>
         InvalidAmount(s"/liabilities/$index/amount", liability.amount)
     }
-    if (invalidAmounts.isEmpty) valid(submission)
+    if invalidAmounts.isEmpty then valid(submission)
     else invalidNec(NonEmptyChain.fromSeq(invalidAmounts).get)
   }
 
@@ -61,7 +61,7 @@ object TestSubmission {
 }
 
 class ValidationSyntaxSpec extends AnyWordSpec with Matchers {
-  import syntax._
+  import syntax.*
 
   "ValidationSyntax" should {
     "validate a correct submission" in {

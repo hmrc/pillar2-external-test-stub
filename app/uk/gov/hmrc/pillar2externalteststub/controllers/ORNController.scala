@@ -74,13 +74,13 @@ class ORNController @Inject() (
         for {
           fromDate <- Future.fromTry(Try(LocalDate.parse(from)))
           toDate   <- Future.fromTry(Try(LocalDate.parse(to)))
-          _ = if (fromDate.isAfter(toDate)) throw RequestCouldNotBeProcessed
+          _ = if fromDate.isAfter(toDate) then throw RequestCouldNotBeProcessed
         } yield (fromDate, toDate)
 
       def processORNRequest(pillar2Id: String, from: LocalDate, to: LocalDate): Future[Result] =
         for {
           org <- organisationService.getOrganisation(pillar2Id)
-          _ = if (org.organisation.orgDetails.domesticOnly) throw RequestCouldNotBeProcessed
+          _ = if org.organisation.orgDetails.domesticOnly then throw RequestCouldNotBeProcessed
           submission <- ornService.getORN(pillar2Id, from, to)
           response <- submission match {
                         case Some(sub) => Future.successful(Ok(Json.toJson(ORNGetResponse.fromSubmission(sub))))
@@ -117,7 +117,7 @@ class ORNController @Inject() (
           }
         case Right(_) =>
           logger.info(s"ORN validation succeeded for pillar2Id: $pillar2Id")
-          if (isAmendment) {
+          if isAmendment then {
             ornService
               .amendORN(pillar2Id, request)
               .map(_ => Ok(Json.toJson(ORN_SUCCESS_200)))
