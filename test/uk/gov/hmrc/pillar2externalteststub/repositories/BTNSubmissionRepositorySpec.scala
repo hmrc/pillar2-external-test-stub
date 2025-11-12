@@ -63,7 +63,7 @@ class BTNSubmissionRepositorySpec
   override protected val repository: BTNSubmissionRepository =
     app.injector.instanceOf[BTNSubmissionRepository]
 
-  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   private val testPillar2Id = "XMPLR0000000000"
   private val testRequest = BTNRequest(

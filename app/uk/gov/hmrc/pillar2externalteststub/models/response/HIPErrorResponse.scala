@@ -23,19 +23,19 @@ case class HIPErrorResponse(origin: Origin, response: HIPFailure)
 
 object HIPErrorResponse {
 
-  implicit val format: OFormat[HIPErrorResponse] = Json.format
+  given format: OFormat[HIPErrorResponse] = Json.format
 }
 
 case class HIPFailure(failures: List[HIPError])
 
 object HIPFailure {
-  implicit val format: OFormat[HIPFailure] = Json.format
+  given format: OFormat[HIPFailure] = Json.format
 }
 
 case class HIPError(reason: String, `type`: String)
 
 object HIPError {
-  implicit val format: OFormat[HIPError] = Json.format
+  given format: OFormat[HIPError] = Json.format
 }
 
 sealed trait Origin extends EnumEntry

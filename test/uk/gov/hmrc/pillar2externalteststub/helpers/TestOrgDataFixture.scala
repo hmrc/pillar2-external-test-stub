@@ -26,7 +26,7 @@ import java.time.{Instant, LocalDate}
 
 trait TestOrgDataFixture extends Pillar2DataFixture {
 
-  implicit val mockOrgService: OrganisationService = mock[OrganisationService]
+  given mockOrgService: OrganisationService = mock[OrganisationService]
 
   val orgDetails: OrgDetails = OrgDetails(
     domesticOnly = false,

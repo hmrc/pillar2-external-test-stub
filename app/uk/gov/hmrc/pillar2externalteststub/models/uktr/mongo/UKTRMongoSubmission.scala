@@ -27,5 +27,5 @@ import java.time.Instant
 case class UKTRMongoSubmission(_id: ObjectId, pillar2Id: String, chargeReference: Option[String], data: UKTRSubmission, submittedAt: Instant)
 
 object UKTRMongoSubmission {
-  implicit val format: OFormat[UKTRMongoSubmission] = Json.format[UKTRMongoSubmission]
+  given format: OFormat[UKTRMongoSubmission] = Json.format[UKTRMongoSubmission]
 }

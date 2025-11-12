@@ -21,13 +21,13 @@ import play.api.libs.json.{Json, OFormat}
 case class Failure(code: String, reason: String)
 
 object Failure {
-  implicit val format: OFormat[Failure] = Json.format[Failure]
+  given format: OFormat[Failure] = Json.format[Failure]
 }
 
 case class ErrorResponse(failures: Seq[Failure]) extends SubscriptionResponse
 
 object ErrorResponse {
-  implicit val format: OFormat[ErrorResponse] = Json.format[ErrorResponse]
+  given format: OFormat[ErrorResponse] = Json.format[ErrorResponse]
 }
 
 object NotFoundSubscription {

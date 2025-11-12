@@ -57,7 +57,7 @@ class BTNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/RESTAdapter/plr/below-threshold-notification")
-          .withHeaders(hipHeaders: _*)
+          .withHeaders(hipHeaders*)
           .withBody(validBTNRequestBody)
 
         val result = route(app, request).get

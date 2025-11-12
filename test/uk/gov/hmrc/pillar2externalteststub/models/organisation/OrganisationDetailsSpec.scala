@@ -47,7 +47,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
         }
       """)
 
-      json.validate[OrgDetails]            shouldBe a[JsSuccess[_]]
+      json.validate[OrgDetails]            shouldBe a[JsSuccess[?]]
       json.as[OrgDetails].organisationName shouldBe "Test Org"
     }
   }
@@ -74,7 +74,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
         }
       """)
 
-      json.validate[AccountingPeriod]     shouldBe a[JsSuccess[_]]
+      json.validate[AccountingPeriod]     shouldBe a[JsSuccess[?]]
       json.as[AccountingPeriod].startDate shouldBe LocalDate.of(2024, 1, 1)
     }
   }
@@ -132,7 +132,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
         }
       """)
 
-      json.validate[TestOrganisation](TestOrganisation.mongoFormat) shouldBe a[JsSuccess[_]]
+      json.validate[TestOrganisation](TestOrganisation.mongoFormat) shouldBe a[JsSuccess[?]]
       val parsed = json.as[TestOrganisation](TestOrganisation.mongoFormat)
       parsed.orgDetails.organisationName   shouldBe "Test Org"
       parsed.lastUpdated                   shouldBe fixedInstant

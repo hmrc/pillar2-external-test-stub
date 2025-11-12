@@ -53,7 +53,7 @@ class BTNServiceSpec
 
   private val mockBtnRepository = mock[BTNSubmissionRepository]
   private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
-  protected val service         = new BTNService(mockBtnRepository, mockOasRepository, mockOrgService)(global)
+  protected val service         = new BTNService(mockBtnRepository, mockOasRepository, mockOrgService)(using global)
 
   "BTNService" should {
     "submitBTN" should {
@@ -101,7 +101,7 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
-        when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId)))
+        when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId)))
           .thenReturn(Future.successful(()))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
@@ -119,7 +119,7 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
-        when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId)))
+        when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId)))
           .thenReturn(Future.successful(()))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
@@ -137,7 +137,7 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
-        when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId)))
+        when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId)))
           .thenReturn(Future.successful(()))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)
@@ -155,7 +155,7 @@ class BTNServiceSpec
           .thenReturn(Future.successful(true))
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(domesticOrganisation))
-        when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId)))
+        when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId)))
           .thenReturn(Future.successful(()))
 
         val result = service.submitBTN(validPlrId, validBTNRequest)

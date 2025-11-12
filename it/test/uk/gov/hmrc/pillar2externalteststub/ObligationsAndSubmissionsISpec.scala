@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub
 
+import org.mongodb.scala.SingleObservableFuture
 import org.mongodb.scala.bson.ObjectId
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
@@ -25,19 +26,18 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.{TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, OrganisationRepository}
 
-import java.time.Instant
+import java.time.{Instant, LocalDate}
 import scala.concurrent.ExecutionContext
-import java.time.LocalDate
 
 class ObligationsAndSubmissionsISpec
     extends AnyWordSpec
@@ -56,8 +56,8 @@ class ObligationsAndSubmissionsISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository:  ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
   private val organisationRepository: OrganisationRepository              = app.injector.instanceOf[OrganisationRepository]
-  implicit val ec:                    ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                    HeaderCarrier                       = HeaderCarrier()
+  given ec:                    ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                    HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -68,7 +68,7 @@ class ObligationsAndSubmissionsISpec
       )
       .build()
 
-  private def getObligationsAndSubmissions(
+  def getObligationsAndSubmissions(
     pillar2Id: String,
     fromDate:  String = accountingPeriod.startDate.toString,
     toDate:    String = accountingPeriod.endDate.toString
@@ -79,7 +79,7 @@ class ObligationsAndSubmissionsISpec
       .execute[HttpResponse]
       .futureValue
 
-  private def insertSubmission(
+  def insertSubmission(
     pillar2Id:        String,
     submissionType:   SubmissionType,
     accountingPeriod: AccountingPeriod

@@ -42,10 +42,9 @@ object BaseSubmissionValidationRules {
     error: ValidationError
   ): ValidationRule[T] =
     ValidationRule[T] { data =>
-      if (
-        data.accountingPeriodFrom == org.organisation.accountingPeriod.startDate &&
+      if data.accountingPeriodFrom == org.organisation.accountingPeriod.startDate &&
         data.accountingPeriodTo == org.organisation.accountingPeriod.endDate
-      ) {
+      then {
         valid[T](data)
       } else {
         invalid(error)
@@ -56,7 +55,7 @@ object BaseSubmissionValidationRules {
     error: ValidationError
   ): ValidationRule[T] =
     ValidationRule[T] { data =>
-      if (data.accountingPeriodFrom.isBefore(data.accountingPeriodTo)) {
+      if data.accountingPeriodFrom.isBefore(data.accountingPeriodTo) then {
         valid[T](data)
       } else {
         invalid(error)

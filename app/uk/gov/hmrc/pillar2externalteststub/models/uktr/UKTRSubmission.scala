@@ -33,17 +33,17 @@ trait UKTRSubmission extends BaseSubmission {
 
 object UKTRSubmission {
 
-  implicit val formatUKTRSubmission: Format[UKTRSubmission] = new Format[UKTRSubmission] {
+  given formatUKTRSubmission: Format[UKTRSubmission] = new Format[UKTRSubmission] {
     override def reads(json: JsValue): JsResult[UKTRSubmission] =
-      if ((json \ "liabilities" \ "returnType").isDefined) {
+      if (json \ "liabilities" \ "returnType").isDefined then {
         Json.fromJson[UKTRNilReturn](json)
       } else {
         Json.fromJson[UKTRLiabilityReturn](json)
       }
 
     override def writes(o: UKTRSubmission): JsValue = o match {
-      case nil:       UKTRNilReturn       => Json.toJson(nil)(Json.format[UKTRNilReturn])
-      case liability: UKTRLiabilityReturn => Json.toJson(liability)(Json.format[UKTRLiabilityReturn])
+      case nil:       UKTRNilReturn       => Json.toJson(nil)(using Json.format[UKTRNilReturn])
+      case liability: UKTRLiabilityReturn => Json.toJson(liability)(using Json.format[UKTRLiabilityReturn])
       case _ => throw new IllegalStateException("Unknown UKTRSubmission type")
     }
   }

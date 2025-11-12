@@ -28,7 +28,7 @@ case class UPEDetails(
 )
 
 object UPEDetails {
-  implicit val writes: OWrites[UPEDetails] = Json.writes[UPEDetails]
+  given writes: OWrites[UPEDetails] = Json.writes[UPEDetails]
 }
 
 case class AddressDetails(
@@ -40,7 +40,7 @@ case class AddressDetails(
 )
 
 object AddressDetails {
-  implicit val writes: OWrites[AddressDetails] = Json.writes[AddressDetails]
+  given writes: OWrites[AddressDetails] = Json.writes[AddressDetails]
 }
 
 case class ContactDetails(
@@ -50,7 +50,7 @@ case class ContactDetails(
 )
 
 object ContactDetails {
-  implicit val writes: OWrites[ContactDetails] = Json.writes[ContactDetails]
+  given writes: OWrites[ContactDetails] = Json.writes[ContactDetails]
 }
 
 case class FilingMemberDetails(
@@ -61,7 +61,7 @@ case class FilingMemberDetails(
 )
 
 object FilingMemberDetails {
-  implicit val writes: OWrites[FilingMemberDetails] = Json.writes[FilingMemberDetails]
+  given writes: OWrites[FilingMemberDetails] = Json.writes[FilingMemberDetails]
 }
 
 case class AccountingPeriod(
@@ -71,7 +71,7 @@ case class AccountingPeriod(
 )
 
 object AccountingPeriod {
-  implicit val writes: OWrites[AccountingPeriod] = Json.writes[AccountingPeriod]
+  given writes: OWrites[AccountingPeriod] = Json.writes[AccountingPeriod]
 }
 
 case class AccountStatus(
@@ -79,5 +79,5 @@ case class AccountStatus(
 )
 
 object AccountStatus {
-  implicit val writes: OWrites[AccountStatus] = Json.writes[AccountStatus]
+  given writes: OWrites[AccountStatus] = Json.writes[AccountStatus]
 }

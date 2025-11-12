@@ -42,7 +42,7 @@ case class ObligationsAndSubmissionsMongoSubmission(
 case class AccountingPeriod(startDate: LocalDate, endDate: LocalDate)
 
 object AccountingPeriod {
-  implicit val format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
+  given format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
 }
 
 object ObligationsAndSubmissionsMongoSubmission {
@@ -54,9 +54,9 @@ object ObligationsAndSubmissionsMongoSubmission {
     isAmendment: Boolean = false
   ): ObligationsAndSubmissionsMongoSubmission = {
     val submissionType = submission match {
-      case _: UKTRNilReturn | _: UKTRLiabilityReturn => if (isAmendment) SubmissionType.UKTR_AMEND else SubmissionType.UKTR_CREATE
+      case _: UKTRNilReturn | _: UKTRLiabilityReturn => if isAmendment then SubmissionType.UKTR_AMEND else SubmissionType.UKTR_CREATE
       case _: BTNRequest => SubmissionType.BTN
-      case _: ORNRequest => if (isAmendment) SubmissionType.ORN_AMEND else SubmissionType.ORN_CREATE
+      case _: ORNRequest => if isAmendment then SubmissionType.ORN_AMEND else SubmissionType.ORN_CREATE
       case _: GIRRequest => SubmissionType.GIR
       case _ => throw new IllegalArgumentException("Unsupported submission type")
     }
@@ -77,6 +77,6 @@ object ObligationsAndSubmissionsMongoSubmission {
     )
   }
 
-  implicit val format: OFormat[ObligationsAndSubmissionsMongoSubmission] = Json.format[ObligationsAndSubmissionsMongoSubmission]
+  given format: OFormat[ObligationsAndSubmissionsMongoSubmission] = Json.format[ObligationsAndSubmissionsMongoSubmission]
 
 }

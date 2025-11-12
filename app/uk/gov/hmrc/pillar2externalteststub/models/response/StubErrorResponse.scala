@@ -21,5 +21,5 @@ import play.api.libs.json.{Json, OFormat}
 case class StubErrorResponse(code: String, message: String)
 
 object StubErrorResponse {
-  implicit val format: OFormat[StubErrorResponse] = Json.format[StubErrorResponse]
+  given format: OFormat[StubErrorResponse] = Json.format[StubErrorResponse]
 }

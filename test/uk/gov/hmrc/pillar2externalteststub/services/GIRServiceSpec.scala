@@ -52,7 +52,7 @@ class GIRServiceSpec
 
   private val mockGirRepository = mock[GIRSubmissionRepository]
   private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
-  protected val service         = new GIRService(mockGirRepository, mockOasRepository, mockOrgService)(global)
+  protected val service         = new GIRService(mockGirRepository, mockOasRepository, mockOrgService)(using global)
 
   "GIRService" should {
     "submitGIR" should {

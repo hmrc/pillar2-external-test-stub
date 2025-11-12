@@ -60,7 +60,7 @@ class ORNControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
 
       "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/RESTAdapter/plr/overseas-return-notification")
-          .withHeaders(hipHeaders: _*)
+          .withHeaders(hipHeaders*)
           .withBody(validRequestBody)
 
         val result = route(app, request).get

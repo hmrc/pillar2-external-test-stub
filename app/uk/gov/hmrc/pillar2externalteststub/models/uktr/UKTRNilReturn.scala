@@ -36,11 +36,11 @@ case class UKTRNilReturn(
 ) extends UKTRSubmission
 
 object UKTRNilReturn {
-  implicit val UKTRSubmissionNilReturnFormat: OFormat[UKTRNilReturn] = Json.format[UKTRNilReturn]
+  given UKTRSubmissionNilReturnFormat: OFormat[UKTRNilReturn] = Json.format[UKTRNilReturn]
 
   def uktrNilReturnValidator(
-    plrReference:                 String
-  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRNilReturn]] =
+    plrReference:              String
+  )(using organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRNilReturn]] =
     organisationService
       .getOrganisation(plrReference)
       .map { org =>

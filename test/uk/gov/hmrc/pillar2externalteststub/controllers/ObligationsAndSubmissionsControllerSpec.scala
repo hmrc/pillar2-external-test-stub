@@ -27,6 +27,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, JsValue}
+import play.api.mvc.AnyContentAsEmpty
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -93,13 +94,13 @@ class ObligationsAndSubmissionsControllerSpec
       )
       .build()
 
-  private def createRequest(
+  def createRequest(
     plrId:    String = validPlrId,
     fromDate: String = accountingPeriod.startDate.toString,
     toDate:   String = accountingPeriod.endDate.toString
-  ) =
+  ): FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest(GET, routes.ObligationsAndSubmissionsController.getObligationsAndSubmissions(fromDate, toDate).url)
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
 
   "Obligations and Submissions" - {
     "when requesting Obligations and Submissions" - {
@@ -396,8 +397,8 @@ class ObligationsAndSubmissionsControllerSpec
             submissionId = new ObjectId,
             pillar2Id = validPlrId,
             accountingPeriod = accountingPeriod,
-            submissionType = if (i % 2 == 0) UKTR_CREATE else ORN_CREATE,
-            ornCountryGir = if (i % 2 == 0) None else Some("US"),
+            submissionType = if i % 2 == 0 then UKTR_CREATE else ORN_CREATE,
+            ornCountryGir = if i % 2 == 0 then None else Some("US"),
             submittedAt = Instant.parse(f"2024-01-$i%02dT10:00:00Z")
           )
         }
