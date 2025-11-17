@@ -17,8 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.bson.conversions.Bson
-import org.mongodb.scala.model._
-import play.api.libs.json._
+import org.mongodb.scala.model.*
+import play.api.libs.json.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig

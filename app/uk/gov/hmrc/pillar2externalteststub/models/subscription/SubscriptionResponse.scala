@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.subscription
 
-import play.api.libs.json._
+import play.api.libs.json.*
 
 trait SubscriptionResponse
 

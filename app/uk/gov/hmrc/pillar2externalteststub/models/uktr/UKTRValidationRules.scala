@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
