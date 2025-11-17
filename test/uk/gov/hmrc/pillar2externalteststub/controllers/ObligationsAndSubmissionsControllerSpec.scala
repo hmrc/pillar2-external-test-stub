@@ -69,7 +69,6 @@ class ObligationsAndSubmissionsControllerSpec
       case ORN_AMEND          => ornAmendObligationsAndSubmissionsMongoSubmission
       case SubmissionType.GIR => girCreateObligationsAndSubmissionsMongoSubmission
       case BTN                => olderBtnObligationsAndSubmissionsMongoSubmission
-      case _                  => olderBtnObligationsAndSubmissionsMongoSubmission
     }
     when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
       .thenReturn(Future.successful(Seq(fixture)))

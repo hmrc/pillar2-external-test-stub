@@ -20,15 +20,7 @@ lazy val microservice = Project(appName, file("."))
     Compile / scalafmtOnCompile := true,
     Test / scalafmtOnCompile := true,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
-    // Suppress warnings in generated routes files
-    scalacOptions ++= Seq(
-      "-Wconf:src=routes/.*:s", // Suppress warnings in route files
-      "-Wconf:msg=parameter.*is never used:s", // Suppress unused parameter warnings
-      "-Wconf:msg=Flag.*set repeatedly:s",
-      "-Wconf:msg=Setting -Wunused set to all redundantly:s",
-      "-Wconf:msg=Unreachable case except for null.*:s",
-      "-Werror" // Treat all other warnings as errors
-    )
+    compilerSettings
   )
   .settings(
     Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
@@ -51,14 +43,7 @@ lazy val it = project
   )
   .settings(
     libraryDependencies ++= AppDependencies.it,
-    scalacOptions ++= Seq(
-      "-Wconf:src=routes/.*:s", // Suppress warnings in route files
-      "-Wconf:msg=parameter.*is never used:s", // Suppress unused parameter warnings
-      "-Wconf:msg=Flag.*set repeatedly:s",
-      "-Wconf:msg=Setting -Wunused set to all redundantly:s",
-      "-Wconf:msg=Unreachable case except for null.*:s",
-      "-Werror" // Treat all other warnings as errors
-    )
+    compilerSettings
   )
 
 inThisBuild(
@@ -66,4 +51,10 @@ inThisBuild(
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision
   )
+)
+
+lazy val compilerSettings = Seq(
+  scalacOptions ~= (_.distinct),
+  tpolecatCiModeOptions += ScalacOptions.warnOption("conf:src=routes/.*:s"),
+  Test / tpolecatExcludeOptions += ScalacOptions.warnNonUnitStatement
 )

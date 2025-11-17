@@ -123,7 +123,6 @@ class UKTRService @Inject() (
               .map(_ => chargeRef)
           }
         }
-      case _ => Future.failed(HIPBadRequest())
     }
 
   def createResponse(request: UKTRSubmission, existingChargeRef: Option[String]): UKTRResponse = request match {
