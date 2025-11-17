@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.mongodb.scala.bson.ObjectId
-import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.model.Filters.*
 import org.mongodb.scala.model.Indexes.{ascending, compoundIndex}
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
 import play.api.Logging

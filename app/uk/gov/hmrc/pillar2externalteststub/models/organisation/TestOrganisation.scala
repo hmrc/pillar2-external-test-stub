@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.organisation
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate}

@@ -19,11 +19,11 @@ package uk.gov.hmrc.pillar2externalteststub.validation
 import cats.data.NonEmptyChain
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.pillar2externalteststub.validation.models.TestValidationError._
+import uk.gov.hmrc.pillar2externalteststub.validation.models.TestValidationError.*
 
 import java.time.LocalDate
 
-import ValidationResult._
+import ValidationResult.*
 
 case class TestLiability(
   entityName: String,

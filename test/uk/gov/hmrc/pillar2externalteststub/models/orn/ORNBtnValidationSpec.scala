@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ORNDataFixture, TestOrgDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.RequestCouldNotBeProcessed
-import uk.gov.hmrc.pillar2externalteststub.validation.syntax._
+import uk.gov.hmrc.pillar2externalteststub.validation.syntax.*
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

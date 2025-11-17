@@ -17,18 +17,18 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 class UKTRNilReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFixture with MockitoSugar with TestOrgDataFixture {

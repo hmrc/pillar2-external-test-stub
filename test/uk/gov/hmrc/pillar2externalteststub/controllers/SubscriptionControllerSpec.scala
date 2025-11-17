@@ -24,9 +24,9 @@ import play.api.libs.json.Json
 import play.api.mvc.AnyContentAsEmpty
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2DataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.subscription._
+import uk.gov.hmrc.pillar2externalteststub.models.subscription.*
 
 import scala.concurrent.Future
 

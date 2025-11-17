@@ -28,7 +28,7 @@ import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
 import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.DatabaseError
-import uk.gov.hmrc.pillar2externalteststub.models.organisation._
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
 
 class OrganisationRepositorySpec
     extends AnyWordSpec

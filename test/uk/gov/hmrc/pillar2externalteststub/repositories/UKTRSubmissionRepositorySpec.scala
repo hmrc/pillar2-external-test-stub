@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.mongodb.scala.bson.ObjectId
 import org.mongodb.scala.{MongoCollection, SingleObservableFuture}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}

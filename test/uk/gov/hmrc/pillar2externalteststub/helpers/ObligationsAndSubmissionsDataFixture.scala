@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.helpers
 import org.mongodb.scala.bson.ObjectId
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 
 import java.time.Instant

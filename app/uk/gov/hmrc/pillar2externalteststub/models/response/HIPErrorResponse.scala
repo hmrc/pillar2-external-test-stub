@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.response
 
-import enumeratum._
-import play.api.libs.json._
+import enumeratum.*
+import play.api.libs.json.*
 
 case class HIPErrorResponse(origin: Origin, response: HIPFailure)
 

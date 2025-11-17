@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 import org.bson.types.ObjectId
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.when
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -25,16 +25,16 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AmendmentWindow, FirstAccountingPeriodDueDateFromRegistration}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
-import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.*
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 
 import java.time.{Instant, LocalDate}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 class UKTRServiceSpec

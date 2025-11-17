@@ -19,7 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import monocle.PLens
 import monocle.macros.GenLens
 import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.pillar2externalteststub.models.organisation._
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time.{Instant, LocalDate}

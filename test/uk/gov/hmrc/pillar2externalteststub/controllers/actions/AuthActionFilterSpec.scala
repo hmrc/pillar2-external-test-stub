@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2DataFixture
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.*
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 
 import scala.concurrent.ExecutionContext.Implicits.global

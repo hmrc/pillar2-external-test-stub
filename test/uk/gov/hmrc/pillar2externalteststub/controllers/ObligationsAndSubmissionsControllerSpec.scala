@@ -30,7 +30,7 @@ import play.api.libs.json.{JsArray, JsValue}
 import play.api.mvc.AnyContentAsEmpty
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AmendmentWindow, FirstAccountingPeriodDueDateFromRegistration, ServerErrorPlrId}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
@@ -38,8 +38,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalS
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GIR, UKTR}
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType.*
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository

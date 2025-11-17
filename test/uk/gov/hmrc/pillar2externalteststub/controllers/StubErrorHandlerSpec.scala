@@ -35,9 +35,9 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
-import uk.gov.hmrc.pillar2externalteststub.models.error._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
+import uk.gov.hmrc.pillar2externalteststub.models.error.*
 import uk.gov.hmrc.pillar2externalteststub.models.response.HIPErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.models.response.Origin.HIP
 
