@@ -36,10 +36,10 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AmendmentWindo
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GIR, UKTR}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType.*
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository

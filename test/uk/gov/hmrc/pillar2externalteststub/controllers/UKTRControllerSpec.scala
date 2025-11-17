@@ -30,9 +30,9 @@ import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.*
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.*
 import uk.gov.hmrc.pillar2externalteststub.services.UKTRService
 
 import scala.concurrent.Future

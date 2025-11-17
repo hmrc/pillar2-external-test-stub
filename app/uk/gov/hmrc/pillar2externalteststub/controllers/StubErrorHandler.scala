@@ -21,10 +21,10 @@ import play.api.http.HttpErrorHandler
 import play.api.libs.json.Json
 import play.api.mvc.Results.Status
 import play.api.mvc.{RequestHeader, Result, Results}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
 import uk.gov.hmrc.pillar2externalteststub.models.error.*
-import uk.gov.hmrc.pillar2externalteststub.models.response.Origin.HIP
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
 import uk.gov.hmrc.pillar2externalteststub.models.response.*
+import uk.gov.hmrc.pillar2externalteststub.models.response.Origin.HIP
 
 import javax.inject.Singleton
 import scala.concurrent.Future

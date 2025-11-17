@@ -21,8 +21,8 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.*
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRResponse.writes
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.*
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRResponse.writes
 import uk.gov.hmrc.pillar2externalteststub.services.UKTRService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
