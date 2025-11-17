@@ -20,7 +20,7 @@ import play.api.i18n.Lang.logger
 import play.api.mvc.Results.Unauthorized
 import play.api.mvc.{ActionFilter, Request, Result}
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.*
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 
 import javax.inject.Inject

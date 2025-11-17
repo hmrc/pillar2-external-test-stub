@@ -18,11 +18,11 @@ package uk.gov.hmrc.pillar2externalteststub.services
 
 import play.api.Logging
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{generateChargeReference, getAmendmentDeadline}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr.*
+import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule

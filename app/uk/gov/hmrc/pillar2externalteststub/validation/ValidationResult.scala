@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.validation
 import cats.data.{NonEmptyChain, ValidatedNec}
-import cats.implicits.*
+import cats.implicits._
 
 object ValidationResult {
   type ValidationResult[A] = ValidatedNec[ValidationError, A]

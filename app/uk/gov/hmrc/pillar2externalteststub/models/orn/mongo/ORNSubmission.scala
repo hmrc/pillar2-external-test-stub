@@ -17,8 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.models.orn.mongo
 
 import org.bson.types.ObjectId
-import play.api.libs.functional.syntax.*
-import play.api.libs.json.*
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoFormats
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.validation
 
-import ValidationResult.*
+import ValidationResult._
 trait ValidationSyntax {
   extension [A](value: A) {
     def validate(using rule: ValidationRule[A]): ValidationResult[A] =

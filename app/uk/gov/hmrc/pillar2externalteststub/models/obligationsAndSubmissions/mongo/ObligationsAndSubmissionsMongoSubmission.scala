@@ -17,13 +17,13 @@
 package uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo
 
 import org.bson.types.ObjectId
-import play.api.libs.json.*
-import uk.gov.hmrc.mongo.play.json.formats.MongoFormats.Implicits.*
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.Implicits.*
+import play.api.libs.json._
+import uk.gov.hmrc.mongo.play.json.formats.MongoFormats.Implicits._
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.Implicits._
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.*
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.{UKTRLiabilityReturn, UKTRNilReturn}
 

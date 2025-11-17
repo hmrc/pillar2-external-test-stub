@@ -19,7 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.models.orn
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules.{accountingPeriodMatchesOrgRule, accountingPeriodSanityCheckRule}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{InvalidReturn, NoActiveSubscription}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
-import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNValidationRules.*
+import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNValidationRules._
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.invalid
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}

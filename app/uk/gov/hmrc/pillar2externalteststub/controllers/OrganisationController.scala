@@ -18,7 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.*
+import play.api.mvc._
 import uk.gov.hmrc.pillar2externalteststub.models.error.{EmptyRequestBody, InvalidJson}
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.{TestOrganisation, TestOrganisationRequest}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
