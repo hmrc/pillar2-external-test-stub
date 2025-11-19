@@ -4,13 +4,13 @@ import uk.gov.hmrc.DefaultBuildSettings
 
 val appName = "pillar2-external-test-stub"
 
-ThisBuild / scalaVersion := "2.13.16"
+ThisBuild / scalaVersion := "3.3.5"
 ThisBuild / majorVersion := 0
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) // Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  .settings(CodeCoverageSettings.settings *)
+  .settings(CodeCoverageSettings.settings*)
   .settings(
     ScoverageKeys.coverageExcludedFiles := ".*models.*;.*package.*;.*config.*;.*helpers.*",
     ScoverageKeys.coverageMinimumStmtTotal := 90,
@@ -20,12 +20,7 @@ lazy val microservice = Project(appName, file("."))
     Compile / scalafmtOnCompile := true,
     Test / scalafmtOnCompile := true,
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
-    // Suppress warnings in generated routes files
-    scalacOptions ++= Seq(
-      "-Wconf:src=routes/.*:s", // Suppress warnings in route files
-      "-Wconf:msg=parameter.*is never used:s", // Suppress unused parameter warnings
-      "-Werror" // Treat all other warnings as errors
-    )
+    compilerSettings
   )
   .settings(
     Compile / unmanagedResourceDirectories += baseDirectory.value / "resources",
@@ -35,6 +30,7 @@ lazy val microservice = Project(appName, file("."))
 
 addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
 addCommandAlias("lint", ";scalafmtAll;scalafmtSbt;scalafixAll")
+addCommandAlias("prePush", "reload;clean;compile;test;lint")
 
 lazy val it = project
   .enablePlugins(play.sbt.PlayScala)
@@ -45,11 +41,20 @@ lazy val it = project
       ScalacOptions.warnNonUnitStatement
     )
   )
-  .settings(libraryDependencies ++= AppDependencies.it)
+  .settings(
+    libraryDependencies ++= AppDependencies.it,
+    compilerSettings
+  )
 
 inThisBuild(
   List(
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision
   )
+)
+
+lazy val compilerSettings = Seq(
+  scalacOptions ~= (_.distinct),
+  tpolecatCiModeOptions += ScalacOptions.warnOption("conf:src=routes/.*:s"),
+  Test / tpolecatExcludeOptions += ScalacOptions.warnNonUnitStatement
 )

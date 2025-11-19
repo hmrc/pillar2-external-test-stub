@@ -18,15 +18,15 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import play.api.Logging
 import play.api.libs.json.Json
-import play.api.mvc._
+import play.api.mvc.*
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.*
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GIR, UKTR}
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.ObligationsAndSubmissionsMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
@@ -46,16 +46,16 @@ class ObligationsAndSubmissionsController @Inject() (
   cc:                  ControllerComponents,
   organisationService: OrganisationService,
   oasRepository:       ObligationsAndSubmissionsRepository
-)(implicit ec:         ExecutionContext)
+)(using ec:            ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def getObligationsAndSubmissions(fromDate: String, toDate: String): Action[AnyContent] = (Action andThen authFilter).async { implicit request =>
+  def getObligationsAndSubmissions(fromDate: String, toDate: String): Action[AnyContent] = (Action andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap { pillar2Id =>
       (for {
         from <- Future.fromTry(Try(LocalDate.parse(fromDate)))
         to   <- Future.fromTry(Try(LocalDate.parse(toDate)))
-        _ = if (from.isAfter(to)) throw RequestCouldNotBeProcessed
+        _ = if from.isAfter(to) then throw RequestCouldNotBeProcessed
         testOrg        <- organisationService.getOrganisation(pillar2Id)
         oasSubmissions <- oasRepository.findByPillar2Id(pillar2Id, from, to)
       } yield generateHistory(testOrg, oasSubmissions))
@@ -70,12 +70,12 @@ class ObligationsAndSubmissionsController @Inject() (
     }
   }
 
-  private def generateHistory(testOrg: TestOrganisationWithId, oasSubmissions: Seq[ObligationsAndSubmissionsMongoSubmission]): Result = {
+  def generateHistory(testOrg: TestOrganisationWithId, oasSubmissions: Seq[ObligationsAndSubmissionsMongoSubmission]): Result = {
     // Group submissions by accounting period
     val submissionsByPeriod = oasSubmissions.groupBy(_.accountingPeriod)
 
     // If no submissions, return the organisation's default accounting period
-    val accountingPeriodDetails = if (submissionsByPeriod.isEmpty) {
+    val accountingPeriodDetails = if submissionsByPeriod.isEmpty then {
       Seq(
         createAccountingPeriodDetails(
           testOrg.organisation.accountingPeriod.startDate,
@@ -110,14 +110,14 @@ class ObligationsAndSubmissionsController @Inject() (
     )
   }
 
-  private def toSubmission(submission: ObligationsAndSubmissionsMongoSubmission): Submission =
+  def toSubmission(submission: ObligationsAndSubmissionsMongoSubmission): Submission =
     Submission(
       submissionType = submission.submissionType,
       receivedDate = submission.submittedAt.atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS),
       country = submission.ornCountryGir
     )
 
-  private def createAccountingPeriodDetails(
+  def createAccountingPeriodDetails(
     startDate:    LocalDate,
     endDate:      LocalDate,
     regDate:      LocalDate,
@@ -137,7 +137,7 @@ class ObligationsAndSubmissionsController @Inject() (
         .reverse
         .take(MaxNumberOfSubmissions)
 
-      if (filteredSubmissions.isEmpty) None else Some(filteredSubmissions)
+      if filteredSubmissions.isEmpty then None else Some(filteredSubmissions)
     }
 
     val p2TaxReturnSubmissions: Option[Seq[Submission]] = filterSubmissions(
@@ -153,7 +153,7 @@ class ObligationsAndSubmissionsController @Inject() (
     val domesticObligation = Seq(
       Obligation(
         obligationType = UKTR,
-        status = if (p2TaxReturnSubmissions.isEmpty) Open else Fulfilled,
+        status = if p2TaxReturnSubmissions.isEmpty then Open else Fulfilled,
         canAmend = canAmend,
         submissions = p2TaxReturnSubmissions
       )
@@ -162,7 +162,7 @@ class ObligationsAndSubmissionsController @Inject() (
     val obligations: Seq[Obligation] =
       domesticObligation :+ Obligation(
         obligationType = GIR,
-        status = if (girSubmissions.nonEmpty || p2TaxReturnSubmissions.exists(_.head.submissionType == BTN)) Fulfilled else Open,
+        status = if girSubmissions.nonEmpty || p2TaxReturnSubmissions.exists(_.head.submissionType == BTN) then Fulfilled else Open,
         canAmend = true, // always true for GIR
         submissions = girSubmissions
       )

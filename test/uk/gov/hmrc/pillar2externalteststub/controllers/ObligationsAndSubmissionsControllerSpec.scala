@@ -27,18 +27,19 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, JsValue}
+import play.api.mvc.AnyContentAsEmpty
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AmendmentWindow, FirstAccountingPeriodDueDateFromRegistration, ServerErrorPlrId}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationStatus.{Fulfilled, Open}
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.ObligationType.{GIR, UKTR}
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions._
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
@@ -68,7 +69,6 @@ class ObligationsAndSubmissionsControllerSpec
       case ORN_AMEND          => ornAmendObligationsAndSubmissionsMongoSubmission
       case SubmissionType.GIR => girCreateObligationsAndSubmissionsMongoSubmission
       case BTN                => olderBtnObligationsAndSubmissionsMongoSubmission
-      case _                  => olderBtnObligationsAndSubmissionsMongoSubmission
     }
     when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
       .thenReturn(Future.successful(Seq(fixture)))
@@ -93,13 +93,13 @@ class ObligationsAndSubmissionsControllerSpec
       )
       .build()
 
-  private def createRequest(
+  def createRequest(
     plrId:    String = validPlrId,
     fromDate: String = accountingPeriod.startDate.toString,
     toDate:   String = accountingPeriod.endDate.toString
-  ) =
+  ): FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest(GET, routes.ObligationsAndSubmissionsController.getObligationsAndSubmissions(fromDate, toDate).url)
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
 
   "Obligations and Submissions" - {
     "when requesting Obligations and Submissions" - {
@@ -396,8 +396,8 @@ class ObligationsAndSubmissionsControllerSpec
             submissionId = new ObjectId,
             pillar2Id = validPlrId,
             accountingPeriod = accountingPeriod,
-            submissionType = if (i % 2 == 0) UKTR_CREATE else ORN_CREATE,
-            ornCountryGir = if (i % 2 == 0) None else Some("US"),
+            submissionType = if i % 2 == 0 then UKTR_CREATE else ORN_CREATE,
+            ornCountryGir = if i % 2 == 0 then None else Some("US"),
             submittedAt = Instant.parse(f"2024-01-$i%02dT10:00:00Z")
           )
         }

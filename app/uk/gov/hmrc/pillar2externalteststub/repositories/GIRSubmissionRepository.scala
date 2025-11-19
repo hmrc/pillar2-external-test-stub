@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.bson.types.ObjectId
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class GIRSubmissionRepository @Inject() (
   mongoComponent: MongoComponent,
   config:         AppConfig
-)(implicit ec:    ExecutionContext)
+)(using ec:       ExecutionContext)
     extends PlayMongoRepository[GIRSubmission](
       collectionName = "gir-submissions",
       mongoComponent = mongoComponent,

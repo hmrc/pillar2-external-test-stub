@@ -19,7 +19,6 @@ package uk.gov.hmrc.pillar2externalteststub.models.gir
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoActiveSubscription, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
-import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.invalid
 import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}

@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import play.api.mvc.Results
 import play.api.test.FakeRequest
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2DataFixture
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.*
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,23 +34,23 @@ class AuthActionFilterSpec extends AnyWordSpec with Matchers with ScalaFutures w
 
   "AuthActionFilter" should {
     "allow request with valid headers" in {
-      val request = FakeRequest().withHeaders(hipHeaders: _*)
+      val request = FakeRequest().withHeaders(hipHeaders*)
       authActionFilter.filter(request).futureValue shouldBe None
     }
 
     "return Unauthorized when Authorization header is missing" in {
-      val request = FakeRequest().withHeaders(hipHeaders.tail: _*)
+      val request = FakeRequest().withHeaders(hipHeaders.tail*)
       authActionFilter.filter(request).futureValue shouldBe Some(Results.Unauthorized)
     }
 
     "throw ETMPBadRequest" when {
       def testHeader(header: String, invalidValue: String = ""): Assertion = {
-        val headers = if (invalidValue.isEmpty) {
+        val headers = if invalidValue.isEmpty then {
           hipHeaders.filterNot(_._1 == header)
         } else {
           hipHeaders.filterNot(_._1 == header) :+ (header -> invalidValue)
         }
-        authActionFilter.filter(FakeRequest().withHeaders(headers: _*)) shouldFailWith HIPBadRequest(s"Header is missing or invalid: $header")
+        authActionFilter.filter(FakeRequest().withHeaders(headers*)) shouldFailWith HIPBadRequest(s"Header is missing or invalid: $header")
       }
 
       "correlationid is missing" in {

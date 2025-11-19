@@ -17,8 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.models.orn.mongo
 
 import org.bson.types.ObjectId
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import uk.gov.hmrc.mongo.play.json.formats.MongoFormats
 import uk.gov.hmrc.pillar2externalteststub.models.orn.ORNRequest
 
@@ -82,7 +82,7 @@ object ORNSubmission {
         (__ \ "TIN").read[String] and
         (__ \ "issuingCountryTIN").read[String] and
         (__ \ "submittedAt").read[Instant](mongoInstantFormat)
-    )(ORNSubmission.apply _)
+    )(ORNSubmission.apply)
 
   private val mongoWrites: OWrites[ORNSubmission] =
     (
@@ -96,7 +96,20 @@ object ORNSubmission {
         (__ \ "TIN").write[String] and
         (__ \ "issuingCountryTIN").write[String] and
         (__ \ "submittedAt").write[Instant](mongoInstantFormat)
-    )(unlift(ORNSubmission.unapply))
+    )(submission =>
+      (
+        submission._id,
+        submission.pillar2Id,
+        submission.accountingPeriodFrom,
+        submission.accountingPeriodTo,
+        submission.filedDateGIR,
+        submission.countryGIR,
+        submission.reportingEntityName,
+        submission.TIN,
+        submission.issuingCountryTIN,
+        submission.submittedAt
+      )
+    )
 
   val mongoFormat: OFormat[ORNSubmission] = OFormat(mongoReads, mongoWrites)
 }

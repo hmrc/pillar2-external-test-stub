@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
-import play.api.mvc.Results._
+import play.api.mvc.Results.*
+import uk.gov.hmrc.pillar2externalteststub.models.subscription.*
 import uk.gov.hmrc.pillar2externalteststub.models.subscription.SubscriptionSuccessResponse.{successfulDomesticOnlyResponse, successfulNonDomesticResponse}
-import uk.gov.hmrc.pillar2externalteststub.models.subscription._
 
 object SubscriptionHelper {
   def isDomesticOnly(plrReference: String): Boolean =

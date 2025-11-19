@@ -27,7 +27,7 @@ import uk.gov.hmrc.pillar2externalteststub.validation.{FailFast, ValidationRule}
 import scala.concurrent.{ExecutionContext, Future}
 object BTNValidator {
 
-  private def underEnquiryRule(org: TestOrganisationWithId): ValidationRule[BTNRequest] =
+  def underEnquiryRule(org: TestOrganisationWithId): ValidationRule[BTNRequest] =
     ValidationRule[BTNRequest] { request =>
       org.organisation.accountingPeriod.underEnquiry match {
         case Some(true) => invalid(BTNValidationError(AccountingPeriodUnderEnquiry))

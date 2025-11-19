@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.{invalid, valid}
 import uk.gov.hmrc.pillar2externalteststub.validation.ValidationRule
@@ -28,7 +28,7 @@ object UKTRValidationRules {
     org: TestOrganisationWithId
   ): ValidationRule[T] =
     ValidationRule[T] { data =>
-      if (data.obligationMTT && org.organisation.orgDetails.domesticOnly) {
+      if data.obligationMTT && org.organisation.orgDetails.domesticOnly then {
         invalid(
           UKTRSubmissionError(
             InvalidReturn

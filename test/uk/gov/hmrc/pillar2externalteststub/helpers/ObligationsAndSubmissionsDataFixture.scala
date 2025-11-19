@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.helpers
 import org.mongodb.scala.bson.ObjectId
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
-import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType._
+import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType.*
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.{AccountingPeriod, ObligationsAndSubmissionsMongoSubmission}
 
 import java.time.Instant
@@ -31,7 +31,7 @@ trait ObligationsAndSubmissionsDataFixture extends Pillar2DataFixture {
       pillar2Id = validPlrId,
       accountingPeriod = AccountingPeriod(accountingPeriod.startDate, accountingPeriod.endDate),
       submissionType = subtype,
-      ornCountryGir = if (subtype == ORN_CREATE || subtype == ORN_AMEND) Some("US") else None,
+      ornCountryGir = if subtype == ORN_CREATE || subtype == ORN_AMEND then Some("US") else None,
       submittedAt = Instant.now()
     )
 

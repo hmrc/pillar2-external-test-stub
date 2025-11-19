@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.bson.types.ObjectId
-import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.model.Filters.*
 import org.mongodb.scala.model.Indexes.descending
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
@@ -35,7 +35,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
+class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: MongoComponent)(using ec: ExecutionContext)
     extends PlayMongoRepository[UKTRMongoSubmission](
       collectionName = "uktr-submissions",
       mongoComponent = mongoComponent,
@@ -72,7 +72,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .toFuture()
       .map(_ => document._id)
       .recoverWith { case e: Exception =>
-        Future.failed(DatabaseError(s"Failed to ${if (chargeReference.isEmpty) "amend" else "create"} UKTR - ${e.getMessage}"))
+        Future.failed(DatabaseError(s"Failed to ${if chargeReference.isEmpty then "amend" else "create"} UKTR - ${e.getMessage}"))
       }
   }
 
@@ -82,8 +82,7 @@ class UKTRSubmissionRepository @Inject() (config: AppConfig, mongoComponent: Mon
       .recoverWith { case _: Exception => throw RequestCouldNotBeProcessed }
       .flatMap { parentSubmission =>
         val chargeReference: Option[String] =
-          if (submission.liabilities.isInstanceOf[Liability] && parentSubmission.chargeReference.isEmpty)
-            Some(generateChargeReference())
+          if submission.liabilities.isInstanceOf[Liability] && parentSubmission.chargeReference.isEmpty then Some(generateChargeReference())
           else parentSubmission.chargeReference
         insert(submission, pillar2Id, chargeReference).map(objectId => (objectId, chargeReference))
       }

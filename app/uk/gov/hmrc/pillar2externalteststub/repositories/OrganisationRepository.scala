@@ -17,8 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.repositories
 
 import org.bson.conversions.Bson
-import org.mongodb.scala.model._
-import play.api.libs.json._
+import org.mongodb.scala.model.*
+import play.api.libs.json.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
@@ -38,19 +38,19 @@ class OrganisationRepository @Inject() (
   oasRepository:  ObligationsAndSubmissionsRepository,
   ornRepository:  ORNSubmissionRepository,
   girRepository:  GIRSubmissionRepository
-)(implicit ec:    ExecutionContext)
+)(using ec:       ExecutionContext)
     extends PlayMongoRepository[TestOrganisationWithId](
       collectionName = "organisation",
       mongoComponent = mongoComponent,
       domainFormat = new Format[TestOrganisationWithId] {
         def reads(json: JsValue): JsResult[TestOrganisationWithId] = for {
           pillar2Id    <- (json \ "pillar2Id").validate[String]
-          organisation <- (json \ "organisation").validate[TestOrganisation](TestOrganisation.mongoFormat)
+          organisation <- (json \ "organisation").validate[TestOrganisation](using TestOrganisation.mongoFormat)
         } yield TestOrganisationWithId(pillar2Id, organisation)
 
         def writes(o: TestOrganisationWithId): JsValue = Json.obj(
           "pillar2Id"    -> o.pillar2Id,
-          "organisation" -> Json.toJson(o.organisation)(TestOrganisation.mongoFormat)
+          "organisation" -> Json.toJson(o.organisation)(using TestOrganisation.mongoFormat)
         )
       },
       indexes = Seq(
@@ -67,7 +67,7 @@ class OrganisationRepository @Inject() (
       )
     ) {
 
-  private def byPillar2Id(pillar2Id: String): Bson = Filters.equal("pillar2Id", pillar2Id)
+  def byPillar2Id(pillar2Id: String): Bson = Filters.equal("pillar2Id", pillar2Id)
 
   def insert(details: TestOrganisationWithId): Future[Boolean] =
     collection

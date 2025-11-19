@@ -17,8 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.models.btn.mongo
 
 import org.bson.types.ObjectId
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import uk.gov.hmrc.mongo.play.json.formats.MongoFormats
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 
@@ -77,7 +77,7 @@ object BTNSubmission {
         (__ \ "accountingPeriodFrom").write[LocalDate] and
         (__ \ "accountingPeriodTo").write[LocalDate] and
         (__ \ "submittedAt").write[Instant](mongoInstantFormat)
-    )(unlift(BTNSubmission.unapply))
+    )(submission => (submission._id, submission.pillar2Id, submission.accountingPeriodFrom, submission.accountingPeriodTo, submission.submittedAt))
 
   val mongoFormat: OFormat[BTNSubmission] = OFormat(mongoReads, mongoWrites)
 }

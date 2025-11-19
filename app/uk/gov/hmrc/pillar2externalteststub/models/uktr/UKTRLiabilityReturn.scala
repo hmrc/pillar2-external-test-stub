@@ -18,7 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.models.uktr
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmissionValidationRules.{accountingPeriodMatchesOrgRule, accountingPeriodSanityCheckRule}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.error.OrganisationNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
@@ -39,13 +39,12 @@ case class UKTRLiabilityReturn(
 
 object UKTRLiabilityReturn {
 
-  implicit val uktrSubmissionDataFormat: OFormat[UKTRLiabilityReturn] = Json.format[UKTRLiabilityReturn]
+  given uktrSubmissionDataFormat: OFormat[UKTRLiabilityReturn] = Json.format[UKTRLiabilityReturn]
 
   private[uktr] val totalLiabilityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
     val totalLiability = data.liabilities.totalLiabilityDTT + data.liabilities.totalLiabilityIIR + data.liabilities.totalLiabilityUTPR
 
-    if (data.liabilities.totalLiability == totalLiability)
-      valid[UKTRLiabilityReturn](data)
+    if data.liabilities.totalLiability == totalLiability then valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(InvalidTotalLiability)
@@ -59,8 +58,7 @@ object UKTRLiabilityReturn {
 
     val declaredTotal = data.liabilities.totalLiabilityDTT
 
-    if (declaredTotal > 0 && declaredTotal == totalDTTAmountOwed)
-      valid[UKTRLiabilityReturn](data)
+    if declaredTotal > 0 && declaredTotal == totalDTTAmountOwed then valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -76,8 +74,7 @@ object UKTRLiabilityReturn {
     val totalIIR                     = data.liabilities.totalLiabilityIIR
     val notMTTLiableYetPositiveTotal = org.organisation.orgDetails.domesticOnly && !data.obligationMTT && totalIIR != 0
 
-    if (!notMTTLiableYetPositiveTotal && totalIIR == totalIIRAmountOwed)
-      valid[UKTRLiabilityReturn](data)
+    if !notMTTLiableYetPositiveTotal && totalIIR == totalIIRAmountOwed then valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(InvalidTotalLiabilityIIR)
@@ -91,8 +88,7 @@ object UKTRLiabilityReturn {
     val totalUTPR                    = data.liabilities.totalLiabilityUTPR
     val notMTTLiableYetPositiveTotal = org.organisation.orgDetails.domesticOnly && !data.obligationMTT && totalUTPR != 0
 
-    if (!notMTTLiableYetPositiveTotal && totalUTPR == totalUTPRAmountOwed)
-      valid[UKTRLiabilityReturn](data)
+    if !notMTTLiableYetPositiveTotal && totalUTPR == totalUTPRAmountOwed then valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -102,7 +98,7 @@ object UKTRLiabilityReturn {
   }
 
   private[uktr] val liabilityEntityRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.nonEmpty) valid[UKTRLiabilityReturn](data)
+    if data.liabilities.liableEntities.nonEmpty then valid[UKTRLiabilityReturn](data)
     else throw HIPBadRequest()
   }
 
@@ -114,7 +110,7 @@ object UKTRLiabilityReturn {
     val subgroupMissingWhenElected = isDTTSingleMember && subGroupDTTCount <= 0
     val subgroupCountMismatch      = subGroupDTTCount != positiveAmountOwedDTTEntities
 
-    if (subgroupMissingWhenElected || subgroupCountMismatch) {
+    if subgroupMissingWhenElected || subgroupCountMismatch then {
       invalid(UKTRSubmissionError(InvalidDTTElection))
     } else {
       valid(data)
@@ -129,7 +125,7 @@ object UKTRLiabilityReturn {
     val subgroupMissingWhenElected = isUTPRSingleMember && subGroupUTPRCount <= 0
     val subgroupCountMismatch      = subGroupUTPRCount != positiveAmountOwedUTPREntities
 
-    if (subgroupMissingWhenElected || subgroupCountMismatch) {
+    if subgroupMissingWhenElected || subgroupCountMismatch then {
       invalid(UKTRSubmissionError(InvalidUTPRElection))
     } else {
       valid(data)
@@ -137,7 +133,7 @@ object UKTRLiabilityReturn {
   }
 
   private[uktr] val ukChargeableEntityNameRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$"))) valid[UKTRLiabilityReturn](data)
+    if data.liabilities.liableEntities.forall(f => f.ukChargeableEntityName.matches("^[a-zA-Z0-9 &'-]{1,160}$")) then valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -148,7 +144,7 @@ object UKTRLiabilityReturn {
 
   // Validation rules for idType and idValue are now in the API, the two rules below are for added security
   private[uktr] val idTypeRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => f.idType.nonEmpty && f.idType.length <= 4)) valid[UKTRLiabilityReturn](data)
+    if data.liabilities.liableEntities.forall(f => f.idType.nonEmpty && f.idType.length <= 4) then valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -158,7 +154,7 @@ object UKTRLiabilityReturn {
   }
 
   private[uktr] val idValueRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    if (data.liabilities.liableEntities.forall(f => f.idValue.matches("^[a-zA-Z0-9]{1,15}$"))) valid[UKTRLiabilityReturn](data)
+    if data.liabilities.liableEntities.forall(f => f.idValue.matches("^[a-zA-Z0-9]{1,15}$")) then valid[UKTRLiabilityReturn](data)
     else
       invalid(
         UKTRSubmissionError(
@@ -186,8 +182,8 @@ object UKTRLiabilityReturn {
   }
 
   def uktrSubmissionValidator(
-    plrReference:                 String
-  )(implicit organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
+    plrReference:              String
+  )(using organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
     organisationService
       .getOrganisation(plrReference)
       .map { org =>

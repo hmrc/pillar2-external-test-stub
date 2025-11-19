@@ -25,7 +25,7 @@ import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
 case class ORNGetResponse(success: ORNGetSuccess)
 
 object ORNGetResponse {
-  implicit val format: OFormat[ORNGetResponse] = Json.format[ORNGetResponse]
+  given format: OFormat[ORNGetResponse] = Json.format[ORNGetResponse]
 
   def fromSubmission(submission: ORNSubmission): ORNGetResponse = ORNGetResponse(
     success = ORNGetSuccess(
@@ -53,5 +53,5 @@ case class ORNGetSuccess(
 )
 
 object ORNGetSuccess {
-  implicit val format: OFormat[ORNGetSuccess] = Json.format[ORNGetSuccess]
+  given format: OFormat[ORNGetSuccess] = Json.format[ORNGetSuccess]
 }

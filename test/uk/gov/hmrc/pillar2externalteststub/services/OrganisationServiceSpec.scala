@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.*
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.error._
-import uk.gov.hmrc.pillar2externalteststub.models.organisation._
+import uk.gov.hmrc.pillar2externalteststub.models.error.*
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -200,4 +200,80 @@ class OrganisationServiceSpec extends AnyWordSpec with Matchers with MockitoSuga
       verify(mockRepository, times(1)).delete(validPlrId)
     }
   }
+
+  private val activeOrg =
+    organisationWithId.copy(organisation = organisationWithId.organisation.copy(accountStatus = AccountStatus(inactive = false)))
+  private val inactiveOrg =
+    organisationWithId.copy(organisation = organisationWithId.organisation.copy(accountStatus = AccountStatus(inactive = true)))
+
+  "makeOrganisatonActive" should {
+
+    "update the organisation when it is currently inactive" in {
+      when(mockRepository.findByPillar2Id(eqTo(validPlrId)))
+        .thenReturn(Future.successful(Some(inactiveOrg)))
+      when(mockRepository.update(any[TestOrganisationWithId]))
+        .thenReturn(Future.successful(true))
+
+      service.makeOrganisationActive(validPlrId).futureValue
+
+      val updated = inactiveOrg.copy(organisation = inactiveOrg.organisation.copy(accountStatus = AccountStatus(inactive = false)))
+      verify(mockRepository).update(eqTo(updated))
+    }
+
+    "do nothing when organisation is already active" in {
+      when(mockRepository.findByPillar2Id(eqTo(validPlrId)))
+        .thenReturn(Future.successful(Some(activeOrg)))
+
+      service.makeOrganisationActive(validPlrId).futureValue
+
+      verify(mockRepository, never).update(any[TestOrganisationWithId])
+    }
+
+    "fail with OrganisationNotFound when organisation does not exist" in {
+      when(mockRepository.findByPillar2Id(eqTo(validPlrId)))
+        .thenReturn(Future.successful(None))
+
+      whenReady(service.makeOrganisationActive(validPlrId).failed) { ex =>
+        ex shouldBe a[OrganisationNotFound]
+      }
+
+      verify(mockRepository, never).update(any[TestOrganisationWithId])
+    }
+  }
+
+  "makeOrganisationInactive" should {
+
+    "update the organisation when it is currently active" in {
+      when(mockRepository.findByPillar2Id(eqTo(validPlrId)))
+        .thenReturn(Future.successful(Some(activeOrg)))
+      when(mockRepository.update(any[TestOrganisationWithId]))
+        .thenReturn(Future.successful(true))
+
+      service.makeOrganisationInactive(validPlrId).futureValue
+
+      val updated = activeOrg.copy(organisation = activeOrg.organisation.copy(accountStatus = AccountStatus(inactive = true)))
+      verify(mockRepository).update(eqTo(updated))
+    }
+
+    "do nothing when organisation is already inactive" in {
+      when(mockRepository.findByPillar2Id(eqTo(validPlrId)))
+        .thenReturn(Future.successful(Some(inactiveOrg)))
+
+      service.makeOrganisationInactive(validPlrId).futureValue
+
+      verify(mockRepository, never).update(any[TestOrganisationWithId])
+    }
+
+    "fail with OrganisationNotFound when organisation does not exist" in {
+      when(mockRepository.findByPillar2Id(eqTo(validPlrId)))
+        .thenReturn(Future.successful(None))
+
+      whenReady(service.makeOrganisationInactive(validPlrId).failed) { ex =>
+        ex shouldBe a[OrganisationNotFound]
+      }
+
+      verify(mockRepository, never).update(any[TestOrganisationWithId])
+    }
+  }
+
 }

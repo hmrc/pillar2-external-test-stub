@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.controllers
 
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.when
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -25,14 +25,14 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.{Application, inject}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{TestOrgDataFixture, UKTRDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.*
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.LiabilityReturnSuccess.successfulUKTRResponse
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.NilReturnSuccess.successfulNilReturnResponse
-import uk.gov.hmrc.pillar2externalteststub.models.uktr._
 import uk.gov.hmrc.pillar2externalteststub.services.UKTRService
 
 import scala.concurrent.Future
@@ -73,7 +73,7 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
 
       "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
         val request = FakeRequest(POST, "/RESTAdapter/plr/uk-tax-return")
-          .withHeaders(hipHeaders: _*)
+          .withHeaders(hipHeaders*)
           .withBody(validRequestBody)
 
         val result = route(app, request).get
@@ -128,21 +128,21 @@ class UKTRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSu
     }
   }
 
-  private def createRequestWithBody(pillar2Id: String, body: UKTRSubmission, isAmend: Boolean = false) = {
-    val method = if (isAmend) PUT else POST
-    val url    = if (isAmend) "/RESTAdapter/plr/uk-tax-return" else "/RESTAdapter/plr/uk-tax-return"
+  def createRequestWithBody(pillar2Id: String, body: UKTRSubmission, isAmend: Boolean = false): FakeRequest[JsValue] = {
+    val method = if isAmend then PUT else POST
+    val url    = if isAmend then "/RESTAdapter/plr/uk-tax-return" else "/RESTAdapter/plr/uk-tax-return"
     FakeRequest(method, url)
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .withBody(Json.toJson(body))
   }
 
-  private def createRequest(pillar2Id: String, body: JsValue) =
+  def createRequest(pillar2Id: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/RESTAdapter/plr/uk-tax-return")
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .withBody(body)
 
-  private def createAmendRequest(pillar2Id: String, body: JsValue) =
+  def createAmendRequest(pillar2Id: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(PUT, "/RESTAdapter/plr/uk-tax-return")
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .withBody(body)
 }

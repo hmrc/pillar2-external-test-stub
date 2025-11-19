@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.pillar2externalteststub
 
-import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.when
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
@@ -26,7 +27,7 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.{Application, inject}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
@@ -39,7 +40,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.response.HIPErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.models.response.Origin.HIP
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ORNSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 import scala.concurrent.{ExecutionContext, Future}
 
 class ORNISpec
@@ -59,8 +60,8 @@ class ORNISpec
   private val baseUrl    = s"http://localhost:$port"
   private val ornRepository: ORNSubmissionRepository             = app.injector.instanceOf[ORNSubmissionRepository]
   private val oasRepository: ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  implicit val ec:           ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:           HeaderCarrier                       = HeaderCarrier()
+  given ec:           ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:           HeaderCarrier                       = HeaderCarrier()
   override protected val repository = ornRepository
 
   override def fakeApplication(): Application =
@@ -73,7 +74,7 @@ class ORNISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitORN(pillar2Id: String, request: ORNRequest): HttpResponse =
+  def submitORN(pillar2Id: String, request: ORNRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
       .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
@@ -81,7 +82,7 @@ class ORNISpec
       .execute[HttpResponse]
       .futureValue
 
-  private def amendORN(pillar2Id: String, request: ORNRequest): HttpResponse =
+  def amendORN(pillar2Id: String, request: ORNRequest): HttpResponse =
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
       .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
@@ -89,7 +90,7 @@ class ORNISpec
       .execute[HttpResponse]
       .futureValue
 
-  private def getORN(pillar2Id: String, accountingPeriodFrom: String, accountingPeriodTo: String): HttpResponse =
+  def getORN(pillar2Id: String, accountingPeriodFrom: String, accountingPeriodTo: String): HttpResponse =
     httpClient
       .get(
         url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=$accountingPeriodFrom&accountingPeriodTo=$accountingPeriodTo"

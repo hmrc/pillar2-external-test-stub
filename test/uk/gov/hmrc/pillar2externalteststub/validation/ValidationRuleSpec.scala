@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.pillar2externalteststub.validation
 
-import cats.implicits._
+import cats.implicits.*
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult._
-import uk.gov.hmrc.pillar2externalteststub.validation.models.TestValidationError._
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.*
+import uk.gov.hmrc.pillar2externalteststub.validation.models.TestValidationError.*
 class ValidationRuleSpec extends AnyWordSpec with Matchers {
   "ValidationRule" should {
     "create simple validation rules" in {
       val rule = ValidationRule[String] { str =>
-        if (str.nonEmpty) valid(str)
+        if str.nonEmpty then valid(str)
         else invalid(MandatoryFieldMissing("test"))
       }
 
@@ -79,12 +79,12 @@ class ValidationRuleSpec extends AnyWordSpec with Matchers {
 
     "compose complex validation rules with fail-fast" in {
       val nonEmptyRule = ValidationRule[String] { str =>
-        if (str.nonEmpty) valid(str)
+        if str.nonEmpty then valid(str)
         else invalid(MandatoryFieldMissing("test"))
       }
 
       val maxLengthRule = ValidationRule[String] { str =>
-        if (str.length <= 5) valid(str)
+        if str.length <= 5 then valid(str)
         else invalid(MaxLengthExceeded("test", 5))
       }
 

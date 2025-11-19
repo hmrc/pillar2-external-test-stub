@@ -17,9 +17,9 @@
 package uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo
 
 import org.bson.types.ObjectId
-import play.api.libs.json._
-import uk.gov.hmrc.mongo.play.json.formats.MongoFormats.Implicits._
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.Implicits._
+import play.api.libs.json.*
+import uk.gov.hmrc.mongo.play.json.formats.MongoFormats.Implicits.*
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.Implicits.*
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRSubmission
 
 import java.time.Instant
@@ -27,5 +27,5 @@ import java.time.Instant
 case class UKTRMongoSubmission(_id: ObjectId, pillar2Id: String, chargeReference: Option[String], data: UKTRSubmission, submittedAt: Instant)
 
 object UKTRMongoSubmission {
-  implicit val format: OFormat[UKTRMongoSubmission] = Json.format[UKTRMongoSubmission]
+  given format: OFormat[UKTRMongoSubmission] = Json.format[UKTRMongoSubmission]
 }
