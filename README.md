@@ -44,95 +44,90 @@ service before running sbt commands.
 
 This is an authenticated service, so users first need to be authenticated via GG in order to use the service.
 
-## Available Endpoints
+## System Overview
 
-### 1. Retrieve Subscription
+### Persistence & Interactions
+This service maintains a persistent state using MongoDB to simulate a real-world environment. Understanding the data model is crucial for effective testing:
 
-The retrieveSubscription endpoint returns subscription 
-details based on the provided plrReference (PLR 
-Reference Number). Different plrReference values yield 
-different responses to simulate various scenarios, 
-including successful responses with domestic or 
-non-domestic status and specific error responses.
+1.  **Organisation First**: Before any submissions (UKTR, BTN, ORN, GIR) can be made, an **Organisation** must be created using the Organisation Management endpoints. The `pillar2Id` serves as the primary key linking an organisation to its submissions.
+2.  **Validation**: Submissions are validated against the stored Organisation data. Examples include:
+    *   **Accounting Period**: The `accountingPeriod` in a submission **must match** the `accountingPeriod` defined for the Organisation.
+    *   **Under Enquiry**: Some submissions (e.g., BTN) may be rejected if the organisation's accounting period is marked as "under enquiry".
+    *   **Organisation Existence**: Submissions will fail if the Organisation does not exist.
+3.  **State Updates**: Submissions can alter the state of an Organisation:
+    *   **UK Tax Return (UKTR)**: Submitting a UKTR sets the organisation status to **Active**.
+    *   **Below Threshold Notification (BTN)**: Submitting a BTN sets the organisation status to **Inactive**.
+4.  **Obligations & Submissions History**: All successful submissions (UKTR, BTN, ORN, GIR) are aggregated into an "Obligations and Submissions" history. This allows the `GET /RESTAdapter/plr/obligations-and-submissions` endpoint to provide a consolidated view of a customer's compliance history for a given date range.
 
-Response Codes and Conditions:
+## API Reference
 
-| plrReference            | HTTP Status               | Description                                     |
-|:------------------------|---------------------------|-------------------------------------------------|
-| XEPLR0123456500         | 500 Internal Server Error | Server error                                    |
-| XEPLR0123456503         | 503 Service Unavailable   | Dependent systems are currently not responding  |
-| XEPLR5555555555         | 200 OK                    | Success response with domesticOnly = true       |
-| XEPLR1234567890         | 200 OK                    | Success response with domesticOnly = false      |
-| Any other               | 404 Not Found             | Subscription not found                          |
+### 1. Organisation Management
+**Prerequisite**: You must create an organisation before testing other endpoints.
 
-### 2. Submit UKTR
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| POST | `/pillar2/test/organisation/:pillar2Id` | Create a new organisation |
+| GET | `/pillar2/test/organisation/:pillar2Id` | Retrieve organisation details |
+| PUT | `/pillar2/test/organisation/:pillar2Id` | Update existing organisation |
+| DELETE | `/pillar2/test/organisation/:pillar2Id` | Delete organisation |
 
-Endpoint: /RESTAdapter/plr/uk-tax-return
+### 2. Subscription
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| GET | `/pillar2/subscription/:plrReference` | Retrieve subscription details |
 
-Response Codes and Conditions:
+**Note**: This endpoint is **not connected to the persistent state**. It is primarily used to simulate subscription retrieval. Since actual subscription cannot be simulated here, it acts as a passthrough in most cases.
 
-| plrReference    | HTTP Status               | Description                                         |
-|:----------------|---------------------------|-----------------------------------------------------|
-| XEPLR0000000422 | 422 Unprocessable Entity  | Business validation failure with error details      |
-| XEPLR0000000500 | 500 Internal Server Error | SAP system failure with error details               |
-| XEPLR0000000400 | 400 Bad Request           | Invalid JSON payload error                          |
-| Any other       | 201 Created               | Successful UKTR submission with form bundle details |
+**Simulated Responses based on `plrReference`**:
+- `XEPLR5555555554`: 404 Not Found
+- `XEPLR0123456500`: 500 Internal Server Error
+- `XEPLR0123456503`: 503 Service Unavailable
+- `XEPLR1234567890`: Success (Not Domestic Only)
+- **Any other ID**: Success (Domestic Only) - *Wildcard response*
 
-### 3. Amend UKTR (Placeholder)
+### 3. UK Tax Return (UKTR)
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| POST | `/RESTAdapter/plr/uk-tax-return` | Submit a UK Tax Return |
+| PUT | `/RESTAdapter/plr/uk-tax-return` | Amend a UK Tax Return |
 
-### 4. Submit Below Threshold Notification (BTN)
+**Note**: Validates against the Organisation's accounting period.
 
-Endpoint: /RESTAdapter/plr/below-threshold-notification
+### 4. Below Threshold Notification (BTN)
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| POST | `/RESTAdapter/plr/below-threshold-notification` | Submit a BTN |
 
-Response Codes and Conditions:
+**Note**: Validates against the Organisation's accounting period.
 
-| plrReference    | HTTP Status               | Description                                    |
-|:----------------|---------------------------|------------------------------------------------|
-| XEPLR0000000201 | 201 Created               | Business validation failure with error details |
-| XEPLR0000000400 | 400 Bad Request           | Invalid JSON payload error                     |
-| XEPLR0000000422 | 422 Unprocessable Entity  | Business validation failure with error details |
-| XEPLR0000000500 | 500 Internal Server Error | SAP system failure: ...                        |
-| Any other       | (validation-dependent)    | (validation-dependent)                         |
+### 5. Overseas Return Notification (ORN)
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| POST | `/RESTAdapter/plr/overseas-return-notification` | Submit an ORN |
+| PUT | `/RESTAdapter/plr/overseas-return-notification` | Amend an ORN |
+| GET | `/RESTAdapter/plr/overseas-return-notification` | Retrieve ORN details |
 
-### 5. Organisation Management
+**Note**: Validates against the Organisation's accounting period.
 
-Endpoints for managing test organisation data:
+### 6. Globe Information Return (GIR)
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| POST | `/pillar2/test/globe-information-return` | Submit a GIR |
 
-| Method | Endpoint                              | Description                   | Response Codes     |
-|:-------|---------------------------------------|-------------------------------|--------------------|
-| POST   | /pillar2/test/organisation/:pillar2Id | Create a new organisation     | 201, 400, 409, 500 |
-| GET    | /pillar2/test/organisation/:pillar2Id | Retrieve organisation details | 200, 404           |
-| PUT    | /pillar2/test/organisation/:pillar2Id | Update existing organisation  | 200, 400, 404, 500 |
-| DELETE | /pillar2/test/organisation/:pillar2Id | Delete organisation           | 204, 404, 500      |
+**Note**: Validates against the Organisation's accounting period.
 
-#### Response Status Codes:
-- 201: Organisation created successfully
-- 200: Request completed successfully
-- 204: Organisation deleted successfully
-- 400: Invalid request (missing/invalid fields)
-- 404: Organisation not found
-- 409: Organisation already exists
-- 500: Internal server error
+### 7. Obligations and Submissions
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| GET | `/RESTAdapter/plr/obligations-and-submissions` | Retrieve history of obligations and submissions |
 
-#### Error Responses
-All error responses follow a standard format:
-```json
-{
-  "code": "ERROR_CODE",
-  "message": "Human readable error message"
-}
-```
+**Parameters**:
+- `fromDate`: Start date (YYYY-MM-DD)
+- `toDate`: End date (YYYY-MM-DD)
 
-Error Codes:
-- `INVALID_JSON`: Invalid JSON payload provided
-- `EMPTY_REQUEST_BODY`: Empty request body provided
-- `ORGANISATION_EXISTS`: Organisation with given pillar2Id already exists
-- `ORGANISATION_NOT_FOUND`: No organisation found with given pillar2Id
-- `DATABASE_ERROR`: Database operation failed
+## Example Requests
 
-#### Example Requests
-
-##### Create Organisation
+### Create Organisation (Required First Step)
 ```bash
 curl -X POST "http://localhost:10055/pillar2/test/organisation/XEPLR1234567890" \
 -H "Authorization: Bearer valid_token" \
@@ -150,50 +145,22 @@ curl -X POST "http://localhost:10055/pillar2/test/organisation/XEPLR1234567890" 
 }'
 ```
 
-Success Response (201 Created):
-```json
-{
-  "pillar2Id": "XEPLR1234567890",
-  "organisation": {
-    "orgDetails": {
-      "domesticOnly": false,
-      "organisationName": "Test Organisation Ltd",
-      "registrationDate": "2024-01-01"
-    },
-    "accountingPeriod": {
-      "startDate": "2024-01-01",
-      "endDate": "2024-12-31"
-    },
-    "lastUpdated": "2024-01-01T00:00:00Z"
-  }
-}
-```
-
-Error Response Example (409 Conflict):
-```json
-{
-  "code": "ORGANISATION_EXISTS",
-  "message": "Organisation with pillar2Id: XEPLR1234567890 already exists"
-}
-```
-
-## Example Requests
-
-### Retrieve Subscription Example
+### Retrieve Subscription
 ```bash
 curl -X GET "http://localhost:10055/pillar2/subscription/XEPLR5555555555" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json"
 ```
 
-### Submit UKTR Request Example
+### Submit UKTR
 ```bash
 curl -X POST "http://localhost:10055/RESTAdapter/plr/uk-tax-return" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json" \
+-H "X-Pillar2-Id: XEPLR1234567890" \
 -d '{
-  "accountingPeriodFrom": "2024-08-14",
-  "accountingPeriodTo": "2024-12-14",
+  "accountingPeriodFrom": "2024-01-01",
+  "accountingPeriodTo": "2024-12-31",
   "obligationMTT": true,
   "electionUKGAAP": true,
   "liabilities": {
@@ -221,16 +188,24 @@ curl -X POST "http://localhost:10055/RESTAdapter/plr/uk-tax-return" \
 }'
 ```
 
-### Submit Below Threshold Notification (BTN) Request Example
+### Submit Below Threshold Notification (BTN)
 ```bash
 curl -X POST "http://localhost:10055/RESTAdapter/plr/below-threshold-notification" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json" \
--H "X-Pillar2-Id: XEPLR0000000201" \
+-H "X-Pillar2-Id: XEPLR1234567890" \
 -d '{
-  "accountingPeriodFrom": "2024-08-14",
-  "accountingPeriodTo": "2024-12-14"
+  "accountingPeriodFrom": "2024-01-01",
+  "accountingPeriodTo": "2024-12-31"
 }'
+```
+
+### Retrieve Obligations and Submissions
+```bash
+curl -X GET "http://localhost:10055/RESTAdapter/plr/obligations-and-submissions?fromDate=2024-01-01&toDate=2024-12-31" \
+-H "Authorization: Bearer valid_token" \
+-H "Content-Type: application/json" \
+-H "X-Pillar2-Id: XEPLR1234567890"
 ```
 
 ### License
