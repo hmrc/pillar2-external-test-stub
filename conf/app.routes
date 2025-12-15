@@ -19,3 +19,8 @@ POST        /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pil
 GET         /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.get(pillar2Id: String)
 PUT         /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.update(pillar2Id: String)
 DELETE      /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.delete(pillar2Id: String)
+
+# account activity routes
+GET       /pillar2/test/organisation/account-activity/:pillar2Id               uk.gov.hmrc.pillar2externalteststub.controllers.AccountActivityController.get(pillar2Id: String)
+
+

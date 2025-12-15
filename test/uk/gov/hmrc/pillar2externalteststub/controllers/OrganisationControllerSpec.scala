@@ -36,6 +36,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
   private val cc         = Helpers.stubControllerComponents()
   private val controller = new OrganisationController(cc, mockOrgService)
+  private val testData   = Some(TestData(AccountActivityScenario.SOLE_CHARGE))
 
   "create" should {
     "return 201 when organisation is created successfully" in {
@@ -44,7 +45,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
       val result = controller.create(validPlrId)(
         FakeRequest("POST", s"/pillar2/test/organisation/$validPlrId")
-          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod, testData)))
       )
       status(result)        shouldBe Status.CREATED
       contentAsJson(result) shouldBe Json.toJson(organisationWithId)
@@ -61,7 +62,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
     "return 400 when Pillar2 ID is empty" in {
       val result = controller.create("")(
         FakeRequest("POST", "/pillar2/test/organisation/")
-          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod, testData)))
       )
       result shouldFailWith EmptyRequestBody
     }
@@ -72,7 +73,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
       val result = controller.create(validPlrId)(
         FakeRequest("POST", s"/pillar2/test/organisation/$validPlrId")
-          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod, testData)))
       )
       result shouldFailWith OrganisationAlreadyExists(validPlrId)
     }
@@ -83,7 +84,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
       val result = controller.create(validPlrId)(
         FakeRequest("POST", s"/pillar2/test/organisation/$validPlrId")
-          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod, testData)))
       )
       result shouldFailWith DatabaseError("Failed to create organisation: Database connection failed")
     }
@@ -123,7 +124,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
       val result = controller.update(validPlrId)(
         FakeRequest("PUT", s"/pillar2/test/organisation/$validPlrId")
-          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod, testData)))
       )
       status(result)        shouldBe Status.OK
       contentAsJson(result) shouldBe Json.toJson(organisationWithId)
@@ -143,7 +144,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
       val result = controller.update(validPlrId)(
         FakeRequest("PUT", s"/pillar2/test/organisation/$validPlrId")
-          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod, testData)))
       )
       result shouldFailWith OrganisationNotFound(validPlrId)
     }
@@ -154,7 +155,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
       val result = controller.update(validPlrId)(
         FakeRequest("PUT", s"/pillar2/test/organisation/$validPlrId")
-          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod)))
+          .withBody(Json.toJson(TestOrganisationRequest(orgDetails, accountingPeriod, testData)))
       )
       result shouldFailWith DatabaseError("Failed to update organisation: Database connection failed")
     }

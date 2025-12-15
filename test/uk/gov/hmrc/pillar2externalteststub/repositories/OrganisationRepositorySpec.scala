@@ -68,6 +68,7 @@ class OrganisationRepositorySpec
   private val organisation = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
+    testData = Some(TestData(AccountActivityScenario.SOLE_CHARGE)),
     accountStatus = AccountStatus(inactive = false),
     lastUpdated = java.time.Instant.parse("2024-01-01T00:00:00Z")
   )

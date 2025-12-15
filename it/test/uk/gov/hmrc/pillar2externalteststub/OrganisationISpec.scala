@@ -71,7 +71,8 @@ class OrganisationISpec
 
   private val testOrganisationRequest = TestOrganisationRequest(
     orgDetails = orgDetails,
-    accountingPeriod = testAccountingPeriod
+    accountingPeriod = testAccountingPeriod,
+    testData = Some(TestData(AccountActivityScenario.SOLE_CHARGE))
   )
 
   def extractOrganisationName(json: JsValue): String =

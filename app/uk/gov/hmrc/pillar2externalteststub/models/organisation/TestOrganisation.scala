@@ -30,18 +30,27 @@ case class OrgDetails(
 
 case class AccountingPeriod(startDate: LocalDate, endDate: LocalDate, underEnquiry: Option[Boolean])
 
+case class TestData(accountActivityScenario: AccountActivityScenario)
+
+enum AccountActivityScenario:
+  case SOLE_CHARGE
+  case FULLY_PAID_CHARGE
+  case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS
+
 case class AccountStatus(
   inactive: Boolean
 )
 
 case class TestOrganisationRequest(
   orgDetails:       OrgDetails,
-  accountingPeriod: AccountingPeriod
+  accountingPeriod: AccountingPeriod,
+  testData:         Option[TestData]
 )
 
 case class TestOrganisation(
   orgDetails:       OrgDetails,
   accountingPeriod: AccountingPeriod,
+  testData:         Option[TestData],
   accountStatus:    AccountStatus,
   lastUpdated:      Instant = Instant.now()
 ) {
@@ -72,6 +81,25 @@ object OrgDetails {
 object AccountingPeriod {
   given format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
 }
+
+object TestData {
+  given format: Format[TestData] = Json.format[TestData]
+}
+
+object AccountActivityScenario:
+  given Format[AccountActivityScenario] = Format(
+    Reads {
+      case JsString(name) =>
+        scala.util
+          .Try(AccountActivityScenario.valueOf(name))
+          .fold(
+            _ => JsError(s"Unknown enum value: $name"),
+            JsSuccess(_)
+          )
+      case _ => JsError("Expected string")
+    },
+    Writes(v => JsString(v.toString))
+  )
 
 object AccountStatus {
   given format: Format[AccountStatus] = Json.format[AccountStatus]
@@ -112,6 +140,7 @@ object TestOrganisation {
     TestOrganisation(
       orgDetails = request.orgDetails,
       accountingPeriod = request.accountingPeriod,
+      testData = request.testData,
       //Initialise as active until we get a BTN
       accountStatus = AccountStatus(inactive = false)
     )
@@ -120,6 +149,7 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
+        (__ \ "testData").readNullable[TestData] and
         (__ \ "accountStatus").read[AccountStatus] and
         (__ \ "lastUpdated").read[Instant](using mongoInstantFormat)
     )(TestOrganisation.apply)
@@ -128,9 +158,10 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").write[OrgDetails] and
         (__ \ "accountingPeriod").write[AccountingPeriod] and
+        (__ \ "testData").writeNullable[TestData] and
         (__ \ "accountStatus").write[AccountStatus] and
         (__ \ "lastUpdated").write(using mongoInstantFormat)
-    )(testOrg => (testOrg.orgDetails, testOrg.accountingPeriod, testOrg.accountStatus, testOrg.lastUpdated))
+    )(testOrg => (testOrg.orgDetails, testOrg.accountingPeriod, testOrg.testData, testOrg.accountStatus, testOrg.lastUpdated))
 
   val mongoFormat: OFormat[TestOrganisation] = OFormat(mongoReads, mongoWrites)
 
@@ -138,6 +169,7 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
+        (__ \ "testData").readNullable[TestData] and
         (__ \ "accountStatus").read[AccountStatus] and
         (__ \ "lastUpdated").read[Instant](using apiInstantFormat)
     )(TestOrganisation.apply)
@@ -146,9 +178,10 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").write[OrgDetails] and
         (__ \ "accountingPeriod").write[AccountingPeriod] and
+        (__ \ "testData").writeNullable[TestData] and
         (__ \ "accountStatus").write[AccountStatus] and
         (__ \ "lastUpdated").write(using apiInstantFormat)
-    )(testOrg => (testOrg.orgDetails, testOrg.accountingPeriod, testOrg.accountStatus, testOrg.lastUpdated))
+    )(testOrg => (testOrg.orgDetails, testOrg.accountingPeriod, testOrg.testData, testOrg.accountStatus, testOrg.lastUpdated))
 
   given format: OFormat[TestOrganisation] = OFormat(apiReads, apiWrites)
 }
