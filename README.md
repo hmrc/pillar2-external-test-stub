@@ -125,6 +125,11 @@ This service maintains a persistent state using MongoDB to simulate a real-world
 - `fromDate`: Start date (YYYY-MM-DD)
 - `toDate`: End date (YYYY-MM-DD)
 
+### 8. Account Activity
+| Method | Endpoint                                                   | Description                                
+|:---|:-----------------------------------------------------------|:-------------------------------------------|
+| GET | `/pillar2id/test/organisation/account-activity/:pillar2Id` | Retrieve Account Activity Scenario Details |
+
 ## Example Requests
 
 ### Create Organisation (Required First Step)
