@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.services
 
 import play.api.libs.json.JsObject
-import uk.gov.hmrc.pillar2externalteststub.helpers.AccountActivityDataFixture
+import uk.gov.hmrc.pillar2externalteststub.helpers.AccountActivityDataResponses
 import uk.gov.hmrc.pillar2externalteststub.models.error.TestDataNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.AccountActivityScenario.*
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
@@ -36,9 +36,11 @@ class AccountActivityService @Inject() {
     scenario.fold[JsObject] {
       throw TestDataNotFound(pillar2Id)
     } {
-      case SOLE_CHARGE                           => AccountActivityDataFixture.SoleChargeResponse
-      case FULLY_PAID_CHARGE                     => AccountActivityDataFixture.FullyPaidChargeResponse
-      case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS => AccountActivityDataFixture.FullyPaidChargeWithSplitPaymentsResponse
+      case DTT_CHARGE                            => AccountActivityDataResponses.DTTChargeResponse
+      case FULLY_PAID_CHARGE                     => AccountActivityDataResponses.FullyPaidChargeResponse
+      case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS => AccountActivityDataResponses.FullyPaidChargeWithSplitPaymentsResponse
+      case REPAYMENT_INTEREST                    => AccountActivityDataResponses.RepaymentInterestResponse
+      case DTT_DETERMINATION                     => AccountActivityDataResponses.DTTDeterminationResponse
     }
   }
 }

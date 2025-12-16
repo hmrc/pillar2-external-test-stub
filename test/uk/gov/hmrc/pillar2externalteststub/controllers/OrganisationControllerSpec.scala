@@ -36,7 +36,7 @@ class OrganisationControllerSpec extends AnyWordSpec with Matchers with MockitoS
 
   private val cc         = Helpers.stubControllerComponents()
   private val controller = new OrganisationController(cc, mockOrgService)
-  private val testData   = Some(TestData(AccountActivityScenario.SOLE_CHARGE))
+  private val testData   = Some(TestData(AccountActivityScenario.DTT_CHARGE))
 
   "create" should {
     "return 201 when organisation is created successfully" in {

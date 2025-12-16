@@ -96,7 +96,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
     val organisationDetails = TestOrganisation(
       orgDetails = orgDetails,
       accountingPeriod = accountingPeriod,
-      testData = Some(TestData(AccountActivityScenario.SOLE_CHARGE)),
+      testData = Some(TestData(AccountActivityScenario.DTT_CHARGE)),
       accountStatus = AccountStatus(inactive = false),
       lastUpdated = fixedInstant
     )

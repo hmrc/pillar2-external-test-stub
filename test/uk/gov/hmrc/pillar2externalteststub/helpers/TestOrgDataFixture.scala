@@ -37,7 +37,7 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
   val organisationDetails: TestOrganisation = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
-    testData = Some(TestData(AccountActivityScenario.SOLE_CHARGE)),
+    testData = Some(TestData(AccountActivityScenario.DTT_CHARGE)),
     accountStatus = AccountStatus(inactive = false),
     lastUpdated = Instant.parse("2024-01-01T00:00:00Z")
   )

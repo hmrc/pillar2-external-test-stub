@@ -21,14 +21,14 @@ import play.api.libs.json.Json
 
 import java.time.LocalDate
 
-object AccountActivityDataFixture {
+object AccountActivityDataResponses {
 
   private val now              = LocalDate.now
   private val currentYearStart = LocalDate.of(now.getYear, 1, 1)
   private val currentYearEnd   = LocalDate.of(now.getYear, 12, 31)
-  private val dueDateBuffer    = 181
+  private val dueDateBuffer    = 6
 
-  val SoleChargeResponse: JsObject = Json.obj(
+  val DTTChargeResponse: JsObject = Json.obj(
     "processingDate" -> LocalDate.now,
     "transactionDetails" -> Json.arr(
       Json.obj(
@@ -38,7 +38,7 @@ object AccountActivityDataFixture {
         "endDate"           -> currentYearEnd,
         "chargeRefNo"       -> "X123456789012",
         "transactionDate"   -> now,
-        "dueDate"           -> currentYearEnd.plusDays(dueDateBuffer),
+        "dueDate"           -> currentYearEnd.plusMonths(dueDateBuffer),
         "originalAmount"    -> 10000,
         "outstandingAmount" -> 10000
       )
@@ -55,7 +55,7 @@ object AccountActivityDataFixture {
         "endDate"         -> currentYearEnd,
         "chargeRefNo"     -> "X123456789012",
         "transactionDate" -> now,
-        "dueDate"         -> currentYearEnd.plusDays(dueDateBuffer),
+        "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
         "originalAmount"  -> 10000,
         "clearedAmount"   -> 10000,
         "clearingDetails" -> Json.arr(
@@ -77,7 +77,7 @@ object AccountActivityDataFixture {
           Json.obj(
             "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
             "chargeRefNo"     -> "X123456789012",
-            "dueDate"         -> currentYearEnd.plusDays(dueDateBuffer),
+            "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
             "amount"          -> 10000,
             "clearingDate"    -> now,
             "clearingReason"  -> "Allocated to Charge"
@@ -97,7 +97,7 @@ object AccountActivityDataFixture {
         "endDate"         -> currentYearEnd,
         "chargeRefNo"     -> "X123456789012",
         "transactionDate" -> now,
-        "dueDate"         -> currentYearEnd.plusDays(dueDateBuffer),
+        "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
         "originalAmount"  -> 10000,
         "clearedAmount"   -> 10000,
         "clearingDetails" -> Json.arr(
@@ -125,7 +125,7 @@ object AccountActivityDataFixture {
           Json.obj(
             "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
             "chargeRefNo"     -> "X123456789012",
-            "dueDate"         -> currentYearEnd.plusDays(dueDateBuffer),
+            "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
             "amount"          -> 5000,
             "clearingDate"    -> now,
             "clearingReason"  -> "Allocated to Charge"
@@ -142,12 +142,53 @@ object AccountActivityDataFixture {
           Json.obj(
             "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
             "chargeRefNo"     -> "X123456789012",
-            "dueDate"         -> currentYearEnd.plusDays(dueDateBuffer),
+            "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
             "amount"          -> 5000,
             "clearingDate"    -> now,
             "clearingReason"  -> "Allocated to Charge"
           )
         )
+      )
+    )
+  )
+
+  val RepaymentInterestResponse: JsObject = Json.obj(
+    "processingDate" -> LocalDate.now,
+    "transactionDetails" -> Json.arr(
+      Json.obj(
+        "transactionType" -> "Credit",
+        "transactionDesc" -> "Pillar 2 UKTR RPI Pillar 2 OECD RPI",
+        "chargeRefNo"     -> "XR23456789012",
+        "transactionDate" -> now,
+        "originalAmount"  -> -100,
+        "clearedAmount"   -> -100,
+        "clearingDetails" -> Json.arr(
+          Json.obj(
+            "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
+            "chargeRefNo"     -> "X123456789012",
+            "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
+            "amount"          -> 100,
+            "clearingDate"    -> now,
+            "clearingReason"  -> "Allocated to Charge"
+          )
+        )
+      )
+    )
+  )
+
+  val DTTDeterminationResponse: JsObject = Json.obj(
+    "processingDate" -> LocalDate.now,
+    "transactionDetails" -> Json.arr(
+      Json.obj(
+        "transactionType"   -> "Debit",
+        "transactionDesc"   -> "Pillar 2 Determination Pillar 2 DTT",
+        "startDate"         -> currentYearStart,
+        "endDate"           -> currentYearEnd,
+        "chargeRefNo"       -> "XDT3456789698",
+        "transactionDate"   -> now,
+        "dueDate"           -> currentYearEnd.plusMonths(dueDateBuffer),
+        "originalAmount"    -> 10000,
+        "outstandingAmount" -> 10000
       )
     )
   )

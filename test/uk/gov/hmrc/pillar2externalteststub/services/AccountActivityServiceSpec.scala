@@ -24,7 +24,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.prop.Tables.Table
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.JsObject
-import uk.gov.hmrc.pillar2externalteststub.helpers.AccountActivityDataFixture
+import uk.gov.hmrc.pillar2externalteststub.helpers.AccountActivityDataResponses
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.TestDataNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
@@ -54,12 +54,13 @@ class AccountActivityServiceSpec
   "AccountActivityService" - {
 
     "when retrieving account activity" - {
-
       val scenarioTable = Table(
         ("Scenario", "Expected Response"),
-        (AccountActivityScenario.SOLE_CHARGE, AccountActivityDataFixture.SoleChargeResponse),
-        (AccountActivityScenario.FULLY_PAID_CHARGE, AccountActivityDataFixture.FullyPaidChargeResponse),
-        (AccountActivityScenario.FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS, AccountActivityDataFixture.FullyPaidChargeWithSplitPaymentsResponse)
+        (AccountActivityScenario.DTT_CHARGE, AccountActivityDataResponses.DTTChargeResponse),
+        (AccountActivityScenario.FULLY_PAID_CHARGE, AccountActivityDataResponses.FullyPaidChargeResponse),
+        (AccountActivityScenario.FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS, AccountActivityDataResponses.FullyPaidChargeWithSplitPaymentsResponse),
+        (AccountActivityScenario.REPAYMENT_INTEREST, AccountActivityDataResponses.RepaymentInterestResponse),
+        (AccountActivityScenario.DTT_DETERMINATION, AccountActivityDataResponses.DTTDeterminationResponse)
       )
 
       "should return the correct response for all defined scenarios" in {

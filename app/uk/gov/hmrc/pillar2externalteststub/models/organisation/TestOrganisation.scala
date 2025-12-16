@@ -33,9 +33,11 @@ case class AccountingPeriod(startDate: LocalDate, endDate: LocalDate, underEnqui
 case class TestData(accountActivityScenario: AccountActivityScenario)
 
 enum AccountActivityScenario:
-  case SOLE_CHARGE
+  case DTT_CHARGE
   case FULLY_PAID_CHARGE
   case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS
+  case REPAYMENT_INTEREST
+  case DTT_DETERMINATION
 
 case class AccountStatus(
   inactive: Boolean
