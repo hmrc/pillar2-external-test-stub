@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 
-//import org.scalatest.RecoverMethods.recoverToSucceededIf
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -32,7 +31,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
 import java.time.LocalDate
 import scala.concurrent.Await
 import scala.concurrent.duration.*
-//import scala.concurrent.ExecutionContext.Implicits.global
 
 class AccountActivityServiceSpec
     extends AnyFreeSpec
