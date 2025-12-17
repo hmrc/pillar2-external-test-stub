@@ -32,12 +32,12 @@ case class AccountingPeriod(startDate: LocalDate, endDate: LocalDate, underEnqui
 
 case class TestData(accountActivityScenario: AccountActivityScenario)
 
-enum AccountActivityScenario:
-  case DTT_CHARGE
-  case FULLY_PAID_CHARGE
-  case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS
-  case REPAYMENT_INTEREST
-  case DTT_DETERMINATION
+enum AccountActivityScenario(val raw: String):
+  case DTT_CHARGE extends AccountActivityScenario("DTT_CHARGE")
+  case FULLY_PAID_CHARGE extends AccountActivityScenario("FULLY_PAID_CHARGE")
+  case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS extends AccountActivityScenario("FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS")
+  case REPAYMENT_INTEREST extends AccountActivityScenario("REPAYMENT_INTEREST")
+  case DTT_DETERMINATION extends AccountActivityScenario("DTT_DETERMINATION")
 
 case class AccountStatus(
   inactive: Boolean
@@ -91,16 +91,14 @@ object TestData {
 object AccountActivityScenario:
   given Format[AccountActivityScenario] = Format(
     Reads {
-      case JsString(name) =>
-        scala.util
-          .Try(AccountActivityScenario.valueOf(name))
-          .fold(
-            _ => JsError(s"Unknown enum value: $name"),
-            JsSuccess(_)
-          )
-      case _ => JsError("Expected string")
+      case JsString(str) =>
+        AccountActivityScenario.values.find(_.raw == str) match {
+          case Some(scenario) => JsSuccess(scenario)
+          case None           => JsError(s"Unknown AccountActivityScenario: $str")
+        }
+      case _ => JsError("Expected string for AccountActivityScenario")
     },
-    Writes(v => JsString(v.toString))
+    Writes(v => JsString(v.raw))
   )
 
 object AccountStatus {

@@ -29,8 +29,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.TestDataNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
 
 import java.time.LocalDate
-import scala.concurrent.Await
-import scala.concurrent.duration.*
 
 class AccountActivityServiceSpec
     extends AnyFreeSpec
@@ -71,7 +69,7 @@ class AccountActivityServiceSpec
             accountStatus = AccountStatus(inactive = false)
           ).withPillar2Id(somePillar2Id)
 
-          val result = Await.result(service.getAccountActivity(org), 2.seconds)
+          val result = service.getAccountActivity(org).futureValue
 
           result shouldBe expectedResponse
         }

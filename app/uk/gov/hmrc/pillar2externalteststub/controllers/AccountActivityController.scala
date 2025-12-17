@@ -44,9 +44,9 @@ class AccountActivityController @Inject() (
   def get(fromDate: String, toDate: String): Action[AnyContent] = (Action andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap { pillar2Id =>
       (for {
-        from <- Future.fromTry(Try(LocalDate.parse(fromDate)))
-        to   <- Future.fromTry(Try(LocalDate.parse(toDate)))
-        _ = if from.isAfter(to) then throw RequestCouldNotBeProcessed
+        from         <- Future.fromTry(Try(LocalDate.parse(fromDate)))
+        to           <- Future.fromTry(Try(LocalDate.parse(toDate)))
+        _            <- if from.isAfter(to) then Future.failed(RequestCouldNotBeProcessed) else Future.unit
         orgWithId    <- organisationService.getOrganisation(pillar2Id)
         responseJson <- accountActivityService.getAccountActivity(orgWithId)
       } yield Ok(responseJson))

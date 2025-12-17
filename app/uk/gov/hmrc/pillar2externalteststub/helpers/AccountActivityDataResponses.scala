@@ -19,17 +19,18 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import play.api.libs.json.JsObject
 import play.api.libs.json.Json
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
 object AccountActivityDataResponses {
 
-  private val now              = LocalDate.now
-  private val currentYearStart = LocalDate.of(now.getYear, 1, 1)
-  private val currentYearEnd   = LocalDate.of(now.getYear, 12, 31)
+  private def today            = LocalDate.now
+  private def todayTimestamp   = LocalDateTime.now
+  private def currentYearStart = LocalDate.of(today.getYear, 1, 1)
+  private def currentYearEnd   = LocalDate.of(today.getYear, 12, 31)
   private val dueDateBuffer    = 6
 
   val DTTChargeResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDate.now,
+    "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType"   -> "Debit",
@@ -37,7 +38,7 @@ object AccountActivityDataResponses {
         "startDate"         -> currentYearStart,
         "endDate"           -> currentYearEnd,
         "chargeRefNo"       -> "X123456789012",
-        "transactionDate"   -> now,
+        "transactionDate"   -> today,
         "dueDate"           -> currentYearEnd.plusMonths(dueDateBuffer),
         "originalAmount"    -> 10000,
         "outstandingAmount" -> 10000
@@ -46,7 +47,7 @@ object AccountActivityDataResponses {
   )
 
   val FullyPaidChargeResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDate.now,
+    "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType" -> "Debit",
@@ -54,7 +55,7 @@ object AccountActivityDataResponses {
         "startDate"       -> currentYearStart,
         "endDate"         -> currentYearEnd,
         "chargeRefNo"     -> "X123456789012",
-        "transactionDate" -> now,
+        "transactionDate" -> today,
         "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
         "originalAmount"  -> 10000,
         "clearedAmount"   -> 10000,
@@ -62,7 +63,7 @@ object AccountActivityDataResponses {
           Json.obj(
             "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
             "amount"          -> 10000,
-            "clearingDate"    -> now,
+            "clearingDate"    -> today,
             "clearingReason"  -> "Cleared by Payment"
           )
         )
@@ -70,7 +71,7 @@ object AccountActivityDataResponses {
       Json.obj(
         "transactionType" -> "Payment",
         "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
-        "transactionDate" -> now,
+        "transactionDate" -> today,
         "originalAmount"  -> 10000,
         "clearedAmount"   -> 10000,
         "clearingDetails" -> Json.arr(
@@ -79,7 +80,7 @@ object AccountActivityDataResponses {
             "chargeRefNo"     -> "X123456789012",
             "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
             "amount"          -> 10000,
-            "clearingDate"    -> now,
+            "clearingDate"    -> today,
             "clearingReason"  -> "Allocated to Charge"
           )
         )
@@ -88,7 +89,7 @@ object AccountActivityDataResponses {
   )
 
   val FullyPaidChargeWithSplitPaymentsResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDate.now,
+    "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType" -> "Debit",
@@ -96,7 +97,7 @@ object AccountActivityDataResponses {
         "startDate"       -> currentYearStart,
         "endDate"         -> currentYearEnd,
         "chargeRefNo"     -> "X123456789012",
-        "transactionDate" -> now,
+        "transactionDate" -> today,
         "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
         "originalAmount"  -> 10000,
         "clearedAmount"   -> 10000,
@@ -104,13 +105,13 @@ object AccountActivityDataResponses {
           Json.obj(
             "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
             "amount"          -> 5000,
-            "clearingDate"    -> now,
+            "clearingDate"    -> today,
             "clearingReason"  -> "Cleared by Payment"
           ),
           Json.obj(
             "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
             "amount"          -> 5000,
-            "clearingDate"    -> now,
+            "clearingDate"    -> today,
             "clearingReason"  -> "Cleared by Payment"
           )
         )
@@ -118,7 +119,7 @@ object AccountActivityDataResponses {
       Json.obj(
         "transactionType" -> "Payment",
         "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
-        "transactionDate" -> now,
+        "transactionDate" -> today,
         "originalAmount"  -> 5000,
         "clearedAmount"   -> 5000,
         "clearingDetails" -> Json.arr(
@@ -127,7 +128,7 @@ object AccountActivityDataResponses {
             "chargeRefNo"     -> "X123456789012",
             "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
             "amount"          -> 5000,
-            "clearingDate"    -> now,
+            "clearingDate"    -> today,
             "clearingReason"  -> "Allocated to Charge"
           )
         )
@@ -135,7 +136,7 @@ object AccountActivityDataResponses {
       Json.obj(
         "transactionType" -> "Payment",
         "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
-        "transactionDate" -> now,
+        "transactionDate" -> today,
         "originalAmount"  -> 5000,
         "clearedAmount"   -> 5000,
         "clearingDetails" -> Json.arr(
@@ -144,7 +145,7 @@ object AccountActivityDataResponses {
             "chargeRefNo"     -> "X123456789012",
             "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
             "amount"          -> 5000,
-            "clearingDate"    -> now,
+            "clearingDate"    -> today,
             "clearingReason"  -> "Allocated to Charge"
           )
         )
@@ -153,13 +154,13 @@ object AccountActivityDataResponses {
   )
 
   val RepaymentInterestResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDate.now,
+    "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType" -> "Credit",
         "transactionDesc" -> "Pillar 2 UKTR RPI Pillar 2 OECD RPI",
         "chargeRefNo"     -> "XR23456789012",
-        "transactionDate" -> now,
+        "transactionDate" -> today,
         "originalAmount"  -> -100,
         "clearedAmount"   -> -100,
         "clearingDetails" -> Json.arr(
@@ -168,7 +169,7 @@ object AccountActivityDataResponses {
             "chargeRefNo"     -> "X123456789012",
             "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
             "amount"          -> 100,
-            "clearingDate"    -> now,
+            "clearingDate"    -> today,
             "clearingReason"  -> "Allocated to Charge"
           )
         )
@@ -177,7 +178,7 @@ object AccountActivityDataResponses {
   )
 
   val DTTDeterminationResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDate.now,
+    "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType"   -> "Debit",
@@ -185,7 +186,7 @@ object AccountActivityDataResponses {
         "startDate"         -> currentYearStart,
         "endDate"           -> currentYearEnd,
         "chargeRefNo"       -> "XDT3456789698",
-        "transactionDate"   -> now,
+        "transactionDate"   -> today,
         "dueDate"           -> currentYearEnd.plusMonths(dueDateBuffer),
         "originalAmount"    -> 10000,
         "outstandingAmount" -> 10000
