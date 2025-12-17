@@ -90,12 +90,12 @@ class AccountActivityServiceSpec
           accountStatus = AccountStatus(inactive = false)
         ).withPillar2Id(somePillar2Id)
 
-        val caught = the[TestDataNotFound] thrownBy {
-          service.getAccountActivity(org)
+        whenReady(service.getAccountActivity(org).failed) { ex =>
+          ex shouldBe a[TestDataNotFound]
+          val error = ex.asInstanceOf[TestDataNotFound]
+          error.code    shouldBe "TEST_DATA_NOT_FOUND"
+          error.message shouldBe s"Test Data can not be found for pillar2Id: $somePillar2Id"
         }
-
-        caught.code    shouldBe "TEST_DATA_NOT_FOUND"
-        caught.message shouldBe s"Test Data can not be found for pillar2Id: $somePillar2Id"
       }
     }
   }

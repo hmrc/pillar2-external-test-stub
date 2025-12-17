@@ -28,19 +28,22 @@ import scala.concurrent.Future
 @Singleton
 class AccountActivityService @Inject() {
 
-  def getAccountActivity(orgWithId: TestOrganisationWithId): Future[JsObject] = Future.successful {
+  def getAccountActivity(orgWithId: TestOrganisationWithId): Future[JsObject] = {
     val pillar2Id = orgWithId.pillar2Id
-    val scenario = orgWithId.organisation.testData
-      .map(_.accountActivityScenario)
 
-    scenario.fold[JsObject] {
-      throw TestDataNotFound(pillar2Id)
-    } {
-      case DTT_CHARGE                            => AccountActivityDataResponses.DTTChargeResponse
-      case FULLY_PAID_CHARGE                     => AccountActivityDataResponses.FullyPaidChargeResponse
-      case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS => AccountActivityDataResponses.FullyPaidChargeWithSplitPaymentsResponse
-      case REPAYMENT_INTEREST                    => AccountActivityDataResponses.RepaymentInterestResponse
-      case DTT_DETERMINATION                     => AccountActivityDataResponses.DTTDeterminationResponse
+    orgWithId.organisation.testData match {
+      case Some(data) =>
+        val response = data.accountActivityScenario match {
+          case DTT_CHARGE                            => AccountActivityDataResponses.DTTChargeResponse
+          case FULLY_PAID_CHARGE                     => AccountActivityDataResponses.FullyPaidChargeResponse
+          case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS => AccountActivityDataResponses.FullyPaidChargeWithSplitPaymentsResponse
+          case REPAYMENT_INTEREST                    => AccountActivityDataResponses.RepaymentInterestResponse
+          case DTT_DETERMINATION                     => AccountActivityDataResponses.DTTDeterminationResponse
+        }
+        Future.successful(response)
+
+      case None =>
+        Future.failed(TestDataNotFound(pillar2Id))
     }
   }
 }

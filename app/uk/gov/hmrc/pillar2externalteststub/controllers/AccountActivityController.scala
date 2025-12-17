@@ -18,26 +18,49 @@ package uk.gov.hmrc.pillar2externalteststub.controllers
 
 import play.api.Logging
 import play.api.mvc.*
+import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoDataFound, RequestCouldNotBeProcessed}
+import uk.gov.hmrc.pillar2externalteststub.models.error.{OrganisationNotFound, TestDataNotFound}
 import uk.gov.hmrc.pillar2externalteststub.services.{AccountActivityService, OrganisationService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.util.Try
 
 @Singleton
 class AccountActivityController @Inject() (
   cc:                     ControllerComponents,
+  authFilter:             AuthActionFilter,
   organisationService:    OrganisationService,
   accountActivityService: AccountActivityService
 )(using ec:               ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
-  def get(pillar2Id: String): Action[AnyContent] = Action.async { _ =>
-    organisationService.getOrganisation(pillar2Id).flatMap { orgWithId =>
-      accountActivityService.getAccountActivity(orgWithId).map { responseJson =>
-        Ok(responseJson)
-      }
+  def get(fromDate: String, toDate: String): Action[AnyContent] = (Action andThen authFilter).async { request =>
+    validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap { pillar2Id =>
+      (for {
+        from <- Future.fromTry(Try(LocalDate.parse(fromDate)))
+        to   <- Future.fromTry(Try(LocalDate.parse(toDate)))
+        _ = if from.isAfter(to) then throw RequestCouldNotBeProcessed
+        orgWithId    <- organisationService.getOrganisation(pillar2Id)
+        responseJson <- accountActivityService.getAccountActivity(orgWithId)
+      } yield Ok(responseJson))
+        .recoverWith {
+          case _: OrganisationNotFound =>
+            logger.warn(s"Organisation not found pillar2Id: $pillar2Id")
+            Future.failed(NoDataFound)
+          case _: TestDataNotFound =>
+            logger.warn(s"Test data missing for pillar2Id: $pillar2Id")
+            Future.failed(TestDataNotFound(pillar2Id))
+          case e: DateTimeParseException =>
+            logger.error(s"Invalid date format: ${e.getMessage}")
+            Future.failed(RequestCouldNotBeProcessed)
+        }
     }
   }
 }

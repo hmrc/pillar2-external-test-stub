@@ -126,9 +126,14 @@ This service maintains a persistent state using MongoDB to simulate a real-world
 - `toDate`: End date (YYYY-MM-DD)
 
 ### 8. Account Activity
-| Method | Endpoint                                                   | Description                                
-|:---|:-----------------------------------------------------------|:-------------------------------------------|
-| GET | `/pillar2id/test/organisation/account-activity/:pillar2Id` | Retrieve Account Activity Scenario Details |
+| Method | Endpoint                                                      | Description                                
+|:---|:--------------------------------------------------------------|:-------------------------------------------|
+| GET | `/RESTAdapter/plr/account-activity`                           | Retrieve Account Activity Scenario Details |
+
+**Parameters**:
+- `fromDate`: Start date (YYYY-MM-DD)
+- `toDate`: End date (YYYY-MM-DD)
+
 
 ## Example Requests
 
@@ -208,6 +213,14 @@ curl -X POST "http://localhost:10055/RESTAdapter/plr/below-threshold-notificatio
 ### Retrieve Obligations and Submissions
 ```bash
 curl -X GET "http://localhost:10055/RESTAdapter/plr/obligations-and-submissions?fromDate=2024-01-01&toDate=2024-12-31" \
+-H "Authorization: Bearer valid_token" \
+-H "Content-Type: application/json" \
+-H "X-Pillar2-Id: XEPLR1234567890"
+```
+
+### Retrieve Account Activity
+```bash
+curl -X GET "http://localhost:10055/RESTAdapter/plr/account-activity?fromDate=2024-01-01&toDate=2024-12-31" \
 -H "Authorization: Bearer valid_token" \
 -H "Content-Type: application/json" \
 -H "X-Pillar2-Id: XEPLR1234567890"
