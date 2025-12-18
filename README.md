@@ -134,6 +134,40 @@ This service maintains a persistent state using MongoDB to simulate a real-world
 - `fromDate`: Start date (YYYY-MM-DD)
 - `toDate`: End date (YYYY-MM-DD)
 
+**Scenarios**
+
+You can simulate different financial states by including a `testData` object when creating or updating a `TestOrganisation`.
+
+|Scenario| Description                                         |
+|:---|:----------------------------------------------------|
+|DTT_CHARGE| Standard outstanding DTT debit charge               |
+|FULLY_PAID_CHARGE| A charge that has been fully cleared by one payment |
+|FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS| A charge cleared by two separate partial payments   |
+|REPAYMENT_INTEREST| A credit transaction for repayment interest         |
+|DTT_DETERMINATION| A Pillar 2 DTT Determination debit                  |
+
+**Usage**
+
+To assign a scenario, include the following JSON block in your request body:
+
+```bash
+"testData": {
+    "accountActivityScenario": "<SCENARIO>"
+  }
+```
+
+**Example**
+
+```bash
+"testData": {
+    "accountActivityScenario": "DTT_CHARGE"
+  }
+```
+**Important Considerations**
+
+- **Optionality**: The `testData` field is optional. If omitted, the `TestOrganisation` will be created without a linked activity scenario.
+
+- **Modifying Scenarios**: To change the scenario for an existing organisation, use the **Update Organisation** endpoint and provide the new value within the JSON body.
 
 ## Example Requests
 
