@@ -19,17 +19,18 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import play.api.libs.json.JsObject
 import play.api.libs.json.Json
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.{Clock, LocalDate, LocalDateTime}
+import javax.inject.Inject
 
-object AccountActivityDataResponses {
+class AccountActivityDataResponses @Inject() (clock: Clock) {
 
   private def today            = LocalDate.now
   private def currentYearStart = LocalDate.of(today.getYear, 1, 1)
   private def currentYearEnd   = LocalDate.of(today.getYear, 12, 31)
   private val dueDateBuffer    = 6
 
-  def DTTChargeResponse(now: LocalDateTime): JsObject = Json.obj(
-    "processingDate" -> now,
+  def DTTChargeResponse: JsObject = Json.obj(
+    "processingDate" -> LocalDateTime.now(clock),
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType"   -> "Debit",
@@ -45,8 +46,8 @@ object AccountActivityDataResponses {
     )
   )
 
-  def FullyPaidChargeResponse(now: LocalDateTime): JsObject = Json.obj(
-    "processingDate" -> now,
+  def FullyPaidChargeResponse: JsObject = Json.obj(
+    "processingDate" -> LocalDateTime.now(clock),
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType" -> "Debit",
@@ -87,8 +88,8 @@ object AccountActivityDataResponses {
     )
   )
 
-  def FullyPaidChargeWithSplitPaymentsResponse(now: LocalDateTime): JsObject = Json.obj(
-    "processingDate" -> now,
+  def FullyPaidChargeWithSplitPaymentsResponse: JsObject = Json.obj(
+    "processingDate" -> LocalDateTime.now(clock),
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType" -> "Debit",
@@ -152,8 +153,8 @@ object AccountActivityDataResponses {
     )
   )
 
-  def RepaymentInterestResponse(now: LocalDateTime): JsObject = Json.obj(
-    "processingDate" -> now,
+  def RepaymentInterestResponse: JsObject = Json.obj(
+    "processingDate" -> LocalDateTime.now(clock),
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType" -> "Credit",
@@ -176,8 +177,8 @@ object AccountActivityDataResponses {
     )
   )
 
-  def DTTDeterminationResponse(now: LocalDateTime): JsObject = Json.obj(
-    "processingDate" -> now,
+  def DTTDeterminationResponse: JsObject = Json.obj(
+    "processingDate" -> LocalDateTime.now(clock),
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType"   -> "Debit",

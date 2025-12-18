@@ -40,9 +40,9 @@ class AccountActivityServiceSpec
 
   private val fixedInstant = Instant.parse("2025-12-18T10:00:00Z")
   private val stubClock    = Clock.fixed(fixedInstant, ZoneOffset.UTC)
-  private val now          = LocalDateTime.now(stubClock)
+  private val responses    = AccountActivityDataResponses(stubClock)
 
-  private val service = new AccountActivityService(stubClock)
+  private val service = new AccountActivityService(responses)
 
   private val testAccountingPeriod = AccountingPeriod(
     startDate = LocalDate.of(2024, 1, 1),
@@ -55,11 +55,11 @@ class AccountActivityServiceSpec
     "when retrieving account activity" - {
       val scenarioTable = Table(
         ("Scenario", "Expected Response"),
-        (AccountActivityScenario.DTT_CHARGE, AccountActivityDataResponses.DTTChargeResponse(now)),
-        (AccountActivityScenario.FULLY_PAID_CHARGE, AccountActivityDataResponses.FullyPaidChargeResponse(now)),
-        (AccountActivityScenario.FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS, AccountActivityDataResponses.FullyPaidChargeWithSplitPaymentsResponse(now)),
-        (AccountActivityScenario.REPAYMENT_INTEREST, AccountActivityDataResponses.RepaymentInterestResponse(now)),
-        (AccountActivityScenario.DTT_DETERMINATION, AccountActivityDataResponses.DTTDeterminationResponse(now))
+        (AccountActivityScenario.DTT_CHARGE, responses.DTTChargeResponse),
+        (AccountActivityScenario.FULLY_PAID_CHARGE, responses.FullyPaidChargeResponse),
+        (AccountActivityScenario.FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS, responses.FullyPaidChargeWithSplitPaymentsResponse),
+        (AccountActivityScenario.REPAYMENT_INTEREST, responses.RepaymentInterestResponse),
+        (AccountActivityScenario.DTT_DETERMINATION, responses.DTTDeterminationResponse)
       )
 
       "should return the correct response for all defined scenarios" in {
