@@ -29,7 +29,7 @@ object AccountActivityDataResponses {
   private def currentYearEnd   = LocalDate.of(today.getYear, 12, 31)
   private val dueDateBuffer    = 6
 
-  val DTTChargeResponse: JsObject = Json.obj(
+  def DTTChargeResponse: JsObject = Json.obj(
     "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(
@@ -46,7 +46,7 @@ object AccountActivityDataResponses {
     )
   )
 
-  val FullyPaidChargeResponse: JsObject = Json.obj(
+  def FullyPaidChargeResponse: JsObject = Json.obj(
     "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(
@@ -88,7 +88,7 @@ object AccountActivityDataResponses {
     )
   )
 
-  val FullyPaidChargeWithSplitPaymentsResponse: JsObject = Json.obj(
+  def FullyPaidChargeWithSplitPaymentsResponse: JsObject = Json.obj(
     "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(
@@ -153,7 +153,7 @@ object AccountActivityDataResponses {
     )
   )
 
-  val RepaymentInterestResponse: JsObject = Json.obj(
+  def RepaymentInterestResponse: JsObject = Json.obj(
     "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(
@@ -177,7 +177,7 @@ object AccountActivityDataResponses {
     )
   )
 
-  val DTTDeterminationResponse: JsObject = Json.obj(
+  def DTTDeterminationResponse: JsObject = Json.obj(
     "processingDate" -> todayTimestamp,
     "transactionDetails" -> Json.arr(
       Json.obj(

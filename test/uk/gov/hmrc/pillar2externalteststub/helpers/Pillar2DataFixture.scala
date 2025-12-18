@@ -45,6 +45,7 @@ trait Pillar2DataFixture {
     xTransmittingSystemHeader -> "HIP",
     xOriginatingSystemHeader  -> "MDTP"
   )
+  val accountActivityHeader: (String, String) = "X-Message-Type" -> "ACCOUNT_ACTIVITY"
 
   val validPlrId       = "XMPLR0000000000"
   val chargeReference  = "XM000000000000"

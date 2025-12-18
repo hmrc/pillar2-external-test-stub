@@ -32,7 +32,7 @@ import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoDataFound, RequestCouldNotBeProcessed}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{IdMissingOrInvalid, NoDataFound, RequestCouldNotBeProcessed}
 import uk.gov.hmrc.pillar2externalteststub.models.error.{HIPBadRequest, OrganisationNotFound, TestDataNotFound}
 import uk.gov.hmrc.pillar2externalteststub.services.{AccountActivityService, OrganisationService}
 
@@ -63,7 +63,7 @@ class AccountActivityControllerSpec
     toDate:   String = accountingPeriod.endDate.toString
   ): FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest(GET, routes.AccountActivityController.get(fromDate, toDate).url)
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
+      .withHeaders(hipHeaders :+ accountActivityHeader :+ ("X-Pillar2-Id" -> plrId)*)
 
   "Account Activity" - {
     "when requesting account activity" - {
@@ -112,13 +112,20 @@ class AccountActivityControllerSpec
 
       "should fail if X-Pillar2-Id header is missing" in {
         val req = FakeRequest(GET, routes.AccountActivityController.get("2024-01-01", "2024-12-31").url)
-          .withHeaders("X-Pillar2-Id" -> "")
+          .withHeaders(hipHeaders :+ accountActivityHeader*)
         val result = route(app, req).value
 
-        whenReady(result.failed) { ex =>
-          ex mustBe a[HIPBadRequest]
-        }
+        result shouldFailWith IdMissingOrInvalid
       }
+
+      "should fail if X-Message-Type header is missing" in {
+        val req = FakeRequest(GET, routes.AccountActivityController.get("2024-01-01", "2024-12-31").url)
+          .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> validPlrId)*)
+        val result = route(app, req).value
+
+        result shouldFailWith HIPBadRequest()
+      }
+
     }
   }
 }

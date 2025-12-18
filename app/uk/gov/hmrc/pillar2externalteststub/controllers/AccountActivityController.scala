@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.mvc.*
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoDataFound, RequestCouldNotBeProcessed}
-import uk.gov.hmrc.pillar2externalteststub.models.error.{OrganisationNotFound, TestDataNotFound}
+import uk.gov.hmrc.pillar2externalteststub.models.error.{HIPBadRequest, OrganisationNotFound, TestDataNotFound}
 import uk.gov.hmrc.pillar2externalteststub.services.{AccountActivityService, OrganisationService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -44,6 +44,8 @@ class AccountActivityController @Inject() (
   def get(fromDate: String, toDate: String): Action[AnyContent] = (Action andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap { pillar2Id =>
       (for {
+        _ <- if request.headers.get("X-Message-Type").contains("ACCOUNT_ACTIVITY") then Future.unit
+             else Future.failed(HIPBadRequest())
         from         <- Future.fromTry(Try(LocalDate.parse(fromDate)))
         to           <- Future.fromTry(Try(LocalDate.parse(toDate)))
         _            <- if from.isAfter(to) then Future.failed(RequestCouldNotBeProcessed) else Future.unit
