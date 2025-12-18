@@ -28,7 +28,7 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.TestDataNotFound
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
 
-import java.time.LocalDate
+import java.time.*
 
 class AccountActivityServiceSpec
     extends AnyFreeSpec
@@ -38,8 +38,11 @@ class AccountActivityServiceSpec
     with TableDrivenPropertyChecks
     with ScalaFutures {
 
-  private val somePillar2Id = "somePillar2Id"
-  private val service       = new AccountActivityService()
+  private val fixedInstant = Instant.parse("2025-12-18T10:00:00Z")
+  private val stubClock    = Clock.fixed(fixedInstant, ZoneOffset.UTC)
+  private val now          = LocalDateTime.now(stubClock)
+
+  private val service = new AccountActivityService(stubClock)
 
   private val testAccountingPeriod = AccountingPeriod(
     startDate = LocalDate.of(2024, 1, 1),
@@ -52,11 +55,11 @@ class AccountActivityServiceSpec
     "when retrieving account activity" - {
       val scenarioTable = Table(
         ("Scenario", "Expected Response"),
-        (AccountActivityScenario.DTT_CHARGE, AccountActivityDataResponses.DTTChargeResponse),
-        (AccountActivityScenario.FULLY_PAID_CHARGE, AccountActivityDataResponses.FullyPaidChargeResponse),
-        (AccountActivityScenario.FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS, AccountActivityDataResponses.FullyPaidChargeWithSplitPaymentsResponse),
-        (AccountActivityScenario.REPAYMENT_INTEREST, AccountActivityDataResponses.RepaymentInterestResponse),
-        (AccountActivityScenario.DTT_DETERMINATION, AccountActivityDataResponses.DTTDeterminationResponse)
+        (AccountActivityScenario.DTT_CHARGE, AccountActivityDataResponses.DTTChargeResponse(now)),
+        (AccountActivityScenario.FULLY_PAID_CHARGE, AccountActivityDataResponses.FullyPaidChargeResponse(now)),
+        (AccountActivityScenario.FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS, AccountActivityDataResponses.FullyPaidChargeWithSplitPaymentsResponse(now)),
+        (AccountActivityScenario.REPAYMENT_INTEREST, AccountActivityDataResponses.RepaymentInterestResponse(now)),
+        (AccountActivityScenario.DTT_DETERMINATION, AccountActivityDataResponses.DTTDeterminationResponse(now))
       )
 
       "should return the correct response for all defined scenarios" in {
@@ -67,7 +70,7 @@ class AccountActivityServiceSpec
             accountingPeriod = testAccountingPeriod,
             testData = Some(TestData(scenario)),
             accountStatus = AccountStatus(inactive = false)
-          ).withPillar2Id(somePillar2Id)
+          ).withPillar2Id(validPlrId)
 
           val result = service.getAccountActivity(org).futureValue
 
@@ -84,13 +87,13 @@ class AccountActivityServiceSpec
           accountingPeriod = testAccountingPeriod,
           testData = None,
           accountStatus = AccountStatus(inactive = false)
-        ).withPillar2Id(somePillar2Id)
+        ).withPillar2Id(validPlrId)
 
         whenReady(service.getAccountActivity(org).failed) { ex =>
           ex shouldBe a[TestDataNotFound]
           val error = ex.asInstanceOf[TestDataNotFound]
           error.code    shouldBe "TEST_DATA_NOT_FOUND"
-          error.message shouldBe s"Test Data can not be found for pillar2Id: $somePillar2Id"
+          error.message shouldBe s"Test Data can not be found for pillar2Id: $validPlrId"
         }
       }
     }

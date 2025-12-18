@@ -24,13 +24,12 @@ import java.time.{LocalDate, LocalDateTime}
 object AccountActivityDataResponses {
 
   private def today            = LocalDate.now
-  private def todayTimestamp   = LocalDateTime.now
   private def currentYearStart = LocalDate.of(today.getYear, 1, 1)
   private def currentYearEnd   = LocalDate.of(today.getYear, 12, 31)
   private val dueDateBuffer    = 6
 
-  def DTTChargeResponse: JsObject = Json.obj(
-    "processingDate" -> todayTimestamp,
+  def DTTChargeResponse(now: LocalDateTime): JsObject = Json.obj(
+    "processingDate" -> now,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType"   -> "Debit",
@@ -46,8 +45,8 @@ object AccountActivityDataResponses {
     )
   )
 
-  def FullyPaidChargeResponse: JsObject = Json.obj(
-    "processingDate" -> todayTimestamp,
+  def FullyPaidChargeResponse(now: LocalDateTime): JsObject = Json.obj(
+    "processingDate" -> now,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType" -> "Debit",
@@ -88,8 +87,8 @@ object AccountActivityDataResponses {
     )
   )
 
-  def FullyPaidChargeWithSplitPaymentsResponse: JsObject = Json.obj(
-    "processingDate" -> todayTimestamp,
+  def FullyPaidChargeWithSplitPaymentsResponse(now: LocalDateTime): JsObject = Json.obj(
+    "processingDate" -> now,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType" -> "Debit",
@@ -153,8 +152,8 @@ object AccountActivityDataResponses {
     )
   )
 
-  def RepaymentInterestResponse: JsObject = Json.obj(
-    "processingDate" -> todayTimestamp,
+  def RepaymentInterestResponse(now: LocalDateTime): JsObject = Json.obj(
+    "processingDate" -> now,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType" -> "Credit",
@@ -177,8 +176,8 @@ object AccountActivityDataResponses {
     )
   )
 
-  def DTTDeterminationResponse: JsObject = Json.obj(
-    "processingDate" -> todayTimestamp,
+  def DTTDeterminationResponse(now: LocalDateTime): JsObject = Json.obj(
+    "processingDate" -> now,
     "transactionDetails" -> Json.arr(
       Json.obj(
         "transactionType"   -> "Debit",
