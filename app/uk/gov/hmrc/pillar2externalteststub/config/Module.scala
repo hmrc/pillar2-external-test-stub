@@ -18,8 +18,11 @@ package uk.gov.hmrc.pillar2externalteststub.config
 
 import com.google.inject.AbstractModule
 
+import java.time.Clock
+
 class Module extends AbstractModule {
 
   override def configure(): Unit =
     bind(classOf[AppConfig]).asEagerSingleton()
+    bind(classOf[Clock]).toInstance(Clock.systemUTC())
 }

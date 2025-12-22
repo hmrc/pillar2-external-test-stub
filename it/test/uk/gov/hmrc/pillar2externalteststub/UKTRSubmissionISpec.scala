@@ -63,6 +63,7 @@ class UKTRSubmissionISpec
   private val testOrg = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
+    testData = Some(TestData(AccountActivityScenario.DTT_CHARGE)),
     accountStatus = AccountStatus(inactive = false)
   )
 
