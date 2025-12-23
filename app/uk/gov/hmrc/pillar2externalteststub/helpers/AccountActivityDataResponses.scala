@@ -30,58 +30,62 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
   private val dueDateBuffer    = 6
 
   def DTTChargeResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDateTime.now(clock),
-    "transactionDetails" -> Json.arr(
-      Json.obj(
-        "transactionType"   -> "Debit",
-        "transactionDesc"   -> "Pillar 2 UK Tax Return Pillar 2 DTT",
-        "startDate"         -> currentYearStart,
-        "endDate"           -> currentYearEnd,
-        "chargeRefNo"       -> "X123456789012",
-        "transactionDate"   -> today,
-        "dueDate"           -> currentYearEnd.plusMonths(dueDateBuffer),
-        "originalAmount"    -> 10000,
-        "outstandingAmount" -> 10000
+    "success" -> Json.obj(
+      "processingDate" -> LocalDateTime.now(clock),
+      "transactionDetails" -> Json.arr(
+        Json.obj(
+          "transactionType"   -> "Debit",
+          "transactionDesc"   -> "Pillar 2 UK Tax Return Pillar 2 DTT",
+          "startDate"         -> currentYearStart,
+          "endDate"           -> currentYearEnd,
+          "chargeRefNo"       -> "X123456789012",
+          "transactionDate"   -> today,
+          "dueDate"           -> currentYearEnd.plusMonths(dueDateBuffer),
+          "originalAmount"    -> 10000,
+          "outstandingAmount" -> 10000
+        )
       )
     )
   )
 
   def FullyPaidChargeResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDateTime.now(clock),
-    "transactionDetails" -> Json.arr(
-      Json.obj(
-        "transactionType" -> "Debit",
-        "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
-        "startDate"       -> currentYearStart,
-        "endDate"         -> currentYearEnd,
-        "chargeRefNo"     -> "X123456789012",
-        "transactionDate" -> today,
-        "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
-        "originalAmount"  -> 10000,
-        "clearedAmount"   -> 10000,
-        "clearingDetails" -> Json.arr(
-          Json.obj(
-            "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
-            "amount"          -> 10000,
-            "clearingDate"    -> today,
-            "clearingReason"  -> "Cleared by Payment"
+    "success" -> Json.obj(
+      "processingDate" -> LocalDateTime.now(clock),
+      "transactionDetails" -> Json.arr(
+        Json.obj(
+          "transactionType" -> "Debit",
+          "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
+          "startDate"       -> currentYearStart,
+          "endDate"         -> currentYearEnd,
+          "chargeRefNo"     -> "X123456789012",
+          "transactionDate" -> today,
+          "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
+          "originalAmount"  -> 10000,
+          "clearedAmount"   -> 10000,
+          "clearingDetails" -> Json.arr(
+            Json.obj(
+              "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
+              "amount"          -> 10000,
+              "clearingDate"    -> today,
+              "clearingReason"  -> "Cleared by Payment"
+            )
           )
-        )
-      ),
-      Json.obj(
-        "transactionType" -> "Payment",
-        "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
-        "transactionDate" -> today,
-        "originalAmount"  -> 10000,
-        "clearedAmount"   -> 10000,
-        "clearingDetails" -> Json.arr(
-          Json.obj(
-            "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
-            "chargeRefNo"     -> "X123456789012",
-            "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
-            "amount"          -> 10000,
-            "clearingDate"    -> today,
-            "clearingReason"  -> "Allocated to Charge"
+        ),
+        Json.obj(
+          "transactionType" -> "Payment",
+          "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
+          "transactionDate" -> today,
+          "originalAmount"  -> 10000,
+          "clearedAmount"   -> 10000,
+          "clearingDetails" -> Json.arr(
+            Json.obj(
+              "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
+              "chargeRefNo"     -> "X123456789012",
+              "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
+              "amount"          -> 10000,
+              "clearingDate"    -> today,
+              "clearingReason"  -> "Allocated to Charge"
+            )
           )
         )
       )
@@ -89,64 +93,66 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
   )
 
   def FullyPaidChargeWithSplitPaymentsResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDateTime.now(clock),
-    "transactionDetails" -> Json.arr(
-      Json.obj(
-        "transactionType" -> "Debit",
-        "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
-        "startDate"       -> currentYearStart,
-        "endDate"         -> currentYearEnd,
-        "chargeRefNo"     -> "X123456789012",
-        "transactionDate" -> today,
-        "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
-        "originalAmount"  -> 10000,
-        "clearedAmount"   -> 10000,
-        "clearingDetails" -> Json.arr(
-          Json.obj(
-            "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
-            "amount"          -> 5000,
-            "clearingDate"    -> today,
-            "clearingReason"  -> "Cleared by Payment"
-          ),
-          Json.obj(
-            "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
-            "amount"          -> 5000,
-            "clearingDate"    -> today,
-            "clearingReason"  -> "Cleared by Payment"
+    "success" -> Json.obj(
+      "processingDate" -> LocalDateTime.now(clock),
+      "transactionDetails" -> Json.arr(
+        Json.obj(
+          "transactionType" -> "Debit",
+          "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
+          "startDate"       -> currentYearStart,
+          "endDate"         -> currentYearEnd,
+          "chargeRefNo"     -> "X123456789012",
+          "transactionDate" -> today,
+          "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
+          "originalAmount"  -> 10000,
+          "clearedAmount"   -> 10000,
+          "clearingDetails" -> Json.arr(
+            Json.obj(
+              "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
+              "amount"          -> 5000,
+              "clearingDate"    -> today,
+              "clearingReason"  -> "Cleared by Payment"
+            ),
+            Json.obj(
+              "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
+              "amount"          -> 5000,
+              "clearingDate"    -> today,
+              "clearingReason"  -> "Cleared by Payment"
+            )
           )
-        )
-      ),
-      Json.obj(
-        "transactionType" -> "Payment",
-        "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
-        "transactionDate" -> today,
-        "originalAmount"  -> 5000,
-        "clearedAmount"   -> 5000,
-        "clearingDetails" -> Json.arr(
-          Json.obj(
-            "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
-            "chargeRefNo"     -> "X123456789012",
-            "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
-            "amount"          -> 5000,
-            "clearingDate"    -> today,
-            "clearingReason"  -> "Allocated to Charge"
+        ),
+        Json.obj(
+          "transactionType" -> "Payment",
+          "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
+          "transactionDate" -> today,
+          "originalAmount"  -> 5000,
+          "clearedAmount"   -> 5000,
+          "clearingDetails" -> Json.arr(
+            Json.obj(
+              "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
+              "chargeRefNo"     -> "X123456789012",
+              "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
+              "amount"          -> 5000,
+              "clearingDate"    -> today,
+              "clearingReason"  -> "Allocated to Charge"
+            )
           )
-        )
-      ),
-      Json.obj(
-        "transactionType" -> "Payment",
-        "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
-        "transactionDate" -> today,
-        "originalAmount"  -> 5000,
-        "clearedAmount"   -> 5000,
-        "clearingDetails" -> Json.arr(
-          Json.obj(
-            "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
-            "chargeRefNo"     -> "X123456789012",
-            "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
-            "amount"          -> 5000,
-            "clearingDate"    -> today,
-            "clearingReason"  -> "Allocated to Charge"
+        ),
+        Json.obj(
+          "transactionType" -> "Payment",
+          "transactionDesc" -> "On Account Pillar 2 (Payment on Account)",
+          "transactionDate" -> today,
+          "originalAmount"  -> 5000,
+          "clearedAmount"   -> 5000,
+          "clearingDetails" -> Json.arr(
+            Json.obj(
+              "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
+              "chargeRefNo"     -> "X123456789012",
+              "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
+              "amount"          -> 5000,
+              "clearingDate"    -> today,
+              "clearingReason"  -> "Allocated to Charge"
+            )
           )
         )
       )
@@ -154,23 +160,25 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
   )
 
   def RepaymentInterestResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDateTime.now(clock),
-    "transactionDetails" -> Json.arr(
-      Json.obj(
-        "transactionType" -> "Credit",
-        "transactionDesc" -> "Pillar 2 UKTR RPI Pillar 2 OECD RPI",
-        "chargeRefNo"     -> "XR23456789012",
-        "transactionDate" -> today,
-        "originalAmount"  -> -100,
-        "clearedAmount"   -> -100,
-        "clearingDetails" -> Json.arr(
-          Json.obj(
-            "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
-            "chargeRefNo"     -> "X123456789012",
-            "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
-            "amount"          -> 100,
-            "clearingDate"    -> today,
-            "clearingReason"  -> "Allocated to Charge"
+    "success" -> Json.obj(
+      "processingDate" -> LocalDateTime.now(clock),
+      "transactionDetails" -> Json.arr(
+        Json.obj(
+          "transactionType" -> "Credit",
+          "transactionDesc" -> "Pillar 2 UKTR RPI Pillar 2 OECD RPI",
+          "chargeRefNo"     -> "XR23456789012",
+          "transactionDate" -> today,
+          "originalAmount"  -> -100,
+          "clearedAmount"   -> -100,
+          "clearingDetails" -> Json.arr(
+            Json.obj(
+              "transactionDesc" -> "Pillar 2 UK Tax Return Pillar 2 DTT",
+              "chargeRefNo"     -> "X123456789012",
+              "dueDate"         -> currentYearEnd.plusMonths(dueDateBuffer),
+              "amount"          -> 100,
+              "clearingDate"    -> today,
+              "clearingReason"  -> "Allocated to Charge"
+            )
           )
         )
       )
@@ -178,18 +186,20 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
   )
 
   def DTTDeterminationResponse: JsObject = Json.obj(
-    "processingDate" -> LocalDateTime.now(clock),
-    "transactionDetails" -> Json.arr(
-      Json.obj(
-        "transactionType"   -> "Debit",
-        "transactionDesc"   -> "Pillar 2 Determination Pillar 2 DTT",
-        "startDate"         -> currentYearStart,
-        "endDate"           -> currentYearEnd,
-        "chargeRefNo"       -> "XDT3456789698",
-        "transactionDate"   -> today,
-        "dueDate"           -> currentYearEnd.plusMonths(dueDateBuffer),
-        "originalAmount"    -> 10000,
-        "outstandingAmount" -> 10000
+    "success" -> Json.obj(
+      "processingDate" -> LocalDateTime.now(clock),
+      "transactionDetails" -> Json.arr(
+        Json.obj(
+          "transactionType"   -> "Debit",
+          "transactionDesc"   -> "Pillar 2 Determination Pillar 2 DTT",
+          "startDate"         -> currentYearStart,
+          "endDate"           -> currentYearEnd,
+          "chargeRefNo"       -> "XDT3456789698",
+          "transactionDate"   -> today,
+          "dueDate"           -> currentYearEnd.plusMonths(dueDateBuffer),
+          "originalAmount"    -> 10000,
+          "outstandingAmount" -> 10000
+        )
       )
     )
   )
