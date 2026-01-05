@@ -19,7 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import play.api.libs.json.JsObject
 import play.api.libs.json.Json
 
-import java.time.{Clock, LocalDate, LocalDateTime}
+import java.time.{Clock, LocalDate, ZonedDateTime}
 import javax.inject.Inject
 
 class AccountActivityDataResponses @Inject() (clock: Clock) {
@@ -31,7 +31,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
 
   def DTTChargeResponse: JsObject = Json.obj(
     "success" -> Json.obj(
-      "processingDate" -> LocalDateTime.now(clock),
+      "processingDate" -> ZonedDateTime.now(clock),
       "transactionDetails" -> Json.arr(
         Json.obj(
           "transactionType"   -> "Debit",
@@ -50,7 +50,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
 
   def FullyPaidChargeResponse: JsObject = Json.obj(
     "success" -> Json.obj(
-      "processingDate" -> LocalDateTime.now(clock),
+      "processingDate" -> ZonedDateTime.now(clock),
       "transactionDetails" -> Json.arr(
         Json.obj(
           "transactionType" -> "Debit",
@@ -94,7 +94,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
 
   def FullyPaidChargeWithSplitPaymentsResponse: JsObject = Json.obj(
     "success" -> Json.obj(
-      "processingDate" -> LocalDateTime.now(clock),
+      "processingDate" -> ZonedDateTime.now(clock),
       "transactionDetails" -> Json.arr(
         Json.obj(
           "transactionType" -> "Debit",
@@ -161,7 +161,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
 
   def RepaymentInterestResponse: JsObject = Json.obj(
     "success" -> Json.obj(
-      "processingDate" -> LocalDateTime.now(clock),
+      "processingDate" -> ZonedDateTime.now(clock),
       "transactionDetails" -> Json.arr(
         Json.obj(
           "transactionType" -> "Credit",
@@ -187,7 +187,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
 
   def DTTDeterminationResponse: JsObject = Json.obj(
     "success" -> Json.obj(
-      "processingDate" -> LocalDateTime.now(clock),
+      "processingDate" -> ZonedDateTime.now(clock),
       "transactionDetails" -> Json.arr(
         Json.obj(
           "transactionType"   -> "Debit",
