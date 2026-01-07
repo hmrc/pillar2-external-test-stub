@@ -165,25 +165,6 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
     )
   )
 
-  Json.obj(
-    "success" -> Json.obj(
-      "processingDate" -> ZonedDateTime.now(clock),
-      "transactionDetails" -> Json.arr(
-        Json.obj(
-          "transactionType"   -> "Debit",
-          "transactionDesc"   -> "Pillar 2 Determination Pillar 2 DTT",
-          "startDate"         -> currentYearStart,
-          "endDate"           -> currentYearEnd,
-          "chargeRefNo"       -> "XDT3456789698",
-          "transactionDate"   -> today,
-          "dueDate"           -> currentYearEnd.plusMonths(dueDateBuffer),
-          "originalAmount"    -> 10000,
-          "outstandingAmount" -> 10000
-        )
-      )
-    )
-  )
-
   private def transactionJson(
     transactionType:   TransactionType,
     transactionDesc:   String,
