@@ -38,6 +38,18 @@ enum AccountActivityScenario(val raw: String):
   case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS extends AccountActivityScenario("FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS")
   case REPAYMENT_INTEREST extends AccountActivityScenario("REPAYMENT_INTEREST")
   case DTT_DETERMINATION extends AccountActivityScenario("DTT_DETERMINATION")
+  case DTT_IIR_UTPR extends AccountActivityScenario("DTT_IIR_UTPR")
+  case DTT_IIR_UTPR_INTEREST extends AccountActivityScenario("DTT_IIR_UTPR_INTEREST")
+  case DTT_IIR_UTPR_DETERMINATION extends AccountActivityScenario("DTT_IIR_UTPR_DETERMINATION")
+  case DTT_IIR_UTPR_DISCOVERY extends AccountActivityScenario("DTT_IIR_UTPR_DISCOVERY")
+  case DTT_IIR_UTPR_OVERPAID_CLAIM extends AccountActivityScenario("DTT_IIR_UTPR_OVERPAID_CLAIM")
+  case UKTR_DTT_UKTR_MTT_LATE_FILING_PENALTY extends AccountActivityScenario("UKTR_DTT_UKTR_MTT_LATE_FILING_PENALTY")
+  case ORN_GIR_DTT_UKTR_MTT_LATE_FILING_PENALTY extends AccountActivityScenario("ORN_GIR_DTT_UKTR_MTT_LATE_FILING_PENALTY")
+  case POTENTIAL_LOST_REVENUE_PENALTY extends AccountActivityScenario("POTENTIAL_LOST_REVENUE_PENALTY")
+  case SCHEDULE_36_PENALTY extends AccountActivityScenario("SCHEDULE_36_PENALTY")
+  case RECORD_KEEPING_PENALTY extends AccountActivityScenario("RECORD_KEEPING_PENALTY")
+  case REPAYMENT_CREDIT extends AccountActivityScenario("REPAYMENT_CREDIT")
+  case INTEREST_REPAYMENT_CREDIT extends AccountActivityScenario("INTEREST_REPAYMENT_CREDIT")
 
 case class AccountStatus(
   inactive: Boolean
