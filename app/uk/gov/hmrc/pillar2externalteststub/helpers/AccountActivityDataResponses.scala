@@ -225,14 +225,14 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
   def DttIirUtprInterestResponse: JsObject = responseWrapper(
     transactionJson(
       transactionType = TransactionType.Debit,
-      transactionDesc = "Pillar 2 UKTR Interest UKTR DTT",
+      transactionDesc = "Pillar 2 UKTR Interest UKTR DTT interest",
       chargeRefNo = "XIN3456789642".some,
       originalAmount = 350,
       outstandingAmount = BigDecimal(150).some,
       clearedAmount = BigDecimal(200).some,
       clearingDetails = Seq(
         clearingJson(
-          transactionDesc = "Pillar 2 UKTR Interest UKTR DTT",
+          transactionDesc = "Pillar 2 UKTR Interest UKTR DTT interest",
           chargeRefNo = None,
           amount = 200,
           clearingReason = "Cleared by Payment"
@@ -241,14 +241,14 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
     ),
     transactionJson(
       transactionType = TransactionType.Debit,
-      transactionDesc = "Pillar 2 UKTR Interest UKTR IIR",
+      transactionDesc = "Pillar 2 UKTR Interest UKTR IIR interest",
       chargeRefNo = "XIN3456789642".some,
       originalAmount = 150,
       outstandingAmount = None,
       clearedAmount = BigDecimal(150).some,
       clearingDetails = Seq(
         clearingJson(
-          transactionDesc = "Pillar 2 UKTR Interest UKTR IIR",
+          transactionDesc = "Pillar 2 UKTR Interest UKTR IIR interest",
           chargeRefNo = None,
           amount = 150,
           clearingReason = "Cleared by Payment"
@@ -257,7 +257,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
     ),
     transactionJson(
       transactionType = TransactionType.Debit,
-      transactionDesc = "Pillar 2 UKTR Interest UKTR UTPR",
+      transactionDesc = "Pillar 2 UKTR Interest UKTR UTPR interest",
       chargeRefNo = "XIN3556789642".some,
       originalAmount = 35,
       outstandingAmount = BigDecimal(35).some,
