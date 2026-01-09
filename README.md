@@ -138,13 +138,26 @@ This service maintains a persistent state using MongoDB to simulate a real-world
 
 You can simulate different financial states by including a `testData` object when creating or updating a `TestOrganisation`.
 
-|Scenario| Description                                         |
-|:---|:----------------------------------------------------|
-|DTT_CHARGE| Standard outstanding DTT debit charge               |
-|FULLY_PAID_CHARGE| A charge that has been fully cleared by one payment |
-|FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS| A charge cleared by two separate partial payments   |
-|REPAYMENT_INTEREST| A credit transaction for repayment interest         |
-|DTT_DETERMINATION| A Pillar 2 DTT Determination debit                  |
+| Scenario                                 | Description                                                                                                                           |
+|:-----------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------|
+| DTT_CHARGE                               | Standard outstanding DTT debit charge                                                                                                 |
+| FULLY_PAID_CHARGE                        | A charge that has been fully cleared by one payment                                                                                   |
+| FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS    | A charge cleared by two separate partial payments                                                                                     |
+| REPAYMENT_INTEREST                       | A credit transaction for repayment interest                                                                                           |
+| DTT_DETERMINATION                        | A Pillar 2 DTT Determination debit                                                                                                    |
+| DTT_IIR_UTPR                             | Three debit kinds, with partial payment made.                                                                                         |
+| ACCRUED_INTEREST                         | A single unpaid debit, which has begun to accrue interest.                                                                            |
+| DTT_IIR_UTPR_INTEREST                    | Three Interest debit kinds. These debits will only show after the main debit is settled.                                              |
+| DTT_IIR_UTPR_DETERMINATION               | Three kinds of Determination debits.                                                                                                  |
+| DTT_IIR_UTPR_DISCOVERY                   | Three kinds of Discovery debits.                                                                                                      |
+| DTT_IIR_UTPR_OVERPAID_CLAIM              | Three kinds of debits which may be created when another debit is under appeal.                                                        |
+| UKTR_DTT_UKTR_MTT_LATE_FILING_PENALTY    | Two debit kinds representing penalties as a result of late submission of UK Tax Returns.                                              |
+| ORN_GIR_DTT_UKTR_MTT_LATE_FILING_PENALTY | Two debit kinds representing penalties as a result of late submission of an Overseas Return Notification or GloBE Information Return. |
+| POTENTIAL_LOST_REVENUE_PENALTY           | An example of a penalty imposed to recoup lost revenue.                                                                               |
+| SCHEDULE_36_PENALTY                      | An example of a penalty imposed under Schedule 36.                                                                                    |
+| RECORD_KEEPING_PENALTY                   | An example of a penalty imposed related to record keeping.                                                                            |
+| REPAYMENT_CREDIT                         | An example of a credit issued as a result of UK Tax Return submission.                                                                |
+| INTEREST_REPAYMENT_CREDIT                | An example of a credit issued to return paid interest.                                                                                |
 
 **Usage**
 
