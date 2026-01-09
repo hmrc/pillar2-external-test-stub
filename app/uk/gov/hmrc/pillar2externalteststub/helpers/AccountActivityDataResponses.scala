@@ -212,8 +212,8 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
   def AccruedInterestResponse: JsObject = responseWrapper(
     transactionJson(
       transactionType = TransactionType.Debit,
-      transactionDesc = "Pillar 2 UKTR Interest UKTR DTT",
-      chargeRefNo = "XIN3456789642".some,
+      transactionDesc = "Pillar 2 Determination Pillar 2 Determination IIR",
+      chargeRefNo = "XDT3456789055".some,
       originalAmount = 3100,
       outstandingAmount = BigDecimal(3100).some,
       clearedAmount = None,
