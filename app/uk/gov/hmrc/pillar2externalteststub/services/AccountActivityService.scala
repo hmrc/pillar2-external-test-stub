@@ -40,6 +40,7 @@ class AccountActivityService @Inject() (responses: AccountActivityDataResponses)
           case REPAYMENT_INTEREST                       => responses.RepaymentInterestResponse
           case DTT_DETERMINATION                        => responses.DTTDeterminationResponse
           case DTT_IIR_UTPR                             => responses.DttIirUtprResponse
+          case ACCRUED_INTEREST                         => responses.AccruedInterestResponse
           case DTT_IIR_UTPR_INTEREST                    => responses.DttIirUtprInterestResponse
           case DTT_IIR_UTPR_DETERMINATION               => responses.DttIirUtprDeterminationResponse
           case DTT_IIR_UTPR_DISCOVERY                   => responses.DttIirUtprDiscoveryResponse

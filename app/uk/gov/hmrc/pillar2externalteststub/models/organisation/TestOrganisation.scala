@@ -39,6 +39,7 @@ enum AccountActivityScenario(val raw: String):
   case REPAYMENT_INTEREST extends AccountActivityScenario("REPAYMENT_INTEREST")
   case DTT_DETERMINATION extends AccountActivityScenario("DTT_DETERMINATION")
   case DTT_IIR_UTPR extends AccountActivityScenario("DTT_IIR_UTPR")
+  case ACCRUED_INTEREST extends AccountActivityScenario("ACCRUED_INTEREST")
   case DTT_IIR_UTPR_INTEREST extends AccountActivityScenario("DTT_IIR_UTPR_INTEREST")
   case DTT_IIR_UTPR_DETERMINATION extends AccountActivityScenario("DTT_IIR_UTPR_DETERMINATION")
   case DTT_IIR_UTPR_DISCOVERY extends AccountActivityScenario("DTT_IIR_UTPR_DISCOVERY")

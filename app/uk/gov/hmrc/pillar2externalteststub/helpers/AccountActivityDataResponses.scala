@@ -209,6 +209,19 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
     )
   )
 
+  def AccruedInterestResponse: JsObject = responseWrapper(
+    transactionJson(
+      transactionType = TransactionType.Debit,
+      transactionDesc = "Pillar 2 UKTR Interest UKTR DTT",
+      chargeRefNo = "XIN3456789642".some,
+      originalAmount = 3100,
+      outstandingAmount = BigDecimal(3100).some,
+      clearedAmount = None,
+      clearingDetails = None,
+      accruedInterest = BigDecimal(35).some
+    )
+  )
+
   def DttIirUtprInterestResponse: JsObject = responseWrapper(
     transactionJson(
       transactionType = TransactionType.Debit,
@@ -540,13 +553,15 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
     clearedAmount:     Option[BigDecimal],
     clearingDetails:   Option[Seq[ClearingJson]],
     standOverAmount:   Option[BigDecimal] = None,
-    appealFlag:        Option[Boolean] = None
+    appealFlag:        Option[Boolean] = None,
+    accruedInterest:   Option[BigDecimal] = None
   ): TransactionJson = JsObject(
     Seq(
       ("transactionType" -> JsString(transactionType.raw)).some,
       ("transactionDesc" -> JsString(transactionDesc)).some,
       Option.when(transactionType == TransactionType.Debit)("startDate" -> summon[Writes[LocalDate]].writes(currentYearStart)),
       Option.when(transactionType == TransactionType.Debit)("endDate"   -> summon[Writes[LocalDate]].writes(currentYearEnd)),
+      accruedInterest.map("accruedInterest"                             -> JsNumber(_)),
       chargeRefNo.map("chargeRefNo"                                     -> JsString(_)),
       ("transactionDate" -> summon[Writes[LocalDate]].writes(today)).some,
       ("dueDate"         -> summon[Writes[LocalDate]].writes(currentYearEnd.plusMonths(dueDateBuffer))).some,

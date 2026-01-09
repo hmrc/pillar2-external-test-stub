@@ -61,6 +61,7 @@ class AccountActivityServiceSpec
         AccountActivityScenario.REPAYMENT_INTEREST                       -> responses.RepaymentInterestResponse,
         AccountActivityScenario.DTT_DETERMINATION                        -> responses.DTTDeterminationResponse,
         AccountActivityScenario.DTT_IIR_UTPR                             -> responses.DttIirUtprResponse,
+        AccountActivityScenario.ACCRUED_INTEREST                         -> responses.AccruedInterestResponse,
         AccountActivityScenario.DTT_IIR_UTPR_INTEREST                    -> responses.DttIirUtprInterestResponse,
         AccountActivityScenario.DTT_IIR_UTPR_DETERMINATION               -> responses.DttIirUtprDeterminationResponse,
         AccountActivityScenario.DTT_IIR_UTPR_DISCOVERY                   -> responses.DttIirUtprDiscoveryResponse,
