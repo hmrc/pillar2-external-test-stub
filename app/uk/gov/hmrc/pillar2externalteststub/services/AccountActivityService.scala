@@ -34,11 +34,24 @@ class AccountActivityService @Inject() (responses: AccountActivityDataResponses)
     orgWithId.organisation.testData match {
       case Some(data) =>
         val response = data.accountActivityScenario match {
-          case DTT_CHARGE                            => responses.DTTChargeResponse
-          case FULLY_PAID_CHARGE                     => responses.FullyPaidChargeResponse
-          case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS => responses.FullyPaidChargeWithSplitPaymentsResponse
-          case REPAYMENT_INTEREST                    => responses.RepaymentInterestResponse
-          case DTT_DETERMINATION                     => responses.DTTDeterminationResponse
+          case DTT_CHARGE                               => responses.DTTChargeResponse
+          case FULLY_PAID_CHARGE                        => responses.FullyPaidChargeResponse
+          case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS    => responses.FullyPaidChargeWithSplitPaymentsResponse
+          case REPAYMENT_INTEREST                       => responses.RepaymentInterestResponse
+          case DTT_DETERMINATION                        => responses.DTTDeterminationResponse
+          case DTT_IIR_UTPR                             => responses.DttIirUtprResponse
+          case ACCRUED_INTEREST                         => responses.AccruedInterestResponse
+          case DTT_IIR_UTPR_INTEREST                    => responses.DttIirUtprInterestResponse
+          case DTT_IIR_UTPR_DETERMINATION               => responses.DttIirUtprDeterminationResponse
+          case DTT_IIR_UTPR_DISCOVERY                   => responses.DttIirUtprDiscoveryResponse
+          case DTT_IIR_UTPR_OVERPAID_CLAIM              => responses.DttIirUtprOverpaidClaimResponse
+          case UKTR_DTT_UKTR_MTT_LATE_FILING_PENALTY    => responses.UktrDttMttLateFilingPenaltyResponse
+          case ORN_GIR_DTT_UKTR_MTT_LATE_FILING_PENALTY => responses.OrnGirDttUktrMttLateFilingPenaltyResponse
+          case POTENTIAL_LOST_REVENUE_PENALTY           => responses.PotentialLostRevenuePenaltyResponse
+          case SCHEDULE_36_PENALTY                      => responses.Schedule36PenaltyResponse
+          case RECORD_KEEPING_PENALTY                   => responses.RecordKeepingPenaltyResponse
+          case REPAYMENT_CREDIT                         => responses.RepaymentCreditResponse
+          case INTEREST_REPAYMENT_CREDIT                => responses.InterestRepaymentCreditResponse
         }
         Future.successful(response)
 

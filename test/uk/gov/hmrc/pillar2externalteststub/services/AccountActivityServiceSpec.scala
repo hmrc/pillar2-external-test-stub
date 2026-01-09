@@ -54,12 +54,25 @@ class AccountActivityServiceSpec
 
     "when retrieving account activity" - {
       val scenarioTable = Table(
-        ("Scenario", "Expected Response"),
-        (AccountActivityScenario.DTT_CHARGE, responses.DTTChargeResponse),
-        (AccountActivityScenario.FULLY_PAID_CHARGE, responses.FullyPaidChargeResponse),
-        (AccountActivityScenario.FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS, responses.FullyPaidChargeWithSplitPaymentsResponse),
-        (AccountActivityScenario.REPAYMENT_INTEREST, responses.RepaymentInterestResponse),
-        (AccountActivityScenario.DTT_DETERMINATION, responses.DTTDeterminationResponse)
+        "Scenario"                                                       -> "Expected Response",
+        AccountActivityScenario.DTT_CHARGE                               -> responses.DTTChargeResponse,
+        AccountActivityScenario.FULLY_PAID_CHARGE                        -> responses.FullyPaidChargeResponse,
+        AccountActivityScenario.FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS    -> responses.FullyPaidChargeWithSplitPaymentsResponse,
+        AccountActivityScenario.REPAYMENT_INTEREST                       -> responses.RepaymentInterestResponse,
+        AccountActivityScenario.DTT_DETERMINATION                        -> responses.DTTDeterminationResponse,
+        AccountActivityScenario.DTT_IIR_UTPR                             -> responses.DttIirUtprResponse,
+        AccountActivityScenario.ACCRUED_INTEREST                         -> responses.AccruedInterestResponse,
+        AccountActivityScenario.DTT_IIR_UTPR_INTEREST                    -> responses.DttIirUtprInterestResponse,
+        AccountActivityScenario.DTT_IIR_UTPR_DETERMINATION               -> responses.DttIirUtprDeterminationResponse,
+        AccountActivityScenario.DTT_IIR_UTPR_DISCOVERY                   -> responses.DttIirUtprDiscoveryResponse,
+        AccountActivityScenario.DTT_IIR_UTPR_OVERPAID_CLAIM              -> responses.DttIirUtprOverpaidClaimResponse,
+        AccountActivityScenario.UKTR_DTT_UKTR_MTT_LATE_FILING_PENALTY    -> responses.UktrDttMttLateFilingPenaltyResponse,
+        AccountActivityScenario.ORN_GIR_DTT_UKTR_MTT_LATE_FILING_PENALTY -> responses.OrnGirDttUktrMttLateFilingPenaltyResponse,
+        AccountActivityScenario.POTENTIAL_LOST_REVENUE_PENALTY           -> responses.PotentialLostRevenuePenaltyResponse,
+        AccountActivityScenario.SCHEDULE_36_PENALTY                      -> responses.Schedule36PenaltyResponse,
+        AccountActivityScenario.RECORD_KEEPING_PENALTY                   -> responses.RecordKeepingPenaltyResponse,
+        AccountActivityScenario.REPAYMENT_CREDIT                         -> responses.RepaymentCreditResponse,
+        AccountActivityScenario.INTEREST_REPAYMENT_CREDIT                -> responses.InterestRepaymentCreditResponse
       )
 
       "should return the correct response for all defined scenarios" in {
