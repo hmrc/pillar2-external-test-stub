@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.mvc.*
 import uk.gov.hmrc.pillar2externalteststub.controllers.actions.AuthActionFilter
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoDataFound, RequestCouldNotBeProcessed}
-import uk.gov.hmrc.pillar2externalteststub.models.error.{HIPBadRequest, OrganisationNotFound, TestDataNotFound}
+import uk.gov.hmrc.pillar2externalteststub.models.error.{HIPBadRequest, OrganisationNotFound}
 import uk.gov.hmrc.pillar2externalteststub.services.{AccountActivityService, OrganisationService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -56,9 +56,9 @@ class AccountActivityController @Inject() (
           case _: OrganisationNotFound =>
             logger.warn(s"Organisation not found pillar2Id: $pillar2Id")
             Future.failed(NoDataFound)
-          case _: TestDataNotFound =>
+          case NoDataFound =>
             logger.warn(s"Test data missing for pillar2Id: $pillar2Id")
-            Future.failed(TestDataNotFound(pillar2Id))
+            Future.failed(NoDataFound)
           case e: DateTimeParseException =>
             logger.error(s"Invalid date format: ${e.getMessage}")
             Future.failed(RequestCouldNotBeProcessed)

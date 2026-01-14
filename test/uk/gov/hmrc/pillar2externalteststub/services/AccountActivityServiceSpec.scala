@@ -25,7 +25,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.JsObject
 import uk.gov.hmrc.pillar2externalteststub.helpers.AccountActivityDataResponses
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.error.TestDataNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.NoDataFound
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
 
 import java.time.*
@@ -94,7 +94,7 @@ class AccountActivityServiceSpec
 
     "validation failures" - {
 
-      "should fail with TestDataNotFound when testData is missing" in {
+      "should fail with NoDataFound when testData is missing" in {
         val org = TestOrganisation(
           orgDetails = orgDetails,
           accountingPeriod = testAccountingPeriod,
@@ -103,10 +103,7 @@ class AccountActivityServiceSpec
         ).withPillar2Id(validPlrId)
 
         whenReady(service.getAccountActivity(org).failed) { ex =>
-          ex shouldBe a[TestDataNotFound]
-          val error = ex.asInstanceOf[TestDataNotFound]
-          error.code    shouldBe "TEST_DATA_NOT_FOUND"
-          error.message shouldBe s"Test Data can not be found for pillar2Id: $validPlrId"
+          ex shouldBe NoDataFound
         }
       }
     }

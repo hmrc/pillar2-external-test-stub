@@ -178,7 +178,7 @@ To assign a scenario, include the following JSON block in your request body:
 ```
 **Important Considerations**
 
-- **Optionality**: The `testData` field is optional. If omitted, the `TestOrganisation` will be created without a linked activity scenario.
+- **Optionality**: The `testData` field is optional. If omitted, the Account Activity endpoint will return a **422 Unprocessable Entity** with error code `014` and message `No data found`.
 
 - **Modifying Scenarios**: To change the scenario for an existing organisation, use the **Update Organisation** endpoint and provide the new value within the JSON body.
 

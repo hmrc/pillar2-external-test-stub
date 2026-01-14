@@ -18,7 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.services
 
 import play.api.libs.json.JsObject
 import uk.gov.hmrc.pillar2externalteststub.helpers.AccountActivityDataResponses
-import uk.gov.hmrc.pillar2externalteststub.models.error.TestDataNotFound
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.NoDataFound
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.AccountActivityScenario.*
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
 
@@ -28,9 +28,7 @@ import scala.concurrent.Future
 @Singleton
 class AccountActivityService @Inject() (responses: AccountActivityDataResponses) {
 
-  def getAccountActivity(orgWithId: TestOrganisationWithId): Future[JsObject] = {
-    val pillar2Id = orgWithId.pillar2Id
-
+  def getAccountActivity(orgWithId: TestOrganisationWithId): Future[JsObject] =
     orgWithId.organisation.testData match {
       case Some(data) =>
         val response = data.accountActivityScenario match {
@@ -56,7 +54,6 @@ class AccountActivityService @Inject() (responses: AccountActivityDataResponses)
         Future.successful(response)
 
       case None =>
-        Future.failed(TestDataNotFound(pillar2Id))
+        Future.failed(NoDataFound)
     }
-  }
 }

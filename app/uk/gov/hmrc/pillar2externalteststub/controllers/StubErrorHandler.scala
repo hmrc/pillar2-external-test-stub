@@ -44,7 +44,6 @@ class StubErrorHandler extends HttpErrorHandler with Logging {
           case e @ OrganisationAlreadyExists(_) => Results.Conflict(Json.toJson(StubErrorResponse(e.code, e.message)))
           case e @ OrganisationNotFound(_)      => Results.NotFound(Json.toJson(StubErrorResponse(e.code, e.message)))
           case e @ DatabaseError(_)             => Results.InternalServerError(Json.toJson(StubErrorResponse(e.code, e.message)))
-          case e @ TestDataNotFound(_)          => Results.NotFound(Json.toJson(StubErrorResponse(e.code, e.message)))
         }
         logger.warn(s"Caught StubError. Returning ${ret.header.status} statuscode", exception)
         Future.successful(ret)

@@ -225,14 +225,6 @@ class StubErrorHandlerSpec extends AnyWordSpec with Matchers {
       (json \ "error" \ "logID").as[String]   shouldBe "C0000000000000000000000000000500"
     }
 
-    "handle TestDataNotFound error" in {
-      val result = errorHandler.onServerError(dummyRequest, TestDataNotFound("TEST123"))
-      status(result) shouldBe NOT_FOUND
-      val json = contentAsJson(result)
-      (json \ "code").as[String]    shouldBe "TEST_DATA_NOT_FOUND"
-      (json \ "message").as[String] shouldBe "Test Data can not be found for pillar2Id: TEST123"
-    }
-
     "handle unknown errors" in {
       val result = errorHandler.onServerError(dummyRequest, new RuntimeException("Unexpected error"))
       status(result) shouldBe INTERNAL_SERVER_ERROR
