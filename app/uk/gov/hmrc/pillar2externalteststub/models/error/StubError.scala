@@ -46,8 +46,3 @@ case class DatabaseError(error: String) extends StubError {
   override val code:    String = "DATABASE_ERROR"
   override val message: String = error
 }
-
-case class TestDataNotFound(pillar2Id: String) extends StubError {
-  override val code:    String = "TEST_DATA_NOT_FOUND"
-  override val message: String = s"Test Data can not be found for pillar2Id: $pillar2Id"
-}

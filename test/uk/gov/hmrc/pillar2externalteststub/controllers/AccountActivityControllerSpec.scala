@@ -33,7 +33,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
 import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{IdMissingOrInvalid, NoDataFound, RequestCouldNotBeProcessed}
-import uk.gov.hmrc.pillar2externalteststub.models.error.{HIPBadRequest, OrganisationNotFound, TestDataNotFound}
+import uk.gov.hmrc.pillar2externalteststub.models.error.{HIPBadRequest, OrganisationNotFound}
 import uk.gov.hmrc.pillar2externalteststub.services.{AccountActivityService, OrganisationService}
 
 import scala.concurrent.Future
@@ -89,14 +89,14 @@ class AccountActivityControllerSpec
         route(app, createRequest()).value shouldFailWith NoDataFound
       }
 
-      "should return TestDataNotFound (404) when test data is missing" in {
+      "should return NoDataFound (422) when test data is missing" in {
         when(mockOrgService.getOrganisation(anyString()))
           .thenReturn(Future.successful(organisationWithId))
 
         when(mockAccountService.getAccountActivity(any()))
-          .thenReturn(Future.failed(TestDataNotFound(validPlrId)))
+          .thenReturn(Future.failed(NoDataFound))
 
-        route(app, createRequest()).value shouldFailWith TestDataNotFound(validPlrId)
+        route(app, createRequest()).value shouldFailWith NoDataFound
       }
 
       "should return RequestCouldNotBeProcessed (422) for invalid date format" in {
