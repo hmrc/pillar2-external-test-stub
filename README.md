@@ -131,8 +131,8 @@ This service maintains a persistent state using MongoDB to simulate a real-world
 | GET | `/RESTAdapter/plr/account-activity`                           | Retrieve Account Activity Scenario Details |
 
 **Parameters**:
-- `activityFromDate`: Start date (YYYY-MM-DD)
-- `activityToDate`: End date (YYYY-MM-DD)
+- `fromDate`: Start date (YYYY-MM-DD)
+- `toDate`: End date (YYYY-MM-DD)
 
 **Scenarios**
 

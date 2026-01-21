@@ -21,6 +21,6 @@ PUT         /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pil
 DELETE      /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.delete(pillar2Id: String)
 
 # account activity routes
-GET       /RESTAdapter/plr/account-activity              uk.gov.hmrc.pillar2externalteststub.controllers.AccountActivityController.get(activityFromDate: String, activityToDate: String)
+GET       /RESTAdapter/plr/account-activity              uk.gov.hmrc.pillar2externalteststub.controllers.AccountActivityController.get(fromDate: String, toDate: String)
 
 
