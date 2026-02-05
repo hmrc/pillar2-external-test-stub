@@ -620,7 +620,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
 /** Transaction descriptions condensed to ≤30 chars for ETMP SAP limit */
 private enum TransactionDesc(val description: String) {
   // Payment
-  case PaymentOnAccountDesc extends TransactionDesc("Pillar 2 (Payment on Account)")
+  case PaymentOnAccountDesc extends TransactionDesc("On Account Pillar 2 (Payment on Account)")
 
   // UKTR charges
   case UktrDttDesc extends TransactionDesc("UKTR - DTT")
