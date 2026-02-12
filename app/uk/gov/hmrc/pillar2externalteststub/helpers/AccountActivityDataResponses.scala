@@ -527,9 +527,9 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
       transactionType = TransactionType.Payment,
       transactionDesc = PaymentOnAccountDesc,
       chargeRefNo = "XR23456789014".some,
-      originalAmount = 500,
+      originalAmount = -500,
       outstandingAmount = BigDecimal(0).some,
-      clearedAmount = BigDecimal(500).some,
+      clearedAmount = BigDecimal(-500).some,
       clearingDetails = Seq(
         clearingJson(
           transactionDesc = "Repayment",
@@ -573,8 +573,8 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
       accruedInterest.map("accruedInterest"                             -> JsNumber(_)),
       chargeRefNo.map("chargeRefNo"                                     -> JsString(_)),
       ("transactionDate" -> summon[Writes[LocalDate]].writes(today)).some,
-      ("dueDate"         -> summon[Writes[LocalDate]].writes(currentYearEnd.plusMonths(dueDateBuffer))).some,
-      ("originalAmount"  -> JsNumber(originalAmount)).some,
+      Option.when(transactionType == TransactionType.Debit)("dueDate" -> summon[Writes[LocalDate]].writes(currentYearEnd.plusMonths(dueDateBuffer))),
+      ("originalAmount" -> JsNumber(originalAmount)).some,
       outstandingAmount.map("outstandingAmount" -> JsNumber(_)),
       clearedAmount.map("clearedAmount"         -> JsNumber(_)),
       clearingDetails.map("clearingDetails"     -> JsArray(_)),
@@ -610,9 +610,9 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
   private type ClearingJson    = JsObject
 
   private enum TransactionType(val raw: String) {
-    case Debit extends TransactionType("Debit")
-    case Credit extends TransactionType("Credit")
-    case Payment extends TransactionType("Payment")
+    case Debit extends TransactionType("DEBIT")
+    case Credit extends TransactionType("CREDIT")
+    case Payment extends TransactionType("PAYMENT")
   }
 
 }
@@ -620,7 +620,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
 /** Transaction descriptions condensed to ≤30 chars for ETMP SAP limit */
 private enum TransactionDesc(val description: String) {
   // Payment
-  case PaymentOnAccountDesc extends TransactionDesc("On Account Pillar 2 (Payment on Account)")
+  case PaymentOnAccountDesc extends TransactionDesc("Pillar 2 Payment on Account")
 
   // UKTR charges
   case UktrDttDesc extends TransactionDesc("UKTR - DTT")
