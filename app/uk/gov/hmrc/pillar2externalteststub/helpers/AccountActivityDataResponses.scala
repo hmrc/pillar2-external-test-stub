@@ -208,6 +208,28 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
       outstandingAmount = BigDecimal(100).some,
       clearedAmount = None,
       clearingDetails = None
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -3150,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-3150).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = UktrDttDesc,
+          chargeRefNo = "XDT3456789012".some,
+          amount = 3100,
+          clearingReason = "Allocated to Charge"
+        ),
+        clearingJson(
+          transactionDesc = UktrMttIirDesc,
+          chargeRefNo = "XDT3456789012".some,
+          amount = 50,
+          clearingReason = "Allocated to Charge"
+        )
+      ).some
     )
   )
 
@@ -265,6 +287,28 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
       outstandingAmount = BigDecimal(35).some,
       clearedAmount = None,
       clearingDetails = None
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -350,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-350).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = LateUktrPayIntDttDesc,
+          chargeRefNo = "XIN3456789642".some,
+          amount = 200,
+          clearingReason = "Allocated to Charge"
+        ),
+        clearingJson(
+          transactionDesc = LateUktrPayIntMttIirDesc,
+          chargeRefNo = "XIN3456789642".some,
+          amount = 150,
+          clearingReason = "Allocated to Charge"
+        )
+      ).some
     )
   )
 
@@ -316,6 +360,34 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
           clearingReason = "Cleared by Payment"
         )
       ).some
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -321375,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-321375).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = DeterminationDttDesc,
+          chargeRefNo = "XDT3556789012".some,
+          amount = 310000,
+          clearingReason = "Allocated to Charge"
+        ),
+        clearingJson(
+          transactionDesc = DeterminationMttIirDesc,
+          chargeRefNo = "XDT3556789012".some,
+          amount = 11250,
+          clearingReason = "Allocated to Charge"
+        ),
+        clearingJson(
+          transactionDesc = DeterminationMttUtprDesc,
+          chargeRefNo = "XDT3456789012".some,
+          amount = 125,
+          clearingReason = "Allocated to Charge"
+        )
+      ).some
     )
   )
 
@@ -360,6 +432,28 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
       outstandingAmount = BigDecimal(3000).some,
       clearedAmount = None,
       clearingDetails = None
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -351000,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-351000).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = DiscoveryDttDesc,
+          chargeRefNo = "XD23456789779".some,
+          amount = 350000,
+          clearingReason = "Allocated to Charge"
+        ),
+        clearingJson(
+          transactionDesc = DiscoveryMttIirDesc,
+          chargeRefNo = "XD23456789779".some,
+          amount = 1000,
+          clearingReason = "Allocated to Charge"
+        )
+      ).some
     )
   )
 
@@ -399,6 +493,22 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
       outstandingAmount = BigDecimal(4000).some,
       clearedAmount = None,
       clearingDetails = None
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -2500,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-2500).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = OverpaidClaimMttIirDesc,
+          chargeRefNo = "XOC3456789456".some,
+          amount = 2500,
+          clearingReason = "Allocated to Charge"
+        )
+      ).some
     )
   )
 
@@ -427,6 +537,22 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
       outstandingAmount = BigDecimal(100).some,
       clearedAmount = None,
       clearingDetails = None
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -100,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-100).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = LateUktrSubPenDttDesc,
+          chargeRefNo = None,
+          amount = 100,
+          clearingReason = "Allocated to Charge"
+        )
+      ).some
     )
   )
 
@@ -462,6 +588,28 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
           clearingReason = "Cleared by Payment"
         )
       ).some
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -150,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-150).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = LateOrnGirSubPenDttDesc,
+          chargeRefNo = None,
+          amount = 100,
+          clearingReason = "Allocated to Charge"
+        ),
+        clearingJson(
+          transactionDesc = LateOrnGirSubPenMttDesc,
+          chargeRefNo = None,
+          amount = 50,
+          clearingReason = "Allocated to Charge"
+        )
+      ).some
     )
   )
 
@@ -479,6 +627,22 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
           chargeRefNo = None,
           amount = 30000,
           clearingReason = "Cleared by Payment"
+        )
+      ).some
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -30000,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-30000).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = Schedule24Desc,
+          chargeRefNo = "XIN3456789011".some,
+          amount = 30000,
+          clearingReason = "Allocated to Charge"
         )
       ).some
     )
@@ -500,6 +664,22 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
           clearingReason = "Cleared by Payment"
         )
       ).some
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -3000,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-3000).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = Schedule36Desc,
+          chargeRefNo = "XIN3456789444".some,
+          amount = 3000,
+          clearingReason = "Allocated to Charge"
+        )
+      ).some
     )
   )
 
@@ -517,6 +697,22 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
           chargeRefNo = None,
           amount = 3500,
           clearingReason = "Cleared by Payment"
+        )
+      ).some
+    ),
+    transactionJson(
+      transactionType = TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -3500,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-3500).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = RecordKeepingPenDesc,
+          chargeRefNo = "XIN3456789898".some,
+          amount = 3500,
+          clearingReason = "Allocated to Charge"
         )
       ).some
     )
