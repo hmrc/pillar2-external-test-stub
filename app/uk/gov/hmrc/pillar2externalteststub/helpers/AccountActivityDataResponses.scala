@@ -749,6 +749,25 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
     )
   )
 
+  def RepaymentResponse: JsObject = responseWrapper(
+    transactionJson(
+      TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = "XR23456789014".some,
+      originalAmount = BigDecimal(-20000),
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-20000).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = "Repayment",
+          chargeRefNo = None,
+          amount = -10000,
+          clearingReason = "Outgoing payment - Paid"
+        )
+      ).some
+    )
+  )
+
   private def transactionJson(
     transactionType:   TransactionType,
     transactionDesc:   String,
