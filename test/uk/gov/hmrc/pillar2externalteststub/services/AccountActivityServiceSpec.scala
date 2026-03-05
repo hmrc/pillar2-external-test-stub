@@ -73,7 +73,7 @@ class AccountActivityServiceSpec
         AccountActivityScenario.RECORD_KEEPING_PENALTY                   -> responses.RecordKeepingPenaltyResponse,
         AccountActivityScenario.REPAYMENT_CREDIT                         -> responses.RepaymentCreditResponse,
         AccountActivityScenario.INTEREST_REPAYMENT_CREDIT                -> responses.InterestRepaymentCreditResponse,
-        AccountActivityScenario.REPAYMENT                                -> responses.RepaymentResponse
+        AccountActivityScenario.COMBINED_REPAYMENT                       -> responses.CombinedRepaymentResponse
       )
 
       "should return the correct response for all defined scenarios" in {
