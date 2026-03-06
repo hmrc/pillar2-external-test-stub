@@ -108,11 +108,10 @@ object UKTRLiabilityReturn {
 
     val failedSingleMemberCheck = isDTTSingleMember && subGroupDTTCount < 1
 
-    if (failedSingleMemberCheck) {
+    if failedSingleMemberCheck then
       invalid(UKTRSubmissionError(InvalidDTTElection))
-    } else {
+    else
       valid[UKTRLiabilityReturn](data)
-    }
   }
 
   private[uktr] val electionUTPRRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
@@ -121,11 +120,10 @@ object UKTRLiabilityReturn {
 
     val failedSingleMemberCheck = isUTPRSingleMember && subGroupUTPRCount < 1
 
-    if (failedSingleMemberCheck) {
+    if failedSingleMemberCheck then
       invalid(UKTRSubmissionError(InvalidUTPRElection))
-    } else {
+    else
       valid[UKTRLiabilityReturn](data)
-    }
   }
 
   private[uktr] val ukChargeableEntityNameRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
