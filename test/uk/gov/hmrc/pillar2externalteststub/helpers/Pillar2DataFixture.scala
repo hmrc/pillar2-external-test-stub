@@ -17,20 +17,20 @@
 package uk.gov.hmrc.pillar2externalteststub.helpers
 
 import org.scalatest.Assertion
-import org.scalatest.matchers.should.Matchers._
+import org.scalatest.matchers.should.Matchers.*
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.*
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.AccountingPeriod
 
 import java.time.LocalDate
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 trait Pillar2DataFixture {
 
-  implicit class AwaitFuture[T](fut: Future[T]) {
+  extension [T](fut: Future[T]) {
     def shouldFailWith(expected: Throwable): Assertion = {
       val err = Await.result(fut.failed, 5.seconds)
       err shouldBe expected
@@ -45,6 +45,7 @@ trait Pillar2DataFixture {
     xTransmittingSystemHeader -> "HIP",
     xOriginatingSystemHeader  -> "MDTP"
   )
+  val accountActivityHeader: (String, String) = "X-Message-Type" -> "ACCOUNT_ACTIVITY"
 
   val validPlrId       = "XMPLR0000000000"
   val chargeReference  = "XM000000000000"

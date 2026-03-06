@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub
 
-import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
@@ -26,7 +26,7 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.{Application, inject}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
@@ -35,6 +35,8 @@ import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.btn.mongo.BTNSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.BTNSubmissionRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext
@@ -59,8 +61,8 @@ class BTNISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: BTNSubmissionRepository             = app.injector.instanceOf[BTNSubmissionRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  implicit val ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  implicit val hc:                   HeaderCarrier                       = HeaderCarrier()
+  given ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                   HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -72,7 +74,7 @@ class BTNISpec
       .overrides(inject.bind[OrganisationService].toInstance(mockOrgService))
       .build()
 
-  private def submitBTN(pillar2Id: String, request: BTNRequest): HttpResponse =
+  def submitBTN(pillar2Id: String, request: BTNRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
       .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
@@ -96,7 +98,7 @@ class BTNISpec
   "BTN submission endpoint" should {
     "successfully save and retrieve BTN submissions" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
-      when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
+      when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
 
       val response = submitBTN(validPlrId, validBTNRequest)
       response.status shouldBe 201
@@ -111,7 +113,7 @@ class BTNISpec
 
     "fail with TaxObligationAlreadyFulfilled when submitting twice in a row" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
-      when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
+      when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
 
       // First submission should succeed
       val firstResponse = submitBTN(validPlrId, validBTNRequest)
@@ -133,7 +135,7 @@ class BTNISpec
 
     "support only one accountingPeriod per Pillar2 ID" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
-      when(mockOrgService.makeOrganisatonInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
+      when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
       
       submitBTN(validPlrId, validBTNRequest).status shouldBe 201
 

@@ -37,14 +37,14 @@ case class Liability(
 
 object Liability {
 
-  implicit val monetaryReads: Reads[BigDecimal]  = MonetaryReads.monetaryValueReads
-  implicit val format:        OFormat[Liability] = Json.format[Liability]
+  given monetaryReads: Reads[BigDecimal]  = MonetaryReads.monetaryValueReads
+  given format:        OFormat[Liability] = Json.format[Liability]
 }
 
 case class LiabilityNilReturn(returnType: ReturnType) extends Liabilities
 
 object LiabilityNilReturn {
-  implicit val liabilityNilReturnFormat: OFormat[LiabilityNilReturn] = Json.format[LiabilityNilReturn]
+  given liabilityNilReturnFormat: OFormat[LiabilityNilReturn] = Json.format[LiabilityNilReturn]
 }
 
 case class LiableEntity(
@@ -57,8 +57,8 @@ case class LiableEntity(
 )
 
 object LiableEntity {
-  implicit val monetaryReads: Reads[BigDecimal]     = MonetaryReads.monetaryValueReads
-  implicit val format:        OFormat[LiableEntity] = Json.format[LiableEntity]
+  given monetaryReads: Reads[BigDecimal]     = MonetaryReads.monetaryValueReads
+  given format:        OFormat[LiableEntity] = Json.format[LiableEntity]
 }
 
 sealed trait ReturnType extends EnumEntry with UpperSnakecase

@@ -21,8 +21,7 @@ object Types {
 
   object NumberOfMonths {
     def apply(months: Long): NumberOfMonths = {
-      if (months < 0)
-        throw new IllegalArgumentException(s"Months cannot be negative: $months")
+      if months < 0 then throw new IllegalArgumentException(s"Months cannot be negative: $months")
       months
     }
   }

@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.organisation
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate}
@@ -30,18 +30,42 @@ case class OrgDetails(
 
 case class AccountingPeriod(startDate: LocalDate, endDate: LocalDate, underEnquiry: Option[Boolean])
 
+case class TestData(accountActivityScenario: AccountActivityScenario)
+
+enum AccountActivityScenario(val raw: String):
+  case DTT_CHARGE extends AccountActivityScenario("DTT_CHARGE")
+  case FULLY_PAID_CHARGE extends AccountActivityScenario("FULLY_PAID_CHARGE")
+  case FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS extends AccountActivityScenario("FULLY_PAID_CHARGE_WITH_SPLIT_PAYMENTS")
+  case REPAYMENT_INTEREST extends AccountActivityScenario("REPAYMENT_INTEREST")
+  case DTT_DETERMINATION extends AccountActivityScenario("DTT_DETERMINATION")
+  case DTT_IIR_UTPR extends AccountActivityScenario("DTT_IIR_UTPR")
+  case ACCRUED_INTEREST extends AccountActivityScenario("ACCRUED_INTEREST")
+  case DTT_IIR_UTPR_INTEREST extends AccountActivityScenario("DTT_IIR_UTPR_INTEREST")
+  case DTT_IIR_UTPR_DETERMINATION extends AccountActivityScenario("DTT_IIR_UTPR_DETERMINATION")
+  case DTT_IIR_UTPR_DISCOVERY extends AccountActivityScenario("DTT_IIR_UTPR_DISCOVERY")
+  case DTT_IIR_UTPR_OVERPAID_CLAIM extends AccountActivityScenario("DTT_IIR_UTPR_OVERPAID_CLAIM")
+  case UKTR_DTT_UKTR_MTT_LATE_FILING_PENALTY extends AccountActivityScenario("UKTR_DTT_UKTR_MTT_LATE_FILING_PENALTY")
+  case ORN_GIR_DTT_UKTR_MTT_LATE_FILING_PENALTY extends AccountActivityScenario("ORN_GIR_DTT_UKTR_MTT_LATE_FILING_PENALTY")
+  case POTENTIAL_LOST_REVENUE_PENALTY extends AccountActivityScenario("POTENTIAL_LOST_REVENUE_PENALTY")
+  case SCHEDULE_36_PENALTY extends AccountActivityScenario("SCHEDULE_36_PENALTY")
+  case RECORD_KEEPING_PENALTY extends AccountActivityScenario("RECORD_KEEPING_PENALTY")
+  case REPAYMENT_CREDIT extends AccountActivityScenario("REPAYMENT_CREDIT")
+  case INTEREST_REPAYMENT_CREDIT extends AccountActivityScenario("INTEREST_REPAYMENT_CREDIT")
+
 case class AccountStatus(
   inactive: Boolean
 )
 
 case class TestOrganisationRequest(
   orgDetails:       OrgDetails,
-  accountingPeriod: AccountingPeriod
+  accountingPeriod: AccountingPeriod,
+  testData:         Option[TestData]
 )
 
 case class TestOrganisation(
   orgDetails:       OrgDetails,
   accountingPeriod: AccountingPeriod,
+  testData:         Option[TestData],
   accountStatus:    AccountStatus,
   lastUpdated:      Instant = Instant.now()
 ) {
@@ -66,19 +90,36 @@ case class TestOrganisationWithId(
 }
 
 object OrgDetails {
-  implicit val format: Format[OrgDetails] = Json.format[OrgDetails]
+  given format: Format[OrgDetails] = Json.format[OrgDetails]
 }
 
 object AccountingPeriod {
-  implicit val format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
+  given format: Format[AccountingPeriod] = Json.format[AccountingPeriod]
 }
 
+object TestData {
+  given format: Format[TestData] = Json.format[TestData]
+}
+
+object AccountActivityScenario:
+  given Format[AccountActivityScenario] = Format(
+    Reads {
+      case JsString(str) =>
+        AccountActivityScenario.values.find(_.raw == str) match {
+          case Some(scenario) => JsSuccess(scenario)
+          case None           => JsError(s"Unknown AccountActivityScenario: $str")
+        }
+      case _ => JsError("Expected string for AccountActivityScenario")
+    },
+    Writes(v => JsString(v.raw))
+  )
+
 object AccountStatus {
-  implicit val format: Format[AccountStatus] = Json.format[AccountStatus]
+  given format: Format[AccountStatus] = Json.format[AccountStatus]
 }
 
 object TestOrganisationRequest {
-  implicit val format: Format[TestOrganisationRequest] = Json.format[TestOrganisationRequest]
+  given format: Format[TestOrganisationRequest] = Json.format[TestOrganisationRequest]
 }
 
 object TestOrganisation {
@@ -112,6 +153,7 @@ object TestOrganisation {
     TestOrganisation(
       orgDetails = request.orgDetails,
       accountingPeriod = request.accountingPeriod,
+      testData = request.testData,
       //Initialise as active until we get a BTN
       accountStatus = AccountStatus(inactive = false)
     )
@@ -120,17 +162,19 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
+        (__ \ "testData").readNullable[TestData] and
         (__ \ "accountStatus").read[AccountStatus] and
-        (__ \ "lastUpdated").read[Instant](mongoInstantFormat)
-    )(TestOrganisation.apply _)
+        (__ \ "lastUpdated").read[Instant](using mongoInstantFormat)
+    )(TestOrganisation.apply)
 
   private val mongoWrites: OWrites[TestOrganisation] =
     (
       (__ \ "orgDetails").write[OrgDetails] and
         (__ \ "accountingPeriod").write[AccountingPeriod] and
+        (__ \ "testData").writeNullable[TestData] and
         (__ \ "accountStatus").write[AccountStatus] and
-        (__ \ "lastUpdated").write(mongoInstantFormat)
-    )(unlift(TestOrganisation.unapply))
+        (__ \ "lastUpdated").write(using mongoInstantFormat)
+    )(testOrg => (testOrg.orgDetails, testOrg.accountingPeriod, testOrg.testData, testOrg.accountStatus, testOrg.lastUpdated))
 
   val mongoFormat: OFormat[TestOrganisation] = OFormat(mongoReads, mongoWrites)
 
@@ -138,21 +182,23 @@ object TestOrganisation {
     (
       (__ \ "orgDetails").read[OrgDetails] and
         (__ \ "accountingPeriod").read[AccountingPeriod] and
+        (__ \ "testData").readNullable[TestData] and
         (__ \ "accountStatus").read[AccountStatus] and
-        (__ \ "lastUpdated").read[Instant](apiInstantFormat)
-    )(TestOrganisation.apply _)
+        (__ \ "lastUpdated").read[Instant](using apiInstantFormat)
+    )(TestOrganisation.apply)
 
   private val apiWrites: OWrites[TestOrganisation] =
     (
       (__ \ "orgDetails").write[OrgDetails] and
         (__ \ "accountingPeriod").write[AccountingPeriod] and
+        (__ \ "testData").writeNullable[TestData] and
         (__ \ "accountStatus").write[AccountStatus] and
-        (__ \ "lastUpdated").write(apiInstantFormat)
-    )(unlift(TestOrganisation.unapply))
+        (__ \ "lastUpdated").write(using apiInstantFormat)
+    )(testOrg => (testOrg.orgDetails, testOrg.accountingPeriod, testOrg.testData, testOrg.accountStatus, testOrg.lastUpdated))
 
-  implicit val format: OFormat[TestOrganisation] = OFormat(apiReads, apiWrites)
+  given format: OFormat[TestOrganisation] = OFormat(apiReads, apiWrites)
 }
 
 object TestOrganisationWithId {
-  implicit val format: Format[TestOrganisationWithId] = Json.format[TestOrganisationWithId]
+  given format: Format[TestOrganisationWithId] = Json.format[TestOrganisationWithId]
 }

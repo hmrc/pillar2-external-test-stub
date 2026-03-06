@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.pillar2externalteststub.services
 import org.bson.types.ObjectId
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
 import org.mockito.Mockito.when
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -25,15 +25,16 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.{AmendmentWindow, FirstAccountingPeriodDueDateFromRegistration}
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError._
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.*
+import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 import uk.gov.hmrc.pillar2externalteststub.models.organisation.TestOrganisationWithId
-import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.*
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, UKTRSubmissionRepository}
 
 import java.time.{Instant, LocalDate}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 class UKTRServiceSpec
@@ -59,7 +60,7 @@ class UKTRServiceSpec
           .thenReturn(Future.successful(new ObjectId()))
         when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(false)))
           .thenReturn(Future.successful(true))
-        when(mockOrgService.makeOrganisatonActive(eqTo(validPlrId)))
+        when(mockOrgService.makeOrganisationActive(eqTo(validPlrId)))
           .thenReturn(Future.successful(()))
 
         val result = Await.result(service.submitUKTR(validPlrId, liabilitySubmission), 5.seconds)
@@ -81,7 +82,7 @@ class UKTRServiceSpec
           .thenReturn(Future.successful(new ObjectId()))
         when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(false)))
           .thenReturn(Future.successful(true))
-        when(mockOrgService.makeOrganisatonActive(eqTo(validPlrId)))
+        when(mockOrgService.makeOrganisationActive(eqTo(validPlrId)))
           .thenReturn(Future.successful(()))
 
         val result = Await.result(service.submitUKTR(validPlrId, nilSubmission), 5.seconds)
@@ -116,7 +117,7 @@ class UKTRServiceSpec
           .thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
         when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(true)))
           .thenReturn(Future.successful(true))
-        when(mockOrgService.makeOrganisatonActive(eqTo(validPlrId)))
+        when(mockOrgService.makeOrganisationActive(eqTo(validPlrId)))
           .thenReturn(Future.successful(()))
 
         val result = Await.result(service.amendUKTR(validPlrId, liabilitySubmission), 5.seconds)
@@ -148,7 +149,7 @@ class UKTRServiceSpec
           .thenReturn(Future.successful((new ObjectId(), Some("existing-ref"))))
         when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(true)))
           .thenReturn(Future.successful(true))
-        when(mockOrgService.makeOrganisatonActive(eqTo(validPlrId)))
+        when(mockOrgService.makeOrganisationActive(eqTo(validPlrId)))
           .thenReturn(Future.successful(()))
 
         val result = Await.result(service.amendUKTR(validPlrId, nilSubmission), 5.seconds)
@@ -220,7 +221,7 @@ class UKTRServiceSpec
             .thenReturn(Future.successful(new ObjectId()))
           when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(false)))
             .thenReturn(Future.successful(true))
-          when(mockOrgService.makeOrganisatonActive(eqTo(validPlrId)))
+          when(mockOrgService.makeOrganisationActive(eqTo(validPlrId)))
             .thenReturn(Future.successful(()))
 
           val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
@@ -256,7 +257,7 @@ class UKTRServiceSpec
             .thenReturn(Future.successful((new ObjectId(), Some(chargeReference))))
           when(mockOASRepository.insert(any[BaseSubmission], eqTo(validPlrId), any[ObjectId], eqTo(true)))
             .thenReturn(Future.successful(true))
-          when(mockOrgService.makeOrganisatonActive(eqTo(validPlrId)))
+          when(mockOrgService.makeOrganisationActive(eqTo(validPlrId)))
             .thenReturn(Future.successful(()))
 
           val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
@@ -330,6 +331,14 @@ class UKTRServiceSpec
 
           val result = service.submitUKTR(validPlrId, invalidSubmission)
           result shouldFailWith InvalidReturn
+        }
+
+        "should fail when creating a response with an unsupported submission type" in {
+          val invalidSubmission = mock[UKTRSubmission]
+
+          intercept[HIPBadRequest] {
+            service.createResponse(invalidSubmission, None)
+          }
         }
       }
     }

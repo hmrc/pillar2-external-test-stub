@@ -25,8 +25,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class OrganisationService @Inject() (
-  repository:  OrganisationRepository
-)(implicit ec: ExecutionContext) {
+  repository: OrganisationRepository
+)(using ec:   ExecutionContext) {
 
   def createOrganisation(pillar2Id: String, details: TestOrganisation): Future[TestOrganisationWithId] = {
     val organisationWithId = details.withPillar2Id(pillar2Id)
@@ -64,26 +64,26 @@ class OrganisationService @Inject() (
         repository.delete(pillar2Id).map(_ => ())
     }
 
-  def makeOrganisatonActive(pillar2Id: String): Future[Unit] =
+  def makeOrganisationActive(pillar2Id: String): Future[Unit] =
     repository.findByPillar2Id(pillar2Id).flatMap {
       case None =>
         Future.failed(OrganisationNotFound(pillar2Id))
       case Some(orgWithId) =>
         val isInactive = orgWithId.organisation.accountStatus.inactive
-        if (isInactive) {
+        if isInactive then {
           repository.update(orgWithId.copy(organisation = orgWithId.organisation.copy(accountStatus = AccountStatus(inactive = false)))).map(_ => ())
         } else {
           Future.successful(())
         }
     }
 
-  def makeOrganisatonInactive(pillar2Id: String): Future[Unit] =
+  def makeOrganisationInactive(pillar2Id: String): Future[Unit] =
     repository.findByPillar2Id(pillar2Id).flatMap {
       case None =>
         Future.failed(OrganisationNotFound(pillar2Id))
       case Some(orgWithId) =>
         val isInactive = orgWithId.organisation.accountStatus.inactive
-        if (isInactive) {
+        if isInactive then {
           Future.successful(())
         } else {
           repository.update(orgWithId.copy(organisation = orgWithId.organisation.copy(accountStatus = AccountStatus(inactive = true)))).map(_ => ())

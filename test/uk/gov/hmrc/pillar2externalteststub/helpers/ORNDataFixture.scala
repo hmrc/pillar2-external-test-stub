@@ -60,19 +60,19 @@ trait ORNDataFixture extends Pillar2DataFixture {
 
   def createSubmitRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/RESTAdapter/plr/overseas-return-notification")
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
       .withBody(body)
 
   def createAmendRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(PUT, "/RESTAdapter/plr/overseas-return-notification")
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
       .withBody(body)
 
   def createRequestWithBody(plrId: String, request: ORNRequest, isAmend: Boolean = false): FakeRequest[JsValue] =
-    if (isAmend) createAmendRequest(plrId, Json.toJson(request))
+    if isAmend then createAmendRequest(plrId, Json.toJson(request))
     else createSubmitRequest(plrId, Json.toJson(request))
 
   def getORNRequest(plrId: String, fromDate: String, toDate: String): FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest(GET, s"/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=$fromDate&accountingPeriodTo=$toDate")
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
 }

@@ -16,20 +16,20 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions
 
-import play.api.libs.json._
+import play.api.libs.json.*
 
 import java.time.{LocalDate, ZonedDateTime}
 
 case class ObligationsAndSubmissionsSuccessResponse(success: ObligationsAndSubmissionsSuccess)
 
 object ObligationsAndSubmissionsSuccessResponse {
-  implicit val format: OFormat[ObligationsAndSubmissionsSuccessResponse] = Json.format[ObligationsAndSubmissionsSuccessResponse]
+  given format: OFormat[ObligationsAndSubmissionsSuccessResponse] = Json.format[ObligationsAndSubmissionsSuccessResponse]
 }
 
 case class ObligationsAndSubmissionsSuccess(processingDate: ZonedDateTime, accountingPeriodDetails: Seq[AccountingPeriodDetails])
 
 object ObligationsAndSubmissionsSuccess {
-  implicit val format: OFormat[ObligationsAndSubmissionsSuccess] = Json.format[ObligationsAndSubmissionsSuccess]
+  given format: OFormat[ObligationsAndSubmissionsSuccess] = Json.format[ObligationsAndSubmissionsSuccess]
 }
 
 case class AccountingPeriodDetails(
@@ -41,5 +41,5 @@ case class AccountingPeriodDetails(
 )
 
 object AccountingPeriodDetails {
-  implicit val format: OFormat[AccountingPeriodDetails] = Json.format[AccountingPeriodDetails]
+  given format: OFormat[AccountingPeriodDetails] = Json.format[AccountingPeriodDetails]
 }

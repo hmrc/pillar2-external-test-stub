@@ -30,7 +30,7 @@ case class SubscriptionSuccessResponse(
 ) extends SubscriptionResponse
 
 object SubscriptionSuccessResponse {
-  implicit val writes: OWrites[SubscriptionSuccessResponse] = Json.writes[SubscriptionSuccessResponse]
+  given writes: OWrites[SubscriptionSuccessResponse] = Json.writes[SubscriptionSuccessResponse]
 
   def successfulDomesticOnlyResponse: SubscriptionSuccessResponse =
     SubscriptionSuccessResponse(
@@ -95,9 +95,9 @@ object SubscriptionSuccessResponse {
         countryCode = "US"
       ),
       primaryContactDetails = ContactDetails(
-        name = "Fred Flintstone",
+        name = "Primary Contact",
         telephone = Some("0115 9700 700"),
-        emailAddress = "fred@example.com"
+        emailAddress = "primary.contact@example.com"
       ),
       secondaryContactDetails = None,
       filingMemberDetails = FilingMemberDetails(

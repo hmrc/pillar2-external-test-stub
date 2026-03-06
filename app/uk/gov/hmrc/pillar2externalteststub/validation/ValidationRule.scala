@@ -18,8 +18,8 @@ package uk.gov.hmrc.pillar2externalteststub.validation
 
 import cats.data.Validated.Invalid
 import cats.data.Validated.Valid
-import cats.implicits._
-import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult._
+import cats.implicits.*
+import uk.gov.hmrc.pillar2externalteststub.validation.ValidationResult.*
 
 sealed trait ValidationStrategy
 case object AccumulateErrors extends ValidationStrategy
@@ -42,12 +42,12 @@ object ValidationRule {
         }
     }
 
-  private def validateAll[T](rules: Seq[ValidationRule[T]], value: T): ValidationResult[T] =
+  def validateAll[T](rules: Seq[ValidationRule[T]], value: T): ValidationResult[T] =
     rules.foldLeft(value.validNec[ValidationError]) { case (acc, rule) =>
       (acc, rule.validate(value)).mapN((_, _) => value)
     }
 
-  private def validateFirstFailure[T](rules: Seq[ValidationRule[T]], value: T): ValidationResult[T] =
+  def validateFirstFailure[T](rules: Seq[ValidationRule[T]], value: T): ValidationResult[T] =
     rules.foldLeft[ValidationResult[T]](value.validNec[ValidationError]) {
       case (Valid(_), rule)          => rule.validate(value)
       case (invalid @ Invalid(_), _) => invalid

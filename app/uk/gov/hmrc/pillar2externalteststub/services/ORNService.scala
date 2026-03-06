@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ORNService @Inject() (
   ornRepository: ORNSubmissionRepository,
   oasRepository: ObligationsAndSubmissionsRepository
-)(implicit ec:   ExecutionContext)
+)(using ec:      ExecutionContext)
     extends Logging {
 
   def submitORN(pillar2Id: String, request: ORNRequest): Future[Boolean] =

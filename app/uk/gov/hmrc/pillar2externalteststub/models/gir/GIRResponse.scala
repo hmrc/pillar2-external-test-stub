@@ -31,7 +31,7 @@ object GIRResponse {
 case class GIRSuccessResponse(success: GIRSuccess) extends GIRResponse
 
 object GIRSuccessResponse {
-  implicit val format: OFormat[GIRSuccessResponse] = Json.format[GIRSuccessResponse]
+  given format: OFormat[GIRSuccessResponse] = Json.format[GIRSuccessResponse]
 
   def GIR_SUCCESS_201: GIRSuccessResponse = GIRSuccessResponse(
     GIRSuccess(
@@ -43,5 +43,5 @@ object GIRSuccessResponse {
 case class GIRSuccess(processingDate: ZonedDateTime)
 
 object GIRSuccess {
-  implicit val format: OFormat[GIRSuccess] = Json.format[GIRSuccess]
+  given format: OFormat[GIRSuccess] = Json.format[GIRSuccess]
 }

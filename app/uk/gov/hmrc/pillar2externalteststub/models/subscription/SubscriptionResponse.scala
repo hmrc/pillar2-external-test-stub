@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.pillar2externalteststub.models.subscription
 
-import play.api.libs.json._
+import play.api.libs.json.*
 
 trait SubscriptionResponse
 
 object SubscriptionResponse {
-  implicit val writes: Writes[SubscriptionResponse] = {
-    case success: SubscriptionSuccessResponse => Json.toJson(success)(SubscriptionSuccessResponse.writes)
-    case error:   ErrorResponse               => Json.toJson(error)(ErrorResponse.format)
+  given writes: Writes[SubscriptionResponse] = {
+    case success: SubscriptionSuccessResponse => Json.toJson(success)(using SubscriptionSuccessResponse.writes)
+    case error:   ErrorResponse               => Json.toJson(error)(using ErrorResponse.format)
     case _ => throw new IllegalStateException("Unknown SubscriptionResponse type")
   }
 }

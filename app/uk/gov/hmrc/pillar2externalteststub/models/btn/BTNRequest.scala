@@ -27,5 +27,5 @@ case class BTNRequest(accountingPeriodFrom: LocalDate, accountingPeriodTo: Local
 }
 
 object BTNRequest {
-  implicit val format: OFormat[BTNRequest] = Json.format[BTNRequest]
+  given format: OFormat[BTNRequest] = Json.format[BTNRequest]
 }

@@ -32,6 +32,5 @@ case class ORNRequest(
 ) extends BaseSubmission
 
 object ORNRequest {
-  implicit val format: OFormat[ORNRequest] = Json.format[ORNRequest]
-
+  given format: OFormat[ORNRequest] = Json.format[ORNRequest]
 }

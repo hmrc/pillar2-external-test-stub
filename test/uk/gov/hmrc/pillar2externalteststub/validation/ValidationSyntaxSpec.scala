@@ -19,11 +19,11 @@ package uk.gov.hmrc.pillar2externalteststub.validation
 import cats.data.NonEmptyChain
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.pillar2externalteststub.validation.models.TestValidationError._
+import uk.gov.hmrc.pillar2externalteststub.validation.models.TestValidationError.*
 
 import java.time.LocalDate
 
-import ValidationResult._
+import ValidationResult.*
 
 case class TestLiability(
   entityName: String,
@@ -38,12 +38,12 @@ case class TestSubmission(
 
 object TestSubmission {
   val dateValidation: ValidationRule[TestSubmission] = ValidationRule[TestSubmission] { submission =>
-    if (submission.periodEnd.isAfter(submission.periodStart)) valid(submission)
+    if submission.periodEnd.isAfter(submission.periodStart) then valid(submission)
     else invalid(InvalidDateRange("/periodDates", "End date must be after start date"))
   }
 
   val liabilityValidation: ValidationRule[TestSubmission] = ValidationRule[TestSubmission] { submission =>
-    if (submission.liabilities.nonEmpty) valid(submission)
+    if submission.liabilities.nonEmpty then valid(submission)
     else invalid(MandatoryFieldMissing("/liabilities"))
   }
 
@@ -52,16 +52,16 @@ object TestSubmission {
       case (liability, index) if liability.amount < 0 =>
         InvalidAmount(s"/liabilities/$index/amount", liability.amount)
     }
-    if (invalidAmounts.isEmpty) valid(submission)
+    if invalidAmounts.isEmpty then valid(submission)
     else invalidNec(NonEmptyChain.fromSeq(invalidAmounts).get)
   }
 
-  implicit val validator: ValidationRule[TestSubmission] =
+  given validator: ValidationRule[TestSubmission] =
     ValidationRule.compose(dateValidation, liabilityValidation, amountValidation)(AccumulateErrors)
 }
 
 class ValidationSyntaxSpec extends AnyWordSpec with Matchers {
-  import syntax._
+  import syntax.*
 
   "ValidationSyntax" should {
     "validate a correct submission" in {
@@ -130,7 +130,7 @@ class ValidationSyntaxSpec extends AnyWordSpec with Matchers {
         )
       )
 
-      val result = submission.validate(failFastValidator)
+      val result = submission.validate(using failFastValidator)
       result.isInvalid mustBe true
       result.toEither match {
         case Left(errors) =>

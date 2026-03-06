@@ -31,7 +31,7 @@ object BTNResponse {
 case class BTNSuccessResponse(success: BTNSuccess) extends BTNResponse
 
 object BTNSuccessResponse {
-  implicit val format: OFormat[BTNSuccessResponse] = Json.format[BTNSuccessResponse]
+  given format: OFormat[BTNSuccessResponse] = Json.format[BTNSuccessResponse]
 
   def BTN_SUCCESS_201: BTNSuccessResponse = BTNSuccessResponse(
     BTNSuccess(
@@ -43,5 +43,5 @@ object BTNSuccessResponse {
 case class BTNSuccess(processingDate: ZonedDateTime)
 
 object BTNSuccess {
-  implicit val format: OFormat[BTNSuccess] = Json.format[BTNSuccess]
+  given format: OFormat[BTNSuccess] = Json.format[BTNSuccess]
 }

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.pillar2externalteststub.services
 
 import org.bson.types.ObjectId
-import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, anyString, eq as eqTo}
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers

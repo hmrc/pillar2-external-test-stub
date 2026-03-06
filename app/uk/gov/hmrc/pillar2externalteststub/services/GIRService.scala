@@ -34,14 +34,14 @@ class GIRService @Inject() (
   girRepository:       GIRSubmissionRepository,
   oasRepository:       ObligationsAndSubmissionsRepository,
   organisationService: OrganisationService
-)(implicit ec:         ExecutionContext)
+)(using ec:            ExecutionContext)
     extends Logging {
 
   def submitGIR(pillar2Id: String, request: GIRRequest): Future[Boolean] = {
     logger.info(s"Submitting GIR for pillar2Id: $pillar2Id")
 
     for {
-      validator    <- GIRValidator.girValidator(pillar2Id)(organisationService, ec)
+      validator    <- GIRValidator.girValidator(pillar2Id)(using organisationService, ec)
       _            <- validateRequest(validator, request)
       _            <- validateNoExistingSubmissionForPeriod(pillar2Id, request)
       submissionId <- girRepository.insert(pillar2Id, request)
@@ -49,7 +49,7 @@ class GIRService @Inject() (
     } yield true
   }
 
-  private def validateRequest(validator: ValidationRule[GIRRequest], request: GIRRequest): Future[Unit] =
+  def validateRequest(validator: ValidationRule[GIRRequest], request: GIRRequest): Future[Unit] =
     validator.validate(request) match {
       case Valid(_) => Future.successful(())
       case Invalid(errors) =>
@@ -59,7 +59,7 @@ class GIRService @Inject() (
         }
     }
 
-  private def validateNoExistingSubmissionForPeriod(pillar2Id: String, request: GIRRequest): Future[Unit] =
+  def validateNoExistingSubmissionForPeriod(pillar2Id: String, request: GIRRequest): Future[Unit] =
     girRepository.findByPillar2Id(pillar2Id).flatMap { submissions =>
       submissions.find(submission =>
         submission.accountingPeriodFrom == request.accountingPeriodFrom &&

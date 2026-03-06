@@ -31,7 +31,7 @@ object ORNResponse {
 case class ORNSuccessResponse(success: ORNSuccess) extends ORNResponse
 
 object ORNSuccessResponse {
-  implicit val format: OFormat[ORNSuccessResponse] = Json.format[ORNSuccessResponse]
+  given format: OFormat[ORNSuccessResponse] = Json.format[ORNSuccessResponse]
 
   def ORN_SUCCESS_201: ORNSuccessResponse = ORNSuccessResponse(
     ORNSuccess(
@@ -51,5 +51,5 @@ object ORNSuccessResponse {
 case class ORNSuccess(processingDate: ZonedDateTime, formBundleNumber: String)
 
 object ORNSuccess {
-  implicit val format: OFormat[ORNSuccess] = Json.format[ORNSuccess]
+  given format: OFormat[ORNSuccess] = Json.format[ORNSuccess]
 }

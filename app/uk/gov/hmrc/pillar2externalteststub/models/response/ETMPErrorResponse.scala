@@ -23,7 +23,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError
 case class ETMPErrorResponse(error: ETMPSimpleError)
 
 object ETMPErrorResponse {
-  implicit val format: OFormat[ETMPErrorResponse] = Json.format[ETMPErrorResponse]
+  given format: OFormat[ETMPErrorResponse] = Json.format[ETMPErrorResponse]
 }
 
 case class ETMPSimpleError(code: String, message: String, logID: Option[String] = None)
@@ -31,13 +31,13 @@ case class ETMPSimpleError(code: String, message: String, logID: Option[String] 
 object ETMPSimpleError {
   def apply(error: ETMPError): ETMPSimpleError = new ETMPSimpleError(error.code, error.message, error.logID)
 
-  implicit val format: OFormat[ETMPSimpleError] = Json.format[ETMPSimpleError]
+  given format: OFormat[ETMPSimpleError] = Json.format[ETMPSimpleError]
 }
 
 case class ETMPFailureResponse(errors: ETMPDetailedError)
 
 object ETMPFailureResponse {
-  implicit val format: OFormat[ETMPFailureResponse] = Json.format[ETMPFailureResponse]
+  given format: OFormat[ETMPFailureResponse] = Json.format[ETMPFailureResponse]
 }
 
 case class ETMPDetailedError(processingDate: String, code: String, text: String)
@@ -46,5 +46,5 @@ object ETMPDetailedError {
 
   def apply(code: String, text: String) = new ETMPDetailedError(nowZonedDateTime, code, text)
 
-  implicit val format: OFormat[ETMPDetailedError] = Json.format[ETMPDetailedError]
+  given format: OFormat[ETMPDetailedError] = Json.format[ETMPDetailedError]
 }

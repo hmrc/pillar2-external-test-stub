@@ -17,8 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.services
 
 import org.bson.types.ObjectId
-import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
-import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.{any, anyString, eq as eqTo}
+import org.mockito.Mockito.*
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
@@ -52,7 +52,7 @@ class GIRServiceSpec
 
   private val mockGirRepository = mock[GIRSubmissionRepository]
   private val mockOasRepository = mock[ObligationsAndSubmissionsRepository]
-  protected val service         = new GIRService(mockGirRepository, mockOasRepository, mockOrgService)(global)
+  protected val service         = new GIRService(mockGirRepository, mockOasRepository, mockOrgService)(using global)
 
   "GIRService" should {
     "submitGIR" should {

@@ -19,14 +19,14 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import monocle.PLens
 import monocle.macros.GenLens
 import org.scalatestplus.mockito.MockitoSugar.mock
-import uk.gov.hmrc.pillar2externalteststub.models.organisation._
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
 
 import java.time.{Instant, LocalDate}
 
 trait TestOrgDataFixture extends Pillar2DataFixture {
 
-  implicit val mockOrgService: OrganisationService = mock[OrganisationService]
+  given mockOrgService: OrganisationService = mock[OrganisationService]
 
   val orgDetails: OrgDetails = OrgDetails(
     domesticOnly = false,
@@ -37,6 +37,7 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
   val organisationDetails: TestOrganisation = TestOrganisation(
     orgDetails = orgDetails,
     accountingPeriod = accountingPeriod,
+    testData = Some(TestData(AccountActivityScenario.DTT_CHARGE)),
     accountStatus = AccountStatus(inactive = false),
     lastUpdated = Instant.parse("2024-01-01T00:00:00Z")
   )

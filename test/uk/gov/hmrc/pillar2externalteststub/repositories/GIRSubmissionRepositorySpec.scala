@@ -65,7 +65,7 @@ class GIRSubmissionRepositorySpec
   override protected val repository: GIRSubmissionRepository =
     app.injector.instanceOf[GIRSubmissionRepository]
 
-  implicit val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   private val testPillar2Id = "XMPLR0000000000"
   private val testRequest = GIRRequest(

@@ -20,17 +20,17 @@ import play.api.i18n.Lang.logger
 import play.api.mvc.Results.Unauthorized
 import play.api.mvc.{ActionFilter, Request, Result}
 import uk.gov.hmrc.http.HeaderNames
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.*
 import uk.gov.hmrc.pillar2externalteststub.models.error.HIPBadRequest
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthActionFilter @Inject() ()(implicit ec: ExecutionContext) extends ActionFilter[Request] {
+class AuthActionFilter @Inject() ()(using ec: ExecutionContext) extends ActionFilter[Request] {
 
   override def filter[A](request: Request[A]): Future[Option[Result]] = {
     def validateHeader(header: String, validationFn: String => Boolean): Future[Unit] =
-      if (request.headers.get(header).exists(validationFn)) Future.successful(())
+      if request.headers.get(header).exists(validationFn) then Future.successful(())
       else {
         logger.error(s"Header is missing or invalid: $header")
         Future.failed(HIPBadRequest(s"Header is missing or invalid: $header"))
@@ -42,7 +42,7 @@ class AuthActionFilter @Inject() ()(implicit ec: ExecutionContext) extends Actio
       _ <- validateHeader(xOriginatingSystemHeader, _.equals("MDTP"))
       _ <- validateHeader(xTransmittingSystemHeader, _.equals("HIP"))
       authResult <- {
-        if (request.headers.get(HeaderNames.authorisation).isDefined) Future.successful(None)
+        if request.headers.get(HeaderNames.authorisation).isDefined then Future.successful(None)
         else Future.successful(Some(Unauthorized))
       }
     } yield authResult

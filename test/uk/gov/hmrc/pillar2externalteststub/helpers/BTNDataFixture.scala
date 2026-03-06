@@ -44,7 +44,7 @@ trait BTNDataFixture extends Pillar2DataFixture {
 
   def createRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
     FakeRequest(POST, "/RESTAdapter/plr/below-threshold-notification")
-      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId): _*)
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
       .withBody(body)
 
   def createRequestWithBody(plrId: String, request: BTNRequest): FakeRequest[JsValue] =

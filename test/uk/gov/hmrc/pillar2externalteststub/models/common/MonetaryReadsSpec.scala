@@ -18,7 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.models.common
 
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
-import play.api.libs.json._
+import play.api.libs.json.*
 
 class MonetaryReadsSpec extends AnyFreeSpec with Matchers {
 
