@@ -815,7 +815,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
         clearingJson(
           transactionDesc = UktrDttDesc,
           chargeRefNo = "XR23456789014".some,
-          amount = 1000,
+          amount = 5000,
           clearingReason = "Allocated to Charge"
         ),
         clearingJson(
