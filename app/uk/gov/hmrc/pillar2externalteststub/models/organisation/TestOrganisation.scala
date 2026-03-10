@@ -51,6 +51,7 @@ enum AccountActivityScenario(val raw: String):
   case RECORD_KEEPING_PENALTY extends AccountActivityScenario("RECORD_KEEPING_PENALTY")
   case REPAYMENT_CREDIT extends AccountActivityScenario("REPAYMENT_CREDIT")
   case INTEREST_REPAYMENT_CREDIT extends AccountActivityScenario("INTEREST_REPAYMENT_CREDIT")
+  case COMBINED_REPAYMENT extends AccountActivityScenario("COMBINED_REPAYMENT")
 
 case class AccountStatus(
   inactive: Boolean

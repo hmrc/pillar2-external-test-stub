@@ -50,6 +50,7 @@ class AccountActivityService @Inject() (responses: AccountActivityDataResponses)
           case RECORD_KEEPING_PENALTY                   => responses.RecordKeepingPenaltyResponse
           case REPAYMENT_CREDIT                         => responses.RepaymentCreditResponse
           case INTEREST_REPAYMENT_CREDIT                => responses.InterestRepaymentCreditResponse
+          case COMBINED_REPAYMENT                       => responses.CombinedRepaymentResponse
         }
         Future.successful(response)
 

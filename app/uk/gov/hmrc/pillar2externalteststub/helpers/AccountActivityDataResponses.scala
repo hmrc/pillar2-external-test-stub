@@ -749,6 +749,91 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
     )
   )
 
+  def CombinedRepaymentResponse: JsObject = responseWrapper(
+    transactionJson(
+      TransactionType.Debit,
+      transactionDesc = UktrDttDesc,
+      chargeRefNo = "XR23456789014".some,
+      originalAmount = 5000,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(5000).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = PaymentOnAccountDesc,
+          chargeRefNo = None,
+          amount = 5000,
+          clearingReason = "Cleared by Payment"
+        )
+      ).some
+    ),
+    transactionJson(
+      TransactionType.Debit,
+      transactionDesc = UktrMttIirDesc,
+      chargeRefNo = "XR23456789015".some,
+      originalAmount = 2000,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(2000).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = PaymentOnAccountDesc,
+          chargeRefNo = None,
+          amount = 2000,
+          clearingReason = "Cleared by Payment"
+        )
+      ).some
+    ),
+    transactionJson(
+      TransactionType.Debit,
+      transactionDesc = UktrMttUtprDesc,
+      chargeRefNo = "XR23456789016".some,
+      originalAmount = 3000,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(3000).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = PaymentOnAccountDesc,
+          chargeRefNo = None,
+          amount = 3000,
+          clearingReason = "Cleared by Payment"
+        )
+      ).some
+    ),
+    transactionJson(
+      TransactionType.Payment,
+      transactionDesc = PaymentOnAccountDesc,
+      chargeRefNo = None,
+      originalAmount = -20000,
+      outstandingAmount = None,
+      clearedAmount = BigDecimal(-20000).some,
+      clearingDetails = Seq(
+        clearingJson(
+          transactionDesc = "Repayment",
+          chargeRefNo = None,
+          amount = -10000,
+          clearingReason = "Outgoing payment - Paid"
+        ),
+        clearingJson(
+          transactionDesc = UktrDttDesc,
+          chargeRefNo = "XR23456789014".some,
+          amount = 1000,
+          clearingReason = "Allocated to Charge"
+        ),
+        clearingJson(
+          transactionDesc = UktrMttIirDesc,
+          chargeRefNo = "XR23456789015".some,
+          amount = 2000,
+          clearingReason = "Allocated to Charge"
+        ),
+        clearingJson(
+          transactionDesc = UktrMttUtprDesc,
+          chargeRefNo = "XR23456789016".some,
+          amount = 3000,
+          clearingReason = "Allocated to Charge"
+        )
+      ).some
+    )
+  )
+
   private def transactionJson(
     transactionType:   TransactionType,
     transactionDesc:   String,
@@ -787,8 +872,8 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
   ): ClearingJson = JsObject(
     Seq(
       ("transactionDesc" -> JsString(transactionDesc)).some,
-      chargeRefNo.map("chargeRefNo" -> JsString(_)),
-      ("dueDate"        -> summon[Writes[LocalDate]].writes(currentYearEnd.plusMonths(dueDateBuffer))).some,
+      chargeRefNo.map("chargeRefNo"                               -> JsString(_)),
+      if transactionDesc == "Repayment" then None else ("dueDate" -> summon[Writes[LocalDate]].writes(currentYearEnd.plusMonths(dueDateBuffer))).some,
       ("amount"         -> JsNumber(amount)).some,
       ("clearingDate"   -> summon[Writes[LocalDate]].writes(today)).some,
       ("clearingReason" -> JsString(clearingReason)).some
