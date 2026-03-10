@@ -19,6 +19,7 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import cats.syntax.option.given
 import play.api.libs.json.*
 
+import java.time.temporal.ChronoUnit
 import java.time.{Clock, LocalDate, ZonedDateTime}
 import javax.inject.Inject
 
@@ -882,7 +883,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
 
   private def responseWrapper(transactions: TransactionJson*): JsObject = Json.obj(
     "success" -> Json.obj(
-      "processingDate"     -> ZonedDateTime.now(clock),
+      "processingDate"     -> ZonedDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS).toString,
       "transactionDetails" -> transactions
     )
   )
