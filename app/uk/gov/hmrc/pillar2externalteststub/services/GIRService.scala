@@ -18,8 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub.services
 
 import cats.data.Validated.{Invalid, Valid}
 import play.api.Logging
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.ETMPInternalServerError
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.TaxObligationAlreadyFulfilled
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{ETMPInternalServerError, NoFormBundleFound, TaxObligationAlreadyFulfilled}
 import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRValidationError
 import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRValidator
@@ -49,6 +48,36 @@ class GIRService @Inject() (
     } yield true
   }
 
+  def amendGIR(pillar2Id: String, request: GIRRequest): Future[Boolean] = {
+    logger.info(s"Amending GIR for pillar2Id: $pillar2Id")
+
+    for {
+      validator    <- GIRValidator.girValidator(pillar2Id)(using organisationService, ec)
+      _            <- validateRequest(validator, request)
+      _            <- validateExistingSubmissionForPeriod(pillar2Id, request)
+      submissionId <- girRepository.insert(pillar2Id, request)
+      _            <- oasRepository.insert(request, pillar2Id, submissionId, isAmendment = true)
+    } yield true
+  }
+
+  def deleteGIR(pillar2Id: String, request: GIRRequest): Future[Boolean] = {
+    logger.info(s"Deleting GIR for pillar2Id: $pillar2Id")
+
+    for {
+      _ <- validateExistingSubmissionForPeriod(pillar2Id, request)
+      _ <- girRepository.deleteByPillar2IdAndAccountingPeriod(
+             pillar2Id,
+             request.accountingPeriodFrom,
+             request.accountingPeriodTo
+           )
+      _ <- oasRepository.deleteGIRByPillar2IdAndAccountingPeriod(
+             pillar2Id,
+             request.accountingPeriodFrom,
+             request.accountingPeriodTo
+           )
+    } yield true
+  }
+
   def validateRequest(validator: ValidationRule[GIRRequest], request: GIRRequest): Future[Unit] =
     validator.validate(request) match {
       case Valid(_) => Future.successful(())
@@ -68,5 +97,11 @@ class GIRService @Inject() (
         case Some(_) => Future.failed(TaxObligationAlreadyFulfilled)
         case None    => Future.successful(())
       }
+    }
+
+  def validateExistingSubmissionForPeriod(pillar2Id: String, request: GIRRequest): Future[Unit] =
+    girRepository.findByPillar2IdAndAccountingPeriod(pillar2Id, request.accountingPeriodFrom, request.accountingPeriodTo).flatMap {
+      case Some(_) => Future.successful(())
+      case None    => Future.failed(NoFormBundleFound)
     }
 }

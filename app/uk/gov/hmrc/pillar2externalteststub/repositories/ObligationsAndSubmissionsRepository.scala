@@ -96,4 +96,24 @@ class ObligationsAndSubmissionsRepository @Inject() (
       .toFuture()
       .recoverWith { case e: Exception => Future.failed(DatabaseError(s"Failed to retrieve matching records: ${e.getMessage}")) }
   }
+
+  def deleteGIRByPillar2IdAndAccountingPeriod(pillar2Id: String, from: LocalDate, to: LocalDate): Future[Unit] = {
+    val fromInstant = from.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)
+    val toInstant   = to.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)
+
+    collection
+      .deleteOne(
+        and(
+          equal("pillar2Id", pillar2Id),
+          equal("accountingPeriod.startDate", fromInstant),
+          equal("accountingPeriod.endDate", toInstant),
+          equal("submissionType", "GIR")
+        )
+      )
+      .toFuture()
+      .map(_ => ())
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to delete GIR from OAS collection: ${e.getMessage}"))
+      }
+  }
 }

@@ -13,6 +13,8 @@ PUT         /RESTAdapter/plr/overseas-return-notification        uk.gov.hmrc.pil
 GET         /RESTAdapter/plr/overseas-return-notification        uk.gov.hmrc.pillar2externalteststub.controllers.ORNController.getORN(accountingPeriodFrom: String, accountingPeriodTo: String)
 
 POST        /pillar2/test/globe-information-return               uk.gov.hmrc.pillar2externalteststub.controllers.GIRController.submitGIR
+PUT         /pillar2/test/globe-information-return               uk.gov.hmrc.pillar2externalteststub.controllers.GIRController.amendGIR
+DELETE      /pillar2/test/globe-information-return               uk.gov.hmrc.pillar2externalteststub.controllers.GIRController.deleteGIR
 
 # organisation routes
 POST        /pillar2/test/organisation/:pillar2Id                uk.gov.hmrc.pillar2externalteststub.controllers.OrganisationController.create(pillar2Id: String)

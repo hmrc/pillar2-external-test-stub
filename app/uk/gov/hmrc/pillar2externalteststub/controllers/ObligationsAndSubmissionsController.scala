@@ -147,7 +147,7 @@ class ObligationsAndSubmissionsController @Inject() (
 
     val girSubmissions: Option[Seq[Submission]] = filterSubmissions(
       submissions,
-      Seq(SubmissionType.GIR, ORN_CREATE, ORN_AMEND)
+      Seq(GIR_CREATE, GIR_AMEND, ORN_CREATE, ORN_AMEND)
     )
 
     val domesticObligation = Seq(

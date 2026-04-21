@@ -33,10 +33,12 @@ case class GIRSuccessResponse(success: GIRSuccess) extends GIRResponse
 object GIRSuccessResponse {
   given format: OFormat[GIRSuccessResponse] = Json.format[GIRSuccessResponse]
 
+  def GIR_SUCCESS_200: GIRSuccessResponse = GIRSuccessResponse(
+    GIRSuccess(processingDate = now)
+  )
+
   def GIR_SUCCESS_201: GIRSuccessResponse = GIRSuccessResponse(
-    GIRSuccess(
-      processingDate = now
-    )
+    GIRSuccess(processingDate = now)
   )
 }
 

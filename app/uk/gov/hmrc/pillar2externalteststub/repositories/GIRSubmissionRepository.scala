@@ -98,4 +98,19 @@ class GIRSubmissionRepository @Inject() (
       .toFuture()
       .map(_ => true)
       .recoverWith { case e: Exception => Future.failed(DatabaseError(s"Failed to delete GIR submission: ${e.getMessage}")) }
+
+  def deleteByPillar2IdAndAccountingPeriod(pillar2Id: String, from: LocalDate, to: LocalDate): Future[Unit] =
+    collection
+      .deleteOne(
+        Filters.and(
+          Filters.equal("pillar2Id", pillar2Id),
+          Filters.equal("accountingPeriodFrom", from.toString),
+          Filters.equal("accountingPeriodTo", to.toString)
+        )
+      )
+      .toFuture()
+      .map(_ => ())
+      .recoverWith { case e: Exception =>
+        Future.failed(DatabaseError(s"Failed to delete GIR submission: ${e.getMessage}"))
+      }
 }

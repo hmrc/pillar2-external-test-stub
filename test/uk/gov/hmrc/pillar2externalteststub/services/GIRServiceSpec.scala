@@ -25,7 +25,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.pillar2externalteststub.helpers.{GIRDataFixture, ObligationsAndSubmissionsDataFixture, TestOrgDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{RequestCouldNotBeProcessed, TaxObligationAlreadyFulfilled}
+import uk.gov.hmrc.pillar2externalteststub.models.error.ETMPError.{NoFormBundleFound, RequestCouldNotBeProcessed, TaxObligationAlreadyFulfilled}
 import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.repositories.{GIRSubmissionRepository, ObligationsAndSubmissionsRepository}
 
@@ -114,6 +114,79 @@ class GIRServiceSpec
         result.futureValue mustBe true
         verify(mockGirRepository).insert(validPlrId, validGIRRequest)
         verify(mockOasRepository).insert(eqTo(validGIRRequest), eqTo(validPlrId), any[ObjectId](), eqTo(false))
+      }
+    }
+
+    "amendGIR" should {
+      "fail with NoFormBundleFound when no existing submission for period" in {
+        when(mockGirRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate](), any[LocalDate]()))
+          .thenReturn(Future.successful(None))
+        when(mockOrgService.getOrganisation(anyString()))
+          .thenReturn(Future.successful(domesticOrganisation))
+
+        val result = service.amendGIR(validPlrId, validGIRRequest)
+
+        result shouldFailWith NoFormBundleFound
+        verify(mockGirRepository, never).insert(anyString(), any[GIRRequest]())
+      }
+
+      "fail with RequestCouldNotBeProcessed for invalid requests" in {
+        when(mockOrgService.getOrganisation(anyString()))
+          .thenReturn(Future.successful(domesticOrganisation))
+        val invalidRequest = validGIRRequest.copy(
+          accountingPeriodFrom = LocalDate.of(2023, 1, 1),
+          accountingPeriodTo = LocalDate.of(2022, 12, 31)
+        )
+
+        val result = service.amendGIR(validPlrId, invalidRequest)
+
+        result shouldFailWith RequestCouldNotBeProcessed
+      }
+
+      "successfully amend a GIR when an existing submission exists" in {
+        when(mockGirRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate](), any[LocalDate]()))
+          .thenReturn(Future.successful(Some(girMongoSubmission)))
+        when(mockGirRepository.insert(anyString(), any[GIRRequest]()))
+          .thenReturn(Future.successful(new ObjectId()))
+        when(mockOasRepository.insert(any[GIRRequest](), anyString(), any[ObjectId](), eqTo(true)))
+          .thenReturn(Future.successful(true))
+        when(mockOrgService.getOrganisation(anyString()))
+          .thenReturn(Future.successful(domesticOrganisation))
+
+        val result = service.amendGIR(validPlrId, validGIRRequest)
+
+        result.futureValue mustBe true
+        verify(mockGirRepository).insert(validPlrId, validGIRRequest)
+        verify(mockOasRepository).insert(eqTo(validGIRRequest), eqTo(validPlrId), any[ObjectId](), eqTo(true))
+      }
+    }
+
+    "deleteGIR" should {
+      "fail with NoFormBundleFound when no existing submission for period" in {
+        when(mockGirRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate](), any[LocalDate]()))
+          .thenReturn(Future.successful(None))
+
+        val result = service.deleteGIR(validPlrId, validGIRRequest)
+
+        result shouldFailWith NoFormBundleFound
+        verify(mockGirRepository, never).deleteByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate](), any[LocalDate]())
+      }
+
+      "successfully delete a GIR when an existing submission exists" in {
+        when(mockGirRepository.findByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate](), any[LocalDate]()))
+          .thenReturn(Future.successful(Some(girMongoSubmission)))
+        when(mockGirRepository.deleteByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate](), any[LocalDate]()))
+          .thenReturn(Future.successful(()))
+        when(mockOasRepository.deleteGIRByPillar2IdAndAccountingPeriod(anyString(), any[LocalDate](), any[LocalDate]()))
+          .thenReturn(Future.successful(()))
+
+        val result = service.deleteGIR(validPlrId, validGIRRequest)
+
+        result.futureValue mustBe true
+        verify(mockGirRepository)
+          .deleteByPillar2IdAndAccountingPeriod(validPlrId, validGIRRequest.accountingPeriodFrom, validGIRRequest.accountingPeriodTo)
+        verify(mockOasRepository)
+          .deleteGIRByPillar2IdAndAccountingPeriod(validPlrId, validGIRRequest.accountingPeriodFrom, validGIRRequest.accountingPeriodTo)
       }
     }
   }

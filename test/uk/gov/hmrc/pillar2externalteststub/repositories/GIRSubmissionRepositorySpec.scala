@@ -184,4 +184,51 @@ class GIRSubmissionRepositorySpec
       deleteResult shouldBe true
     }
   }
+
+  "deleteByPillar2IdAndAccountingPeriod" should {
+    "successfully delete a submission matching the given pillar2Id and accounting period" in {
+      repository.insert(testPillar2Id, testRequest).futureValue
+
+      repository
+        .deleteByPillar2IdAndAccountingPeriod(
+          testPillar2Id,
+          testRequest.accountingPeriodFrom,
+          testRequest.accountingPeriodTo
+        )
+        .futureValue
+
+      repository.findByPillar2Id(testPillar2Id).futureValue shouldBe empty
+    }
+
+    "only delete the submission matching the accounting period, leaving others intact" in {
+      val differentPeriodRequest = testRequest.copy(
+        accountingPeriodFrom = LocalDate.of(2025, 1, 1),
+        accountingPeriodTo = LocalDate.of(2025, 12, 31)
+      )
+      repository.insert(testPillar2Id, testRequest).futureValue
+      repository.insert(testPillar2Id, differentPeriodRequest).futureValue
+
+      repository
+        .deleteByPillar2IdAndAccountingPeriod(
+          testPillar2Id,
+          testRequest.accountingPeriodFrom,
+          testRequest.accountingPeriodTo
+        )
+        .futureValue
+
+      val remaining = repository.findByPillar2Id(testPillar2Id).futureValue
+      remaining.size                      shouldBe 1
+      remaining.head.accountingPeriodFrom shouldBe differentPeriodRequest.accountingPeriodFrom
+    }
+
+    "succeed without error when no matching submission exists" in {
+      repository
+        .deleteByPillar2IdAndAccountingPeriod(
+          "NONEXISTENT",
+          testRequest.accountingPeriodFrom,
+          testRequest.accountingPeriodTo
+        )
+        .futureValue shouldBe ()
+    }
+  }
 }

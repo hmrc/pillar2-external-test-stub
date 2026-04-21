@@ -63,12 +63,13 @@ class ObligationsAndSubmissionsControllerSpec
 
   def mockBySubmissionType(subType: SubmissionType): OngoingStubbing[Future[Seq[ObligationsAndSubmissionsMongoSubmission]]] = {
     val fixture = subType match {
-      case UKTR_CREATE        => uktrObligationsAndSubmissionsMongoSubmission
-      case UKTR_AMEND         => uktrAmendObligationsAndSubmissionsMongoSubmission
-      case ORN_CREATE         => ornObligationsAndSubmissionsMongoSubmission
-      case ORN_AMEND          => ornAmendObligationsAndSubmissionsMongoSubmission
-      case SubmissionType.GIR => girCreateObligationsAndSubmissionsMongoSubmission
-      case BTN                => olderBtnObligationsAndSubmissionsMongoSubmission
+      case UKTR_CREATE => uktrObligationsAndSubmissionsMongoSubmission
+      case UKTR_AMEND  => uktrAmendObligationsAndSubmissionsMongoSubmission
+      case ORN_CREATE  => ornObligationsAndSubmissionsMongoSubmission
+      case ORN_AMEND   => ornAmendObligationsAndSubmissionsMongoSubmission
+      case GIR_CREATE  => girCreateObligationsAndSubmissionsMongoSubmission
+      case GIR_AMEND   => girAmendObligationsAndSubmissionsMongoSubmission
+      case BTN         => olderBtnObligationsAndSubmissionsMongoSubmission
     }
     when(mockOasRepository.findByPillar2Id(anyString(), any[LocalDate], any[LocalDate]))
       .thenReturn(Future.successful(Seq(fixture)))
@@ -201,7 +202,7 @@ class ObligationsAndSubmissionsControllerSpec
 
       "should show GIR submission" in {
         when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
-        mockBySubmissionType(SubmissionType.GIR)
+        mockBySubmissionType(SubmissionType.GIR_CREATE)
 
         val result = route(app, createRequest()).value
         status(result) mustBe OK
@@ -210,7 +211,21 @@ class ObligationsAndSubmissionsControllerSpec
         val submissions  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "submissions").as[Seq[Submission]]
 
         submissions.size mustBe 1
-        submissions.head.submissionType mustBe SubmissionType.GIR
+        submissions.head.submissionType mustBe SubmissionType.GIR_CREATE
+      }
+
+      "should show GIR amendment" in {
+        when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(domesticOrganisation))
+        mockBySubmissionType(SubmissionType.GIR_AMEND)
+
+        val result = route(app, createRequest()).value
+        status(result) mustBe OK
+
+        val jsonResponse = contentAsJson(result)
+        val submissions  = (jsonResponse \ "success" \ "accountingPeriodDetails" \ 0 \ "obligations" \ 1 \ "submissions").as[Seq[Submission]]
+
+        submissions.size mustBe 1
+        submissions.head.submissionType mustBe SubmissionType.GIR_AMEND
       }
 
       "set canAmend flag correctly based on due date and obligation type" - {
