@@ -186,8 +186,12 @@ class GIRSubmissionRepositorySpec
   }
 
   "deleteByPillar2IdAndAccountingPeriod" should {
-    "successfully delete a submission matching the given pillar2Id and accounting period" in {
+    "successfully delete all submissions matching the given pillar2Id and accounting period" in {
       repository.insert(testPillar2Id, testRequest).futureValue
+      repository.insert(testPillar2Id, testRequest).futureValue
+      repository.insert(testPillar2Id, testRequest).futureValue
+
+      repository.findByPillar2Id(testPillar2Id).futureValue.size shouldBe 3
 
       repository
         .deleteByPillar2IdAndAccountingPeriod(
@@ -200,11 +204,12 @@ class GIRSubmissionRepositorySpec
       repository.findByPillar2Id(testPillar2Id).futureValue shouldBe empty
     }
 
-    "only delete the submission matching the accounting period, leaving others intact" in {
+    "only delete the submissions matching the accounting period, leaving others intact" in {
       val differentPeriodRequest = testRequest.copy(
         accountingPeriodFrom = LocalDate.of(2025, 1, 1),
         accountingPeriodTo = LocalDate.of(2025, 12, 31)
       )
+      repository.insert(testPillar2Id, testRequest).futureValue
       repository.insert(testPillar2Id, testRequest).futureValue
       repository.insert(testPillar2Id, differentPeriodRequest).futureValue
 

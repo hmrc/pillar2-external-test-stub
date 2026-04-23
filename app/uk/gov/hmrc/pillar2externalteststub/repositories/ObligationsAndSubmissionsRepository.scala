@@ -102,12 +102,12 @@ class ObligationsAndSubmissionsRepository @Inject() (
     val toInstant   = to.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)
 
     collection
-      .deleteOne(
+      .deleteMany(
         and(
           equal("pillar2Id", pillar2Id),
           equal("accountingPeriod.startDate", fromInstant),
           equal("accountingPeriod.endDate", toInstant),
-          equal("submissionType", "GIR")
+          in("submissionType", "GIR_CREATE", "GIR_AMEND")
         )
       )
       .toFuture()

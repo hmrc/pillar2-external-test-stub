@@ -101,7 +101,7 @@ class GIRSubmissionRepository @Inject() (
 
   def deleteByPillar2IdAndAccountingPeriod(pillar2Id: String, from: LocalDate, to: LocalDate): Future[Unit] =
     collection
-      .deleteOne(
+      .deleteMany(
         Filters.and(
           Filters.equal("pillar2Id", pillar2Id),
           Filters.equal("accountingPeriodFrom", from.toString),
