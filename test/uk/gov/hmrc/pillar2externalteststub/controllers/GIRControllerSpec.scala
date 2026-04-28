@@ -80,5 +80,74 @@ class GIRControllerSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSui
         result shouldFailWith ETMPInternalServerError
       }
     }
+
+    "when amending a GIR" - {
+      "should return OK with success response for a valid amendment" in {
+        when(mockGIRService.amendGIR(eqTo(validPlrId), any[GIRRequest])).thenReturn(Future.successful(true))
+
+        val result = route(app, createGIRAmendRequestWithBody(validPlrId, validGIRRequest)).get
+        status(result) shouldBe OK
+        val json = contentAsJson(result)
+        (json \ "success" \ "processingDate").asOpt[String].isDefined shouldBe true
+      }
+
+      "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
+        val request = FakeRequest(PUT, "/pillar2/test/globe-information-return")
+          .withHeaders(hipHeaders*)
+          .withBody(validGIRRequestBody)
+
+        val result = route(app, request).get
+        result shouldFailWith IdMissingOrInvalid
+      }
+
+      "should return IdMissingOrInvalid when Pillar2 ID format is invalid" in {
+        val result = route(app, createGIRAmendRequestWithBody(invalidPlrId, validGIRRequest)).get
+        result shouldFailWith IdMissingOrInvalid
+      }
+
+      "should return ETMPBadRequest when request body is invalid JSON" in {
+        val result = route(app, createGIRAmendRequest(validPlrId, Json.obj("invalid" -> "request"))).get
+        result shouldFailWith HIPBadRequest()
+      }
+
+      "should return NoFormBundleFound when no existing submission exists" in {
+        when(mockGIRService.amendGIR(eqTo(validPlrId), any[GIRRequest])).thenReturn(Future.failed(NoFormBundleFound))
+
+        val result = route(app, createGIRAmendRequestWithBody(validPlrId, validGIRRequest)).get
+        result shouldFailWith NoFormBundleFound
+      }
+    }
+
+    "when deleting a GIR" - {
+      "should return OK with success response for a valid deletion" in {
+        when(mockGIRService.deleteGIR(eqTo(validPlrId), any[GIRRequest])).thenReturn(Future.successful(true))
+
+        val result = route(app, createGIRDeleteRequestWithBody(validPlrId, validGIRRequest)).get
+        status(result) shouldBe OK
+        val json = contentAsJson(result)
+        (json \ "success" \ "processingDate").asOpt[String].isDefined shouldBe true
+      }
+
+      "should return IdMissingOrInvalid when X-Pillar2-Id header is missing" in {
+        val request = FakeRequest(DELETE, "/pillar2/test/globe-information-return")
+          .withHeaders(hipHeaders*)
+          .withBody(validGIRRequestBody)
+
+        val result = route(app, request).get
+        result shouldFailWith IdMissingOrInvalid
+      }
+
+      "should return ETMPBadRequest when request body is invalid JSON" in {
+        val result = route(app, createGIRDeleteRequest(validPlrId, Json.obj("invalid" -> "request"))).get
+        result shouldFailWith HIPBadRequest()
+      }
+
+      "should return NoFormBundleFound when no existing submission exists" in {
+        when(mockGIRService.deleteGIR(eqTo(validPlrId), any[GIRRequest])).thenReturn(Future.failed(NoFormBundleFound))
+
+        val result = route(app, createGIRDeleteRequestWithBody(validPlrId, validGIRRequest)).get
+        result shouldFailWith NoFormBundleFound
+      }
+    }
   }
 }

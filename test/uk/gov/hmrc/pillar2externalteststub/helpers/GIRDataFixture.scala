@@ -19,13 +19,15 @@ package uk.gov.hmrc.pillar2externalteststub.helpers
 import org.bson.types.ObjectId
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
-import play.api.test.Helpers.POST
+import play.api.test.Helpers.{DELETE, POST, PUT}
 import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.models.gir.mongo.GIRSubmission
 
 import java.time.Instant
 
 trait GIRDataFixture extends Pillar2DataFixture {
+
+  val invalidPlrId = "invalid@id"
 
   val validGIRRequest: GIRRequest = GIRRequest(
     accountingPeriodFrom = accountingPeriod.startDate,
@@ -57,4 +59,20 @@ trait GIRDataFixture extends Pillar2DataFixture {
 
   def createGIRRequestWithBody(plrId: String, request: GIRRequest): FakeRequest[JsValue] =
     createGIRRequest(plrId, Json.toJson(request)).withHeaders(hipHeaders*)
+
+  def createGIRAmendRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
+    FakeRequest(PUT, "/pillar2/test/globe-information-return")
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
+      .withBody(body)
+
+  def createGIRAmendRequestWithBody(plrId: String, request: GIRRequest): FakeRequest[JsValue] =
+    createGIRAmendRequest(plrId, Json.toJson(request))
+
+  def createGIRDeleteRequest(plrId: String, body: JsValue): FakeRequest[JsValue] =
+    FakeRequest(DELETE, "/pillar2/test/globe-information-return")
+      .withHeaders(hipHeaders :+ ("X-Pillar2-Id" -> plrId)*)
+      .withBody(body)
+
+  def createGIRDeleteRequestWithBody(plrId: String, request: GIRRequest): FakeRequest[JsValue] =
+    createGIRDeleteRequest(plrId, Json.toJson(request))
 }

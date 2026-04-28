@@ -26,8 +26,9 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.config.AppConfig
-import uk.gov.hmrc.pillar2externalteststub.helpers.UKTRDataFixture
+import uk.gov.hmrc.pillar2externalteststub.helpers.{GIRDataFixture, UKTRDataFixture}
 import uk.gov.hmrc.pillar2externalteststub.models.common.BaseSubmission
+import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.SubmissionType
 import uk.gov.hmrc.pillar2externalteststub.models.obligationsAndSubmissions.mongo.ObligationsAndSubmissionsMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.UKTRLiabilityReturn
@@ -40,7 +41,8 @@ class ObligationsAndSubmissionsRepositorySpec
     with DefaultPlayMongoRepositorySupport[ObligationsAndSubmissionsMongoSubmission]
     with ScalaFutures
     with IntegrationPatience
-    with UKTRDataFixture {
+    with UKTRDataFixture
+    with GIRDataFixture {
 
   val config = new AppConfig(
     Configuration.from(Map("appName" -> "pillar2-external-test-stub", "defaultDataExpireInDays" -> 28))
@@ -171,6 +173,86 @@ class ObligationsAndSubmissionsRepositorySpec
 
     "return true when attempting to delete non-existent pillar2Id" in {
       repository.deleteByPillar2Id("NONEXISTENT").futureValue shouldBe true
+    }
+  }
+
+  "deleteGIRByPillar2IdAndAccountingPeriod" should {
+
+    def insertGIRRequest(
+      pillar2Id: String = validPlrId,
+      request:   GIRRequest = validGIRRequest,
+      id:        ObjectId = new ObjectId()
+    ): Boolean =
+      repository.insert(request, pillar2Id, id).futureValue
+
+    "delete all GIR submissions matching the given pillar2Id and accounting period" in {
+      insertGIRRequest()
+      insertGIRRequest()
+
+      findRequest().size shouldBe 2
+
+      repository
+        .deleteGIRByPillar2IdAndAccountingPeriod(
+          validPlrId,
+          accountingPeriod.startDate,
+          accountingPeriod.endDate
+        )
+        .futureValue
+
+      findRequest() shouldBe empty
+    }
+
+    "only delete GIR submissions, leaving other submission types intact" in {
+      insertRequest()
+      insertGIRRequest()
+
+      findRequest().size shouldBe 2
+
+      repository
+        .deleteGIRByPillar2IdAndAccountingPeriod(
+          validPlrId,
+          accountingPeriod.startDate,
+          accountingPeriod.endDate
+        )
+        .futureValue
+
+      val remaining = findRequest()
+      remaining.size                shouldBe 1
+      remaining.head.submissionType shouldBe SubmissionType.UKTR_CREATE
+    }
+
+    "only delete GIR submissions matching the accounting period, leaving others intact" in {
+      insertGIRRequest()
+      insertGIRRequest(request =
+        validGIRRequest.copy(
+          accountingPeriodFrom = accountingPeriod.startDate.plusYears(1),
+          accountingPeriodTo = accountingPeriod.endDate.plusYears(1)
+        )
+      )
+
+      findRequest(from = accountingPeriod.startDate, to = accountingPeriod.endDate.plusYears(1)).size shouldBe 2
+
+      repository
+        .deleteGIRByPillar2IdAndAccountingPeriod(
+          validPlrId,
+          accountingPeriod.startDate,
+          accountingPeriod.endDate
+        )
+        .futureValue
+
+      val remaining = findRequest(from = accountingPeriod.startDate, to = accountingPeriod.endDate.plusYears(1))
+      remaining.size                            shouldBe 1
+      remaining.head.accountingPeriod.startDate shouldBe accountingPeriod.startDate.plusYears(1)
+    }
+
+    "succeed without error when no matching submission exists" in {
+      repository
+        .deleteGIRByPillar2IdAndAccountingPeriod(
+          "NONEXISTENT",
+          accountingPeriod.startDate,
+          accountingPeriod.endDate
+        )
+        .futureValue shouldBe ()
     }
   }
 }

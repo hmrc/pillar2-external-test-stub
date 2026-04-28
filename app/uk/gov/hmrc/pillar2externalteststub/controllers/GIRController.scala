@@ -34,7 +34,7 @@ class GIRController @Inject() (
     extends BackendController(cc)
     with Logging {
 
-  def submitGIR: Action[JsValue] = (Action(parse.json)).async { request =>
+  def submitGIR: Action[JsValue] = Action(parse.json).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id"))
       .flatMap { pillar2Id =>
         request.body
@@ -45,6 +45,36 @@ class GIRController @Inject() (
               girService
                 .submitGIR(pillar2Id, girRequest)
                 .map(_ => Created(Json.toJson(GIRSuccessResponse.GIR_SUCCESS_201)))
+          )
+      }
+  }
+
+  def amendGIR: Action[JsValue] = Action(parse.json).async { request =>
+    validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+      .flatMap { pillar2Id =>
+        request.body
+          .validate[GIRRequest]
+          .fold(
+            _ => Future.failed(HIPBadRequest()),
+            girRequest =>
+              girService
+                .amendGIR(pillar2Id, girRequest)
+                .map(_ => Ok(Json.toJson(GIRSuccessResponse.GIR_SUCCESS_200)))
+          )
+      }
+  }
+
+  def deleteGIR: Action[JsValue] = Action(parse.json).async { request =>
+    validatePillar2Id(request.headers.get("X-Pillar2-Id"))
+      .flatMap { pillar2Id =>
+        request.body
+          .validate[GIRRequest]
+          .fold(
+            _ => Future.failed(HIPBadRequest()),
+            girRequest =>
+              girService
+                .deleteGIR(pillar2Id, girRequest)
+                .map(_ => Ok(Json.toJson(GIRSuccessResponse.GIR_SUCCESS_200)))
           )
       }
   }
