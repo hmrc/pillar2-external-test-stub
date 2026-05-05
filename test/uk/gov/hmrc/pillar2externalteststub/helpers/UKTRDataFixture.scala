@@ -65,7 +65,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "liabilities"          -> Json.obj("returnType" -> "NIL_RETURN")
   )
 
-  val invalidLiableEntityukChargeableEntityNameZeroLength: JsObject = Json.obj(
+  val invalidLiableEntityUkChargeableEntityNameZeroLength: JsObject = Json.obj(
     "ukChargeableEntityName" -> "",
     "idType"                 -> "UTR",
     "idValue"                -> "abc45678",
@@ -215,7 +215,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
       .deepMerge(
         Json.obj(
           "liableEntities" -> Json.arr(
-            invalidLiableEntityukChargeableEntityNameZeroLength
+            invalidLiableEntityUkChargeableEntityNameZeroLength
           )
         )
       )

@@ -51,14 +51,14 @@ object UKTRLiabilityReturn {
       )
   }
 
-  private[uktr] val totalLiabilityDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    val totalDTTAmountOwed = data.liabilities.liableEntities.foldLeft(BigDecimal(0)) { (acc, entity) =>
-      acc + entity.amountOwedDTT
+  private[uktr] val totalLiabilityDTTRule: ValidationRule[UKTRLiabilityReturn] = ValidationRule { uKTRLiabilityReturn =>
+    val totalDTTAmountOwed: BigDecimal = uKTRLiabilityReturn.liabilities.liableEntities.foldLeft(BigDecimal(0)) { (acc, liableEntity) =>
+      acc + liableEntity.amountOwedDTT
     }
 
-    val declaredTotal = data.liabilities.totalLiabilityDTT
+    val totalDTTAmountDeclared: BigDecimal = uKTRLiabilityReturn.liabilities.totalLiabilityDTT
 
-    if declaredTotal > 0 && declaredTotal == totalDTTAmountOwed then valid[UKTRLiabilityReturn](data)
+    if totalDTTAmountDeclared >= 0 && totalDTTAmountDeclared == totalDTTAmountOwed then valid[UKTRLiabilityReturn](uKTRLiabilityReturn)
     else
       invalid(
         UKTRSubmissionError(
