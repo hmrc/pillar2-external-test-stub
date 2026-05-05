@@ -36,7 +36,8 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
 
   "UKTRLiabilityReturn validation" - {
     when(mockOrgService.getOrganisation(anyString())).thenReturn(Future.successful(nonDomesticOrganisation))
-    val validLiabilityReturn = Json.fromJson[UKTRLiabilityReturn](validRequestBody).get
+
+    val validLiabilityReturn: UKTRLiabilityReturn = Json.fromJson[UKTRLiabilityReturn](validRequestBody).get
 
     "should pass validation for a valid liability return" in {
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(validLiabilityReturn)), 5.seconds)
@@ -71,6 +72,20 @@ class UKTRLiabilityReturnSpec extends AnyFreeSpec with Matchers with UKTRDataFix
       )
       val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(invalidReturn)), 5.seconds)
       result mustEqual invalid(UKTRSubmissionError(InvalidTotalLiability))
+    }
+
+    "should pass validation when DTT total is zero and entity DTT amounts sum to zero" in {
+      val zeroDttReturn = validLiabilityReturn.copy(
+        liabilities = validLiabilityReturn.liabilities.copy(
+          electionDTTSingleMember = false,
+          numberSubGroupDTT = 0,
+          totalLiability = BigDecimal(200),
+          totalLiabilityDTT = BigDecimal(0),
+          liableEntities = validLiabilityReturn.liabilities.liableEntities.map(_.copy(amountOwedDTT = BigDecimal(0)))
+        )
+      )
+      val result = Await.result(UKTRLiabilityReturn.uktrSubmissionValidator("validPlrId").map(_.validate(zeroDttReturn)), 5.seconds)
+      result mustEqual valid(zeroDttReturn)
     }
 
     "should fail validation when DTT total does not match sum of DTT amounts" in {

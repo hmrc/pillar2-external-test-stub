@@ -15,6 +15,7 @@
  */
 
 package uk.gov.hmrc.pillar2externalteststub.validation
+
 import cats.data.{NonEmptyChain, ValidatedNec}
 import cats.implicits.*
 
@@ -27,6 +28,6 @@ object ValidationResult {
 
   def invalidNec[A](errors: NonEmptyChain[ValidationError]): ValidationResult[A] = errors.invalid
 
-  def sequence[A](results: Seq[ValidationResult[A]]): ValidationResult[Seq[A]] =
-    results.sequence
+  def sequence[A](results: Seq[ValidationResult[A]]): ValidationResult[Seq[A]] = results.sequence
+
 }
