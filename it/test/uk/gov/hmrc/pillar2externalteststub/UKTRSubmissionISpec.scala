@@ -23,21 +23,21 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
-import play.api.test.Helpers._
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import play.api.test.Helpers.*
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.SessionKeys.authToken
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper._
+import uk.gov.hmrc.pillar2externalteststub.helpers.Pillar2Helper.*
 import uk.gov.hmrc.pillar2externalteststub.helpers.{ObligationsAndSubmissionsDataFixture, TestOrgDataFixture, UKTRDataFixture}
-import uk.gov.hmrc.pillar2externalteststub.models.organisation._
-import uk.gov.hmrc.pillar2externalteststub.models.uktr._
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
+import uk.gov.hmrc.pillar2externalteststub.models.uktr.*
 import uk.gov.hmrc.pillar2externalteststub.models.uktr.mongo.UKTRMongoSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ObligationsAndSubmissionsRepository, OrganisationRepository, UKTRSubmissionRepository}
-import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext}
 
 class UKTRSubmissionISpec
@@ -57,8 +57,8 @@ class UKTRSubmissionISpec
   override protected val repository: UKTRSubmissionRepository            = app.injector.instanceOf[UKTRSubmissionRepository]
   private val orgRepository:         OrganisationRepository              = app.injector.instanceOf[OrganisationRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  given ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  given hc:                   HeaderCarrier                       = HeaderCarrier()
+  given ec:                          ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                          HeaderCarrier                       = HeaderCarrier()
 
   private val testOrg = TestOrganisation(
     orgDetails = orgDetails,
@@ -111,7 +111,7 @@ class UKTRSubmissionISpec
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
-      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .execute[HttpResponse]
       .futureValue
   }
@@ -121,7 +121,7 @@ class UKTRSubmissionISpec
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
-      .setHeader(hipHeaders.tail :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .setHeader(hipHeaders.tail :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .execute[HttpResponse]
       .futureValue
   }
@@ -130,7 +130,7 @@ class UKTRSubmissionISpec
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(payload)
-      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .execute[HttpResponse]
       .futureValue
 
@@ -139,7 +139,7 @@ class UKTRSubmissionISpec
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
-      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .execute[HttpResponse]
       .futureValue
   }
@@ -149,7 +149,7 @@ class UKTRSubmissionISpec
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(Json.toJson(updatedSubmission))
-      .setHeader(hipHeaders.tail :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .setHeader(hipHeaders.tail :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .execute[HttpResponse]
       .futureValue
   }
@@ -158,7 +158,7 @@ class UKTRSubmissionISpec
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(correctNilReturnJson)
-      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .execute[HttpResponse]
       .futureValue
 
@@ -166,7 +166,7 @@ class UKTRSubmissionISpec
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
       .withBody(correctNilReturnJson)
-      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*)
+      .setHeader(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*)
       .execute[HttpResponse]
       .futureValue
 
@@ -320,7 +320,7 @@ class UKTRSubmissionISpec
         val response = httpClient
           .post(url"$baseUrl/RESTAdapter/plr/uk-tax-return")
           .withBody(Json.toJson(liabilitySubmission))
-          .setHeader(hipHeaders.tail: _*)
+          .setHeader(hipHeaders.tail*)
           .setHeader("Authorization" -> authToken)
           .execute[HttpResponse]
           .futureValue

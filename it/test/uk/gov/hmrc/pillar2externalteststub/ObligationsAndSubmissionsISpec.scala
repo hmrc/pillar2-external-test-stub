@@ -56,8 +56,8 @@ class ObligationsAndSubmissionsISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository:  ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
   private val organisationRepository: OrganisationRepository              = app.injector.instanceOf[OrganisationRepository]
-  given ec:                    ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  given hc:                    HeaderCarrier                       = HeaderCarrier()
+  given ec:                           ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                           HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -75,7 +75,7 @@ class ObligationsAndSubmissionsISpec
   ): HttpResponse =
     httpClient
       .get(url"$baseUrl/RESTAdapter/plr/obligations-and-submissions?fromDate=$fromDate&toDate=$toDate")
-      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*))
       .execute[HttpResponse]
       .futureValue
 
@@ -90,7 +90,7 @@ class ObligationsAndSubmissionsISpec
       pillar2Id = pillar2Id,
       accountingPeriod = accountingPeriod,
       submissionType = submissionType,
-      ornCountryGir = if (submissionType == ORN_CREATE || submissionType == ORN_AMEND) Some("US") else None,
+      ornCountryGir = if submissionType == ORN_CREATE || submissionType == ORN_AMEND then Some("US") else None,
       submittedAt = Instant.now()
     )
     repository.collection.insertOne(submission).toFuture().futureValue

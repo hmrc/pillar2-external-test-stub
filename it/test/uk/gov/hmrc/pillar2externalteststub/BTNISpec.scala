@@ -18,6 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub
 
 import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.when
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
@@ -25,6 +26,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 import play.api.{Application, inject}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -34,14 +36,12 @@ import uk.gov.hmrc.pillar2externalteststub.helpers.{BTNDataFixture, ObligationsA
 import uk.gov.hmrc.pillar2externalteststub.models.btn.BTNRequest
 import uk.gov.hmrc.pillar2externalteststub.models.btn.mongo.BTNSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.BTNSubmissionRepository
+import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
-import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import uk.gov.hmrc.pillar2externalteststub.repositories.ObligationsAndSubmissionsRepository
 
 class BTNISpec
     extends AnyWordSpec
@@ -61,8 +61,8 @@ class BTNISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: BTNSubmissionRepository             = app.injector.instanceOf[BTNSubmissionRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  given ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  given hc:                   HeaderCarrier                       = HeaderCarrier()
+  given ec:                          ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                          HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -77,7 +77,7 @@ class BTNISpec
   def submitBTN(pillar2Id: String, request: BTNRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
-      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
@@ -136,7 +136,7 @@ class BTNISpec
     "support only one accountingPeriod per Pillar2 ID" in {
       when(mockOrgService.getOrganisation(eqTo(validPlrId))).thenReturn(Future.successful(organisationWithId))
       when(mockOrgService.makeOrganisationInactive(eqTo(validPlrId))).thenReturn(Future.successful(()))
-      
+
       submitBTN(validPlrId, validBTNRequest).status shouldBe 201
 
       val secondRequest = validBTNRequest.copy(
@@ -152,7 +152,7 @@ class BTNISpec
     "handle invalid requests appropriately" in {
       val responseWithoutId = httpClient
         .post(url"$baseUrl/RESTAdapter/plr/below-threshold-notification")
-        .transform(_.withHttpHeaders(hipHeaders: _*))
+        .transform(_.withHttpHeaders(hipHeaders*))
         .withBody(Json.toJson(validBTNRequest))
         .execute[HttpResponse]
         .futureValue

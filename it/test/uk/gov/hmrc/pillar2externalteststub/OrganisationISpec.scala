@@ -24,15 +24,15 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 import uk.gov.hmrc.pillar2externalteststub.helpers.TestOrgDataFixture
-import uk.gov.hmrc.pillar2externalteststub.models.organisation._
+import uk.gov.hmrc.pillar2externalteststub.models.organisation.*
 import uk.gov.hmrc.pillar2externalteststub.models.response.StubErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.repositories.OrganisationRepository
-import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext
@@ -52,8 +52,8 @@ class OrganisationISpec
   private val httpClient = app.injector.instanceOf[HttpClientV2]
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: OrganisationRepository = app.injector.instanceOf[OrganisationRepository]
-  given ec:                   ExecutionContext       = app.injector.instanceOf[ExecutionContext]
-  given hc:                   HeaderCarrier          = HeaderCarrier()
+  given ec:                          ExecutionContext       = app.injector.instanceOf[ExecutionContext]
+  given hc:                          HeaderCarrier          = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
