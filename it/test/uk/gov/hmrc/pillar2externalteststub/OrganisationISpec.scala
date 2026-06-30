@@ -185,7 +185,7 @@ class OrganisationISpec
 
       "return 400 for invalid JSON payload on creation" in {
         val invalidJson = Json.obj("invalid" -> "request")
-        val response = httpClient
+        val response    = httpClient
           .post(url"$baseUrl/pillar2/test/organisation/$validPlrId")
           .withBody(invalidJson)
           .execute[HttpResponse]

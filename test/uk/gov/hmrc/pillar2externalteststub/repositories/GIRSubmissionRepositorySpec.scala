@@ -68,7 +68,7 @@ class GIRSubmissionRepositorySpec
   given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   private val testPillar2Id = "XMPLR0000000000"
-  private val testRequest = GIRRequest(
+  private val testRequest   = GIRRequest(
     accountingPeriodFrom = LocalDate.of(2024, 1, 1),
     accountingPeriodTo = LocalDate.of(2024, 12, 31)
   )

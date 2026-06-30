@@ -37,10 +37,10 @@ class AuthActionFilter @Inject() ()(using ec: ExecutionContext) extends ActionFi
       }
 
     for {
-      _ <- validateHeader(correlationidHeader, _.matches(correlationidHeaderRegex))
-      _ <- validateHeader(xReceiptDateHeader, _.matches(xReceiptDateHeaderRegex))
-      _ <- validateHeader(xOriginatingSystemHeader, _.equals("MDTP"))
-      _ <- validateHeader(xTransmittingSystemHeader, _.equals("HIP"))
+      _          <- validateHeader(correlationidHeader, _.matches(correlationidHeaderRegex))
+      _          <- validateHeader(xReceiptDateHeader, _.matches(xReceiptDateHeaderRegex))
+      _          <- validateHeader(xOriginatingSystemHeader, _.equals("MDTP"))
+      _          <- validateHeader(xTransmittingSystemHeader, _.equals("HIP"))
       authResult <- {
         if request.headers.get(HeaderNames.authorisation).isDefined then Future.successful(None)
         else Future.successful(Some(Unauthorized))

@@ -11,7 +11,7 @@ ThisBuild / semanticdbEnabled := true
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) // Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  .settings(CodeCoverageSettings.settings*)
+  .settings(CodeCoverageSettings.settings *)
   .settings(
     ScoverageKeys.coverageExcludedFiles := ".*models.*;.*package.*;.*config.*;.*helpers.*",
     ScoverageKeys.coverageMinimumStmtTotal := 90,

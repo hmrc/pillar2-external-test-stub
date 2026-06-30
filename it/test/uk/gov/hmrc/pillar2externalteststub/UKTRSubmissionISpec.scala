@@ -77,7 +77,7 @@ class UKTRSubmissionISpec
     organisation = testOrg
   )
 
-  private val invalidPlrId = "invalidPlr2Id"
+  private val invalidPlrId     = "invalidPlr2Id"
   private val invalidOrgWithId = TestOrganisationWithId(
     pillar2Id = invalidPlrId,
     organisation = testOrg

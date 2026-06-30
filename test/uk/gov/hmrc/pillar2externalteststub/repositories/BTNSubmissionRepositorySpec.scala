@@ -66,7 +66,7 @@ class BTNSubmissionRepositorySpec
   given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   private val testPillar2Id = "XMPLR0000000000"
-  private val testRequest = BTNRequest(
+  private val testRequest   = BTNRequest(
     accountingPeriodFrom = LocalDate.of(2024, 1, 1),
     accountingPeriodTo = LocalDate.of(2024, 12, 31)
   )

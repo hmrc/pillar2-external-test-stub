@@ -53,37 +53,29 @@ class AuthActionFilterSpec extends AnyWordSpec with Matchers with ScalaFutures w
         authActionFilter.filter(FakeRequest().withHeaders(headers*)) shouldFailWith HIPBadRequest(s"Header is missing or invalid: $header")
       }
 
-      "correlationid is missing" in {
+      "correlationid is missing" in
         testHeader(correlationidHeader)
-      }
 
-      "correlationid is invalid" in {
+      "correlationid is invalid" in
         testHeader(correlationidHeader, "invalid-correlation-id")
-      }
 
-      "X-Receipt-Date header is missing" in {
+      "X-Receipt-Date header is missing" in
         testHeader(xReceiptDateHeader)
-      }
 
-      "X-Receipt-Date header is invalid" in {
+      "X-Receipt-Date header is invalid" in
         testHeader(xReceiptDateHeader, "invalid-date")
-      }
 
-      "X-Originating-System header is missing" in {
+      "X-Originating-System header is missing" in
         testHeader(xOriginatingSystemHeader)
-      }
 
-      "X-Originating-System header is invalid" in {
+      "X-Originating-System header is invalid" in
         testHeader(xOriginatingSystemHeader, "INVALID")
-      }
 
-      "X-Transmitting-System header is missing" in {
+      "X-Transmitting-System header is missing" in
         testHeader(xTransmittingSystemHeader)
-      }
 
-      "X-Transmitting-System header is invalid" in {
+      "X-Transmitting-System header is invalid" in
         testHeader(xTransmittingSystemHeader, "INVALID")
-      }
     }
   }
 }

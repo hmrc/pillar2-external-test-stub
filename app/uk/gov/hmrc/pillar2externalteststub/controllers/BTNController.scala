@@ -36,7 +36,7 @@ class BTNController @Inject() (
   cc:         ControllerComponents,
   authFilter: AuthActionFilter,
   btnService: BTNService
-)(using ec:   ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
@@ -55,7 +55,7 @@ class BTNController @Inject() (
   def handleSubmission(pillar2Id: String, request: BTNRequest): Future[Result] =
     pillar2Id match {
       case ServerErrorPlrId => Future.failed(ETMPInternalServerError)
-      case _ =>
+      case _                =>
         btnService
           .submitBTN(pillar2Id, request)
           .map(_ => Created(Json.toJson(BTN_SUCCESS_201)))

@@ -154,7 +154,7 @@ object UKTRLiabilityReturn {
   }
 
   private[uktr] def mttLiabilityValidationRule(org: TestOrganisationWithId): ValidationRule[UKTRLiabilityReturn] = ValidationRule { data =>
-    val isDomestic = org.organisation.orgDetails.domesticOnly
+    val isDomestic        = org.organisation.orgDetails.domesticOnly
     val hasMTTLiabilities =
       data.liabilities.totalLiabilityIIR > 0 ||
         data.liabilities.totalLiabilityUTPR > 0 ||
@@ -172,7 +172,7 @@ object UKTRLiabilityReturn {
   }
 
   def uktrSubmissionValidator(
-    plrReference:              String
+    plrReference: String
   )(using organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRLiabilityReturn]] =
     organisationService
       .getOrganisation(plrReference)

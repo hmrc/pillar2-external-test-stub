@@ -116,7 +116,7 @@ class GIRISpec
 
       // Second submission should fail with TaxObligationAlreadyFulfilled
       val secondResponse = submitGIR(validPlrId, validGIRRequest)
-      secondResponse.status shouldBe 422 //This should be TaxObligationAlreadyFulfilled - 044
+      secondResponse.status shouldBe 422 // This should be TaxObligationAlreadyFulfilled - 044
 
       // Verify the error code
       val json = Json.parse(secondResponse.body)

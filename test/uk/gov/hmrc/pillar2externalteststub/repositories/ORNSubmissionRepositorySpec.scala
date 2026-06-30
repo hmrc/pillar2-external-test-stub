@@ -67,7 +67,7 @@ class ORNSubmissionRepositorySpec
   given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   private val testPillar2Id = "XMPLR0000000000"
-  private val testRequest = ORNRequest(
+  private val testRequest   = ORNRequest(
     accountingPeriodFrom = LocalDate.of(2024, 1, 1),
     accountingPeriodTo = LocalDate.of(2024, 12, 31),
     filedDateGIR = LocalDate.of(2025, 1, 10),

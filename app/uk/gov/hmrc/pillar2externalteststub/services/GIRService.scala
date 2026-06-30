@@ -33,7 +33,7 @@ class GIRService @Inject() (
   girRepository:       GIRSubmissionRepository,
   oasRepository:       ObligationsAndSubmissionsRepository,
   organisationService: OrganisationService
-)(using ec:            ExecutionContext)
+)(using ec: ExecutionContext)
     extends Logging {
 
   def submitGIR(pillar2Id: String, request: GIRRequest): Future[Boolean] = {
@@ -80,7 +80,7 @@ class GIRService @Inject() (
 
   def validateRequest(validator: ValidationRule[GIRRequest], request: GIRRequest): Future[Unit] =
     validator.validate(request) match {
-      case Valid(_) => Future.successful(())
+      case Valid(_)        => Future.successful(())
       case Invalid(errors) =>
         errors.head match {
           case GIRValidationError(error) => Future.failed(error)

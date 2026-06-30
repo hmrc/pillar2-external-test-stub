@@ -851,16 +851,16 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
       ("transactionDesc" -> JsString(transactionDesc)).some,
       Option.when(transactionType == TransactionType.Debit)("startDate" -> summon[Writes[LocalDate]].writes(currentYearStart)),
       Option.when(transactionType == TransactionType.Debit)("endDate"   -> summon[Writes[LocalDate]].writes(currentYearEnd)),
-      accruedInterest.map("accruedInterest"                             -> JsNumber(_)),
-      chargeRefNo.map("chargeRefNo"                                     -> JsString(_)),
+      accruedInterest.map("accruedInterest" -> JsNumber(_)),
+      chargeRefNo.map("chargeRefNo" -> JsString(_)),
       ("transactionDate" -> summon[Writes[LocalDate]].writes(today)).some,
       Option.when(transactionType == TransactionType.Debit)("dueDate" -> summon[Writes[LocalDate]].writes(currentYearEnd.plusMonths(dueDateBuffer))),
       ("originalAmount" -> JsNumber(originalAmount)).some,
       outstandingAmount.map("outstandingAmount" -> JsNumber(_)),
-      clearedAmount.map("clearedAmount"         -> JsNumber(_)),
-      clearingDetails.map("clearingDetails"     -> JsArray(_)),
-      standOverAmount.map("standOverAmount"     -> JsNumber(_)),
-      appealFlag.map("appealFlag"               -> JsBoolean(_))
+      clearedAmount.map("clearedAmount" -> JsNumber(_)),
+      clearingDetails.map("clearingDetails" -> JsArray(_)),
+      standOverAmount.map("standOverAmount" -> JsNumber(_)),
+      appealFlag.map("appealFlag" -> JsBoolean(_))
     ).flatten
   )
 
@@ -872,7 +872,7 @@ class AccountActivityDataResponses @Inject() (clock: Clock) {
   ): ClearingJson = JsObject(
     Seq(
       ("transactionDesc" -> JsString(transactionDesc)).some,
-      chargeRefNo.map("chargeRefNo"                               -> JsString(_)),
+      chargeRefNo.map("chargeRefNo" -> JsString(_)),
       if transactionDesc == "Repayment" then None else ("dueDate" -> summon[Writes[LocalDate]].writes(currentYearEnd.plusMonths(dueDateBuffer))).some,
       ("amount"         -> JsNumber(amount)).some,
       ("clearingDate"   -> summon[Writes[LocalDate]].writes(today)).some,
