@@ -6,6 +6,7 @@ val appName = "pillar2-external-test-stub"
 
 ThisBuild / scalaVersion := "3.3.5"
 ThisBuild / majorVersion := 0
+ThisBuild / semanticdbEnabled := true
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
@@ -28,8 +29,8 @@ lazy val microservice = Project(appName, file("."))
     tpolecatExcludeOptions ++= Set(ScalacOptions.warnNonUnitStatement)
   )
 
-addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
-addCommandAlias("lint", ";scalafmtAll;scalafmtSbt;scalafixAll")
+addCommandAlias("prePrChecks", "; scalafmtCheckAll; it/scalafmtCheckAll; scalafmtSbtCheck; scalafixAll --check; it/scalafixAll --check")
+addCommandAlias("lint", "; scalafmtAll; it/scalafmtAll; scalafmtSbt; it/scalafixAll; scalafixAll")
 addCommandAlias("prePush", "reload;clean;compile;test;lint")
 
 lazy val it = project
@@ -45,13 +46,6 @@ lazy val it = project
     libraryDependencies ++= AppDependencies.it,
     compilerSettings
   )
-
-inThisBuild(
-  List(
-    semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision
-  )
-)
 
 lazy val compilerSettings = Seq(
   scalacOptions ~= (_.distinct),
