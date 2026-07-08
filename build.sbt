@@ -4,7 +4,7 @@ import uk.gov.hmrc.DefaultBuildSettings
 
 val appName = "pillar2-external-test-stub"
 
-ThisBuild / scalaVersion := "3.3.5"
+ThisBuild / scalaVersion := "3.3.6"
 ThisBuild / majorVersion := 0
 
 lazy val microservice = Project(appName, file("."))
