@@ -31,7 +31,7 @@ trait TestOrgDataFixture extends Pillar2DataFixture {
   val orgDetails: OrgDetails = OrgDetails(
     domesticOnly = false,
     organisationName = "Test Org",
-    registrationDate = LocalDate.of(2024, 1, 1)
+    registrationDate = LocalDate.now.minusMonths(1)
   )
 
   val organisationDetails: TestOrganisation = TestOrganisation(
