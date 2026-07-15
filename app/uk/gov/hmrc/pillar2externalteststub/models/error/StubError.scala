@@ -17,8 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.models.error
 
 sealed trait StubError extends Exception {
-  def code:    String
-  def message: String
+  def code:                String
+  def message:             String
   override def getMessage: String = message
 }
 

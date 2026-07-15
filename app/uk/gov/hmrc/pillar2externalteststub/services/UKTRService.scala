@@ -36,7 +36,7 @@ class UKTRService @Inject() (
   uktrRepository:      UKTRSubmissionRepository,
   oasRepository:       ObligationsAndSubmissionsRepository,
   organisationService: OrganisationService
-)(using ec:            ExecutionContext)
+)(using ec: ExecutionContext)
     extends Logging {
 
   def submitUKTR(pillar2Id: String, request: UKTRSubmission): Future[UKTRResponse] = {
@@ -59,8 +59,9 @@ class UKTRService @Inject() (
       validator          <- getValidator(pillar2Id, request)
       _                  <- validateRequest(validator, request)
       maybeChargeRef     <- processSubmission(pillar2Id, request, isAmendment = true)
-      chargeRef = if existingSubmission.chargeReference.isEmpty && request.isInstanceOf[UKTRLiabilityReturn] then maybeChargeRef
-                  else existingSubmission.chargeReference
+      chargeRef =
+        if existingSubmission.chargeReference.isEmpty && request.isInstanceOf[UKTRLiabilityReturn] then maybeChargeRef
+        else existingSubmission.chargeReference
       _ <- organisationService.makeOrganisationActive(pillar2Id)
     } yield createResponse(request, chargeRef)
   }
@@ -76,7 +77,7 @@ class UKTRService @Inject() (
 
   def validateRequest(validator: ValidationRule[UKTRSubmission], request: UKTRSubmission): Future[Unit] =
     validator.validate(request) match {
-      case cats.data.Validated.Valid(_) => Future.successful(())
+      case cats.data.Validated.Valid(_)        => Future.successful(())
       case cats.data.Validated.Invalid(errors) =>
         errors.head match {
           case UKTRSubmissionError(error) => Future.failed(error)

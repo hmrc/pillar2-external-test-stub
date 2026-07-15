@@ -37,7 +37,7 @@ trait Pillar2DataFixture {
     }
   }
 
-  val authHeader: (String, String) = HeaderNames.authorisation -> "Bearer valid_token"
+  val authHeader: (String, String)      = HeaderNames.authorisation -> "Bearer valid_token"
   val hipHeaders: Seq[(String, String)] = Seq(
     authHeader,
     correlationidHeader       -> UUID.randomUUID().toString,

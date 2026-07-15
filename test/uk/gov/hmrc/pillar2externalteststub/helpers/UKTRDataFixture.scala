@@ -44,7 +44,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> true,
       "electionUTPRSingleMember" -> true,
       "numberSubGroupDTT"        -> 1,
@@ -384,7 +384,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> "2024-12-14",
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> "NIL_RETURN"
     )
   )
@@ -392,7 +392,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo" -> "2024-12-14",
     "obligationMTT"      -> true,
     "electionUKGAAP"     -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"        -> Json.obj(
       "returnType" -> "NIL_RETURN"
     )
   )
@@ -401,7 +401,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> "2025-02-31",
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> "NIL_RETURN"
     )
   )
@@ -409,7 +409,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodFrom" -> "2024-12-14",
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> "NIL_RETURN"
     )
   )
@@ -418,7 +418,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> "2025-02-03",
     "obligationMTT"        -> "x",
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> "NIL_RETURN"
     )
   )
@@ -426,7 +426,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodFrom" -> "2024-08-14",
     "accountingPeriodTo"   -> "2024-12-14",
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> "NIL_RETURN"
     )
   )
@@ -435,7 +435,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> "2025-02-03",
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> "Z",
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> "NIL_RETURN"
     )
   )
@@ -443,7 +443,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodFrom" -> "2024-12-14",
     "accountingPeriodTo"   -> "2025-02-03",
     "obligationMTT"        -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> "NIL_RETURN"
     )
   )
@@ -453,7 +453,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> "2024-12-14",
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> "INVALID_NIL_RETURN"
     )
   )
@@ -462,7 +462,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> "2024-12-14",
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> ""
     )
   )
@@ -480,7 +480,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "returnType" -> ReturnType.NIL_RETURN.toString
     )
   )
@@ -490,7 +490,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> "2023-12-31",
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> false,
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 4,
@@ -508,7 +508,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> false,
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 4,
@@ -526,7 +526,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> false,
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 4,
@@ -544,7 +544,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> false,
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 4,
@@ -553,7 +553,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
       "totalLiabilityDTT"        -> 5000.99,
       "totalLiabilityIIR"        -> 4000,
       "totalLiabilityUTPR"       -> 10000.99,
-      "liableEntities" -> Json.arr(
+      "liableEntities"           -> Json.arr(
         validLiableEntity.as[JsObject] ++ Json.obj("idType" -> "INVALID")
       )
     )
@@ -564,7 +564,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> true,
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 1,
@@ -573,7 +573,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
       "totalLiabilityDTT"        -> 100,
       "totalLiabilityIIR"        -> 100,
       "totalLiabilityUTPR"       -> 0,
-      "liableEntities" -> Json.arr(
+      "liableEntities"           -> Json.arr(
         Json.obj(
           "ukChargeableEntityName" -> "New Company",
           "idType"                 -> "CRN",
@@ -591,7 +591,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> true,
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 1,
@@ -600,7 +600,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
       "totalLiabilityDTT"        -> 100,
       "totalLiabilityIIR"        -> 0,
       "totalLiabilityUTPR"       -> 0,
-      "liableEntities" -> Json.arr(
+      "liableEntities"           -> Json.arr(
         Json.obj(
           "ukChargeableEntityName" -> "New Company",
           "idType"                 -> "CRN",
@@ -618,7 +618,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> true,
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 1,
@@ -627,7 +627,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
       "totalLiabilityDTT"        -> 100,
       "totalLiabilityIIR"        -> 100,
       "totalLiabilityUTPR"       -> 0,
-      "liableEntities" -> Json.arr(
+      "liableEntities"           -> Json.arr(
         Json.obj(
           "ukChargeableEntityName" -> "New Company",
           "idType"                 -> "CRN",
@@ -645,7 +645,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> true,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> true,
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 1,
@@ -654,7 +654,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
       "totalLiabilityDTT"        -> 100,
       "totalLiabilityIIR"        -> 100,
       "totalLiabilityUTPR"       -> 0,
-      "liableEntities" -> Json.arr(
+      "liableEntities"           -> Json.arr(
         Json.obj(
           "ukChargeableEntityName" -> "New Company",
           "idType"                 -> "CRN",
@@ -672,7 +672,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
     "accountingPeriodTo"   -> accountingPeriod.endDate.toString,
     "obligationMTT"        -> false,
     "electionUKGAAP"       -> false,
-    "liabilities" -> Json.obj(
+    "liabilities"          -> Json.obj(
       "electionDTTSingleMember"  -> true,
       "electionUTPRSingleMember" -> false,
       "numberSubGroupDTT"        -> 1,
@@ -681,7 +681,7 @@ trait UKTRDataFixture extends Pillar2DataFixture with TestOrgDataFixture {
       "totalLiabilityDTT"        -> 100,
       "totalLiabilityIIR"        -> 0,
       "totalLiabilityUTPR"       -> 0,
-      "liableEntities" -> Json.arr(
+      "liableEntities"           -> Json.arr(
         Json.obj(
           "ukChargeableEntityName" -> "New Company",
           "idType"                 -> "CRN",

@@ -76,9 +76,8 @@ class AccountActivityServiceSpec
         AccountActivityScenario.COMBINED_REPAYMENT                       -> responses.CombinedRepaymentResponse
       )
 
-      "should return the correct response for all defined scenarios" in {
+      "should return the correct response for all defined scenarios" in
         forAll(scenarioTable) { (scenario, expectedResponse) =>
-
           val org = TestOrganisation(
             orgDetails = orgDetails,
             accountingPeriod = testAccountingPeriod,
@@ -90,7 +89,6 @@ class AccountActivityServiceSpec
 
           result shouldBe expectedResponse
         }
-      }
     }
 
     "validation failures" - {

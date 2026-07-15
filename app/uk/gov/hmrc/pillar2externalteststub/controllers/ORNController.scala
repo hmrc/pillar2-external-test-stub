@@ -40,7 +40,7 @@ class ORNController @Inject() (
   authFilter:          AuthActionFilter,
   ornService:          ORNService,
   organisationService: OrganisationService
-)(using ec:            ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
@@ -82,7 +82,7 @@ class ORNController @Inject() (
           org <- organisationService.getOrganisation(pillar2Id)
           _ = if org.organisation.orgDetails.domesticOnly then throw RequestCouldNotBeProcessed
           submission <- ornService.getORN(pillar2Id, from, to)
-          response <- submission match {
+          response   <- submission match {
                         case Some(sub) => Future.successful(Ok(Json.toJson(ORNGetResponse.fromSubmission(sub))))
                         case None      => Future.failed(NoFormBundleFound)
                       }

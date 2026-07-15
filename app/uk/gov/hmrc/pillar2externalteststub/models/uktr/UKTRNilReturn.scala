@@ -39,7 +39,7 @@ object UKTRNilReturn {
   given UKTRSubmissionNilReturnFormat: OFormat[UKTRNilReturn] = Json.format[UKTRNilReturn]
 
   def uktrNilReturnValidator(
-    plrReference:              String
+    plrReference: String
   )(using organisationService: OrganisationService, ec: ExecutionContext): Future[ValidationRule[UKTRNilReturn]] =
     organisationService
       .getOrganisation(plrReference)

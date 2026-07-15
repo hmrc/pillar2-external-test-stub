@@ -30,7 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class GIRController @Inject() (
   cc:         ControllerComponents,
   girService: GIRService
-)(using ec:   ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 

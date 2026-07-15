@@ -59,7 +59,7 @@ class UKTRSubmissionRepositorySpec
   def amendWithLiabilityUktr:                            Future[(ObjectId, Option[String])]  = repository.update(liabilitySubmission, validPlrId)
   def amendWithNilUktr:                                  Future[(ObjectId, Option[String])]  = repository.update(nilSubmission, validPlrId)
   def deleteSubmissions(pillar2Id: String = validPlrId): Future[Boolean]                     = repository.deleteByPillar2Id(pillar2Id)
-  def findSubmissions(pillar2Id: String = validPlrId):   Future[Option[UKTRMongoSubmission]] = repository.findByPillar2Id(pillar2Id)
+  def findSubmissions(pillar2Id:   String = validPlrId): Future[Option[UKTRMongoSubmission]] = repository.findByPillar2Id(pillar2Id)
 
   "UKTRSubmissionRepository" when {
     "handling valid submissions" should {

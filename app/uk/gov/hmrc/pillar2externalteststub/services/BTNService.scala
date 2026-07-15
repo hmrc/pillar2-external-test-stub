@@ -35,7 +35,7 @@ class BTNService @Inject() (
   btnRepository:       BTNSubmissionRepository,
   oasRepository:       ObligationsAndSubmissionsRepository,
   organisationService: OrganisationService
-)(using ec:            ExecutionContext)
+)(using ec: ExecutionContext)
     extends Logging {
 
   def submitBTN(pillar2Id: String, request: BTNRequest): Future[Boolean] = {
@@ -53,7 +53,7 @@ class BTNService @Inject() (
 
   def validateRequest(validator: ValidationRule[BTNRequest], request: BTNRequest): Future[Unit] =
     validator.validate(request) match {
-      case Valid(_) => Future.successful(())
+      case Valid(_)        => Future.successful(())
       case Invalid(errors) =>
         errors.head match {
           case BTNValidationError(error) => Future.failed(error)

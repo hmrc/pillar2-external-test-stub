@@ -128,7 +128,7 @@ class ObligationsAndSubmissionsRepositorySpec
 
       // Insert all test submissions and map to their IDs
       val submissionMap = testCases.map { case TestCase(name, (from, to), _) =>
-        val id = new ObjectId()
+        val id         = new ObjectId()
         val submission = validRequestBody
           .as[UKTRLiabilityReturn]
           .copy(

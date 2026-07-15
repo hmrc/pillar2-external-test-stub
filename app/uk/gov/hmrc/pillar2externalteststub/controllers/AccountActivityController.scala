@@ -37,15 +37,16 @@ class AccountActivityController @Inject() (
   authFilter:             AuthActionFilter,
   organisationService:    OrganisationService,
   accountActivityService: AccountActivityService
-)(using ec:               ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 
   def get(fromDate: String, toDate: String): Action[AnyContent] = (Action andThen authFilter).async { request =>
     validatePillar2Id(request.headers.get("X-Pillar2-Id")).flatMap { pillar2Id =>
       (for {
-        _ <- if request.headers.get("X-Message-Type").contains("ACCOUNT_ACTIVITY") then Future.unit
-             else Future.failed(HIPBadRequest())
+        _ <-
+          if request.headers.get("X-Message-Type").contains("ACCOUNT_ACTIVITY") then Future.unit
+          else Future.failed(HIPBadRequest())
         from         <- Future.fromTry(Try(LocalDate.parse(fromDate)))
         to           <- Future.fromTry(Try(LocalDate.parse(toDate)))
         _            <- if from.isAfter(to) then Future.failed(RequestCouldNotBeProcessed) else Future.unit

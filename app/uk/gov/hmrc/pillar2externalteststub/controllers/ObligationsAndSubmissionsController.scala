@@ -46,7 +46,7 @@ class ObligationsAndSubmissionsController @Inject() (
   cc:                  ControllerComponents,
   organisationService: OrganisationService,
   oasRepository:       ObligationsAndSubmissionsRepository
-)(using ec:            ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 

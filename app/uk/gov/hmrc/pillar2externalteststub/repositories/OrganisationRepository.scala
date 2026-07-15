@@ -38,7 +38,7 @@ class OrganisationRepository @Inject() (
   oasRepository:  ObligationsAndSubmissionsRepository,
   ornRepository:  ORNSubmissionRepository,
   girRepository:  GIRSubmissionRepository
-)(using ec:       ExecutionContext)
+)(using ec: ExecutionContext)
     extends PlayMongoRepository[TestOrganisationWithId](
       collectionName = "organisation",
       mongoComponent = mongoComponent,

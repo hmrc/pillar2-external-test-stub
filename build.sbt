@@ -6,11 +6,12 @@ val appName = "pillar2-external-test-stub"
 
 ThisBuild / scalaVersion := "3.3.6"
 ThisBuild / majorVersion := 0
+ThisBuild / semanticdbEnabled := true
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) // Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  .settings(CodeCoverageSettings.settings*)
+  .settings(CodeCoverageSettings.settings *)
   .settings(
     ScoverageKeys.coverageExcludedFiles := ".*models.*;.*package.*;.*config.*;.*helpers.*",
     ScoverageKeys.coverageMinimumStmtTotal := 90,
@@ -28,8 +29,8 @@ lazy val microservice = Project(appName, file("."))
     tpolecatExcludeOptions ++= Set(ScalacOptions.warnNonUnitStatement)
   )
 
-addCommandAlias("prePrChecks", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
-addCommandAlias("lint", ";scalafmtAll;scalafmtSbt;scalafixAll")
+addCommandAlias("prePrChecks", "; scalafmtCheckAll; it/scalafmtCheckAll; scalafmtSbtCheck; scalafixAll --check; it/scalafixAll --check")
+addCommandAlias("lint", "; scalafmtAll; it/scalafmtAll; scalafmtSbt; it/scalafixAll; scalafixAll")
 addCommandAlias("prePush", "reload;clean;compile;test;lint")
 
 lazy val it = project
@@ -45,13 +46,6 @@ lazy val it = project
     libraryDependencies ++= AppDependencies.it,
     compilerSettings
   )
-
-inThisBuild(
-  List(
-    semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision
-  )
-)
 
 lazy val compilerSettings = Seq(
   scalacOptions ~= (_.distinct),

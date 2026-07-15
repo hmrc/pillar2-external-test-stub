@@ -34,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ORNSubmissionRepository @Inject() (
   mongoComponent: MongoComponent,
   config:         AppConfig
-)(using ec:       ExecutionContext)
+)(using ec: ExecutionContext)
     extends PlayMongoRepository[ORNSubmission](
       collectionName = "orn-submissions",
       mongoComponent = mongoComponent,

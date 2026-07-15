@@ -197,7 +197,7 @@ class UKTRServiceSpec
           when(mockOrgService.getOrganisation(eqTo(validPlrId)))
             .thenReturn(Future.successful(nonDomesticOrganisation))
 
-          val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
+          val liabilityReturn   = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
           val invalidSubmission = liabilityReturn.copy(
             obligationMTT = true,
             liabilities = liabilityReturn.liabilities.copy(
@@ -288,7 +288,7 @@ class UKTRServiceSpec
           when(mockOrgService.getOrganisation(eqTo(validPlrId)))
             .thenReturn(Future.successful(domesticOrganisation))
 
-          val liabilityReturn = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
+          val liabilityReturn   = liabilitySubmission.asInstanceOf[UKTRLiabilityReturn]
           val invalidSubmission = liabilityReturn.copy(
             liabilities = liabilityReturn.liabilities.copy(
               electionDTTSingleMember = false,

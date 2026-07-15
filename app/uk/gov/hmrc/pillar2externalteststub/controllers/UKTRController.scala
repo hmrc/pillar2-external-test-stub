@@ -34,7 +34,7 @@ class UKTRController @Inject() (
   cc:          ControllerComponents,
   authFilter:  AuthActionFilter,
   uktrService: UKTRService
-)(using ec:    ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 

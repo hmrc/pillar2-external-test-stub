@@ -26,6 +26,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 import play.api.{Application, inject}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -40,7 +41,7 @@ import uk.gov.hmrc.pillar2externalteststub.models.response.HIPErrorResponse
 import uk.gov.hmrc.pillar2externalteststub.models.response.Origin.HIP
 import uk.gov.hmrc.pillar2externalteststub.repositories.{ORNSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class ORNISpec
@@ -60,8 +61,8 @@ class ORNISpec
   private val baseUrl    = s"http://localhost:$port"
   private val ornRepository: ORNSubmissionRepository             = app.injector.instanceOf[ORNSubmissionRepository]
   private val oasRepository: ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  given ec:           ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  given hc:           HeaderCarrier                       = HeaderCarrier()
+  given ec:                  ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                  HeaderCarrier                       = HeaderCarrier()
   override protected val repository = ornRepository
 
   override def fakeApplication(): Application =
@@ -77,7 +78,7 @@ class ORNISpec
   def submitORN(pillar2Id: String, request: ORNRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
-      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
@@ -85,7 +86,7 @@ class ORNISpec
   def amendORN(pillar2Id: String, request: ORNRequest): HttpResponse =
     httpClient
       .put(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
-      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
@@ -95,7 +96,7 @@ class ORNISpec
       .get(
         url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=$accountingPeriodFrom&accountingPeriodTo=$accountingPeriodTo"
       )
-      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*))
       .execute[HttpResponse]
       .futureValue
 
@@ -242,7 +243,7 @@ class ORNISpec
     "handle invalid requests appropriately" in {
       val responseWithoutId = httpClient
         .post(url"$baseUrl/RESTAdapter/plr/overseas-return-notification")
-        .transform(_.withHttpHeaders(hipHeaders: _*))
+        .transform(_.withHttpHeaders(hipHeaders*))
         .withBody(Json.toJson(validORNRequest))
         .execute[HttpResponse]
         .futureValue
@@ -321,7 +322,7 @@ class ORNISpec
     "return 422 when ID number is missing" in {
       val getResponse = httpClient
         .get(url"$baseUrl/RESTAdapter/plr/overseas-return-notification?accountingPeriodFrom=2024-01-01&accountingPeriodTo=2024-12-31")
-        .transform(_.withHttpHeaders(hipHeaders: _*))
+        .transform(_.withHttpHeaders(hipHeaders*))
         .execute[HttpResponse]
         .futureValue
 

@@ -229,7 +229,7 @@ class ObligationsAndSubmissionsControllerSpec
       }
 
       "set canAmend flag correctly based on due date and obligation type" - {
-        val today: LocalDate = LocalDate.now()
+        val today:                  LocalDate = LocalDate.now()
         val approxRegistrationDate: LocalDate =
           today.minusMonths(FirstAccountingPeriodDueDateFromRegistration + AmendmentWindow)
         val actualDeadline: LocalDate =
@@ -254,13 +254,11 @@ class ObligationsAndSubmissionsControllerSpec
           (obligations(1) \ "canAmend").as[Boolean] mustBe true
         }
 
-        "false when current date is over 12 months after the dueDate" in {
+        "false when current date is over 12 months after the dueDate" in
           canAmendCheck(exactBoundaryRegistrationDate.minusDays(1), expectedStatus = false)
-        }
 
-        "true when current date is within 12 months from the dueDate" in {
+        "true when current date is within 12 months from the dueDate" in
           canAmendCheck(exactBoundaryRegistrationDate, expectedStatus = true)
-        }
       }
 
       "should return the correct response when no submissions exist" in {

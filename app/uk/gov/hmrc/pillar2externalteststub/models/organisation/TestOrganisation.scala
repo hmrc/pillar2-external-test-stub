@@ -155,7 +155,7 @@ object TestOrganisation {
       orgDetails = request.orgDetails,
       accountingPeriod = request.accountingPeriod,
       testData = request.testData,
-      //Initialise as active until we get a BTN
+      // Initialise as active until we get a BTN
       accountStatus = AccountStatus(inactive = false)
     )
 

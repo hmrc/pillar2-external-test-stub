@@ -17,8 +17,8 @@
 package uk.gov.hmrc.pillar2externalteststub.models.error
 
 sealed trait ETMPError extends Exception {
-  def code:    String
-  def message: String
+  def code:                String
+  def message:             String
   def logID:               Option[String] = None
   override def getMessage: String         = message
 }

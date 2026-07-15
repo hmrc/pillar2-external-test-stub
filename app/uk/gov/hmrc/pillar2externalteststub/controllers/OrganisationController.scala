@@ -32,7 +32,7 @@ import scala.concurrent.Future
 class OrganisationController @Inject() (
   cc:                  ControllerComponents,
   organisationService: OrganisationService
-)(using ec:            ExecutionContext)
+)(using ec: ExecutionContext)
     extends BackendController(cc)
     with Logging {
 

@@ -18,6 +18,7 @@ package uk.gov.hmrc.pillar2externalteststub
 
 import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.when
+import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
@@ -25,6 +26,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 import play.api.{Application, inject}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
@@ -35,8 +37,6 @@ import uk.gov.hmrc.pillar2externalteststub.models.gir.GIRRequest
 import uk.gov.hmrc.pillar2externalteststub.models.gir.mongo.GIRSubmission
 import uk.gov.hmrc.pillar2externalteststub.repositories.{GIRSubmissionRepository, ObligationsAndSubmissionsRepository}
 import uk.gov.hmrc.pillar2externalteststub.services.OrganisationService
-import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
-import org.mongodb.scala.{ObservableFuture, SingleObservableFuture}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -58,8 +58,8 @@ class GIRISpec
   private val baseUrl    = s"http://localhost:$port"
   override protected val repository: GIRSubmissionRepository             = app.injector.instanceOf[GIRSubmissionRepository]
   private val oasRepository:         ObligationsAndSubmissionsRepository = app.injector.instanceOf[ObligationsAndSubmissionsRepository]
-  given ec:                   ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
-  given hc:                   HeaderCarrier                       = HeaderCarrier()
+  given ec:                          ExecutionContext                    = app.injector.instanceOf[ExecutionContext]
+  given hc:                          HeaderCarrier                       = HeaderCarrier()
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -74,7 +74,7 @@ class GIRISpec
   def submitGIR(pillar2Id: String, request: GIRRequest): HttpResponse =
     httpClient
       .post(url"$baseUrl/pillar2/test/globe-information-return")
-      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id): _*))
+      .transform(_.withHttpHeaders(hipHeaders :+ ("X-Pillar2-Id" -> pillar2Id)*))
       .withBody(Json.toJson(request))
       .execute[HttpResponse]
       .futureValue
@@ -116,7 +116,7 @@ class GIRISpec
 
       // Second submission should fail with TaxObligationAlreadyFulfilled
       val secondResponse = submitGIR(validPlrId, validGIRRequest)
-      secondResponse.status shouldBe 422 //This should be TaxObligationAlreadyFulfilled - 044
+      secondResponse.status shouldBe 422 // This should be TaxObligationAlreadyFulfilled - 044
 
       // Verify the error code
       val json = Json.parse(secondResponse.body)
@@ -131,7 +131,7 @@ class GIRISpec
     "handle invalid requests appropriately (missing Pillar2 ID)" in {
       val responseWithoutId = httpClient
         .post(url"$baseUrl/pillar2/test/globe-information-return")
-        .transform(_.withHttpHeaders(hipHeaders: _*))
+        .transform(_.withHttpHeaders(hipHeaders*))
         .withBody(Json.toJson(validGIRRequest))
         .execute[HttpResponse]
         .futureValue

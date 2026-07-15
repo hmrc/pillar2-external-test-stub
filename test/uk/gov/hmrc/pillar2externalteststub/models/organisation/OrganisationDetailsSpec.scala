@@ -92,7 +92,7 @@ class OrganisationDetailsSpec extends AnyWordSpec with Matchers {
       underEnquiry = Some(true)
     )
 
-    val fixedInstant = Instant.parse("2024-01-01T00:00:00Z")
+    val fixedInstant        = Instant.parse("2024-01-01T00:00:00Z")
     val organisationDetails = TestOrganisation(
       orgDetails = orgDetails,
       accountingPeriod = accountingPeriod,
